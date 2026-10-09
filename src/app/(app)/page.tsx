@@ -40,7 +40,7 @@ export default async function DashboardPage() {
     <>
       <PageHeader
         title="Dashboard operacional"
-        description="Situação do armazém calculada em tempo real a partir dos registros operacionais. Passe o cursor no ícone de informação para ver a definição de cada indicador."
+        description="Situação do armazém calculada em tempo real a partir dos registros operacionais. A definição de cálculo de cada indicador está no ícone de informação e na tela Indicadores."
         badges={ctx.user.companyIsDemo ? <DemoBadge /> : undefined}
         actions={quick.map((q) => (
           <ButtonLink key={q.href} href={q.href} size="sm" variant={q.href === "/recebimentos/novo" ? "primary" : "secondary"}>

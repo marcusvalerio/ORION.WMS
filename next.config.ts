@@ -5,6 +5,7 @@ const nextConfig: NextConfig = {
   serverExternalPackages: ["@electric-sql/pglite", "pg"],
   poweredByHeader: false,
   agentRules: false,
+  outputFileTracingIncludes: { "/**": ["./supabase/migrations/*.sql"] },
 };
 
 export default nextConfig;

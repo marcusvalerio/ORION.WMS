@@ -239,7 +239,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                   <tbody>
                     {putawayTasks.map((t) => (
                       <tr key={t.id}>
-                        <td>
+                        <td className="whitespace-nowrap">
                           <Link href={`/tarefas/${t.id}`} className="link">
                             {t.code}
                           </Link>
@@ -247,7 +247,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                         <td>
                           <StatusBadge kind="task" status={t.status} />
                         </td>
-                        <td>
+                        <td className="whitespace-nowrap">
                           {t.sku}
                           {t.lot_code ? <span className="block text-xs text-slate-500">Lote {t.lot_code}</span> : null}
                         </td>

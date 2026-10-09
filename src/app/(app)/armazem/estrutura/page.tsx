@@ -96,7 +96,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
                       <div className="flex items-center gap-3">
                         <OccupancyBar used={z.occupied} capacity={z.capacity} />
                         {manage ? (
-                          <ActionForm action={toggleZoneAction}>
+                          <ActionForm action={toggleZoneAction} confirm={z.active ? `Desativar a zona ${z.code}? Seus endereços deixam de receber armazenagem e reservas.` : undefined}>
                             <input type="hidden" name="_id" value={z.id} />
                             <input type="hidden" name="active" value={String(!z.active)} />
                             <SubmitButton size="sm" variant="ghost">
