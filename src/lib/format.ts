@@ -14,8 +14,13 @@ export function fmtPct(value: number | null | undefined): string {
 
 function toDate(value: string | Date): Date {
   if (value instanceof Date) return value;
-  // Valores vindos do Postgres como texto: "2026-10-09 18:15:00.123+00"
-  return new Date(value.includes("T") || value.length <= 10 ? value : value.replace(" ", "T"));
+  if (value.length <= 10) return new Date(`${value}T00:00:00`);
+  // Valores vindos do Postgres como texto: "2026-10-09 18:15:00.123456+00" → ISO 8601.
+  const iso = value
+    .replace(" ", "T")
+    .replace(/(\.\d{3})\d+/, "$1")
+    .replace(/([+-]\d{2})$/, "$1:00");
+  return new Date(iso);
 }
 
 export function fmtDateTime(value: string | Date | null | undefined): string {
