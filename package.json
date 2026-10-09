@@ -1,0 +1,46 @@
+{
+  "name": "orion-wms",
+  "version": "0.1.0",
+  "private": true,
+  "description": "ORION WMS — módulo de gerenciamento de armazéns integrado ao ERP",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "db:migrate": "tsx --conditions=react-server scripts/db.ts migrate",
+    "db:seed": "tsx --conditions=react-server scripts/db.ts seed",
+    "db:reset": "tsx --conditions=react-server scripts/db.ts reset",
+    "check": "npm run lint && npm run typecheck && npm run test"
+  },
+  "engines": {
+    "node": ">=20.9"
+  },
+  "dependencies": {
+    "@electric-sql/pglite": "^0.5.8",
+    "lucide-react": "^1.54.0",
+    "next": "^16.4.0",
+    "pg": "^8.23.1",
+    "react": "^19.3.0",
+    "react-dom": "^19.3.0",
+    "server-only": "^0.0.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "@types/node": "^22.20.5",
+    "@types/pg": "^8.23.1",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0",
+    "eslint": "^9.39.5",
+    "eslint-config-next": "^16.4.0",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^4.3.3",
+    "tsx": "^4.23.15",
+    "typescript": "^5.9.3",
+    "vitest": "^3.2.7"
+  }
+}
