@@ -1,6 +1,7 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
+import { isDemoMode } from "../demo-mode";
 
 /** Token de sessão: base64url(payload).assinaturaHMAC — sem dados sensíveis no payload. */
 export interface SessionPayload {
@@ -17,6 +18,12 @@ export function getSessionSecret(): string {
     if (fromEnv.length < 32) throw new Error("SESSION_SECRET deve ter ao menos 32 caracteres.");
     cachedSecret = fromEnv;
     return fromEnv;
+  }
+  // Demonstração (ex.: preview da Vercel, disco só leitura): segredo aleatório em memória.
+  // Uma instância nova invalida as sessões antigas, e a entrada automática cobre isso.
+  if (isDemoMode()) {
+    cachedSecret = randomBytes(48).toString("base64url");
+    return cachedSecret;
   }
   if (process.env.NODE_ENV === "production" && process.env.WMS_ALLOW_LOCAL_SECRET !== "true") {
     throw new Error("Defina SESSION_SECRET em produção.");

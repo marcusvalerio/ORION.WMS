@@ -1,5 +1,7 @@
 import "server-only";
+import os from "node:os";
 import path from "node:path";
+import { isDemoMode } from "../demo-mode";
 import { createPgliteDb, createPostgresDb } from "./drivers";
 import { runMigrations } from "./migrate";
 import type { Db } from "./types";
@@ -13,13 +15,19 @@ async function init(): Promise<Db> {
   const url = process.env.DATABASE_URL;
   const db = url
     ? await createPostgresDb(url)
-    : await createPgliteDb(process.env.PGLITE_DATA_DIR ?? path.join(process.cwd(), ".data", "pglite"));
+    : await createPgliteDb(process.env.PGLITE_DATA_DIR ?? defaultPgliteDir());
   await runMigrations(db);
   if (process.env.WMS_AUTO_SEED !== "false") {
     const { seedDemoIfEmpty } = await import("../seed/demo");
     await seedDemoIfEmpty(db);
   }
   return db;
+}
+
+/** Em demonstração/Vercel o diretório do projeto é só leitura: usa o temporário do sistema. */
+function defaultPgliteDir(): string {
+  if (isDemoMode() || process.env.VERCEL) return path.join(os.tmpdir(), "orion-pglite");
+  return path.join(process.cwd(), ".data", "pglite");
 }
 
 /** Conexão única por processo (sobrevive ao hot reload em desenvolvimento). */

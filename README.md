@@ -49,6 +49,7 @@ Veja [`.env.example`](.env.example). Nenhuma é obrigatória em desenvolvimento.
 | `PGLITE_DATA_DIR` | Diretório do banco embarcado (padrão `.data/pglite`). |
 | `SESSION_SECRET` | Segredo (≥ 32 caracteres) do cookie de sessão. **Obrigatório em produção.** Em desenvolvimento, um segredo aleatório é gerado em `.data/session-secret`. |
 | `WMS_AUTO_SEED` | `false` desliga a carga automática dos dados de demonstração. |
+| `WMS_DEMO_MODE` | `true`: abre sem login, como a administradora de demonstração, com banco PGlite temporário e sem `SESSION_SECRET`. Sem a variável, liga sozinho no **preview da Vercel** quando não há `DATABASE_URL`; `false` desliga. Os dados voltam ao inicial quando o servidor reinicia. |
 
 ### Scripts
 

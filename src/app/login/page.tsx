@@ -1,5 +1,7 @@
+import Link from "next/link";
 import { redirect } from "next/navigation";
-import { getSessionUser } from "@/server/auth/session";
+import { getLoggedUser } from "@/server/auth/session";
+import { isDemoMode } from "@/server/demo-mode";
 import { getDb } from "@/server/db";
 import { listDemoUsers } from "@/server/auth/users";
 import { LoginForm } from "./login-form";
@@ -9,7 +11,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrar" };
 
 export default async function LoginPage() {
-  if (await getSessionUser()) redirect("/");
+  if (await getLoggedUser()) redirect("/");
   const demoUsers = await listDemoUsers(await getDb());
   return (
     <div className="flex min-h-dvh items-center justify-center bg-slate-100 px-4 py-10">
@@ -26,6 +28,12 @@ export default async function LoginPage() {
           <p className="mt-1 text-sm text-slate-500">Use suas credenciais corporativas.</p>
           <LoginForm demoUsers={demoUsers.map((u) => ({ ...u, roleLabel: ROLE_LABELS[u.role as Role] }))} />
         </div>
+        {isDemoMode() ? (
+          <p className="mt-4 text-center text-xs text-slate-500">
+            Modo demonstração: sem login, o sistema abre como administradora.{" "}
+            <Link href="/" className="font-medium text-brand-700 hover:underline">Voltar ao sistema</Link>
+          </p>
+        ) : null}
         {demoUsers.length ? (
           <p className="mt-4 text-center text-xs text-slate-500">
             Ambiente com <strong>dados de demonstração</strong> (empresa fictícia MetalSupply Componentes).

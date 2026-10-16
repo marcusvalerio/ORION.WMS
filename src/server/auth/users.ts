@@ -29,3 +29,12 @@ export async function listDemoUsers(db: Queryable) {
      order by array_position(array['admin','supervisor','operator','auditor'], role)`,
   );
 }
+
+/** Administradora da empresa de demonstração (só usuários `is_demo`). */
+export async function loadDemoAdmin(db: Queryable): Promise<SessionUser | null> {
+  const [row] = await db.query<{ id: string }>(
+    `select u.id from wms.users u join erp.companies c on c.id = u.company_id
+     where u.is_demo and c.is_demo and u.active and u.role = 'admin' order by u.created_at limit 1`,
+  );
+  return row ? loadSessionUser(db, row.id) : null;
+}
