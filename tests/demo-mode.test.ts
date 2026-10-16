@@ -6,7 +6,7 @@ import { createTestEnv, type TestEnv } from "./helpers";
 describe("Modo demonstração", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("liga sozinho só no preview da Vercel sem DATABASE_URL", () => {
+  it("liga sozinho na Vercel sem DATABASE_URL", () => {
     vi.stubEnv("WMS_DEMO_MODE", "");
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("VERCEL_ENV", "preview");
@@ -15,6 +15,8 @@ describe("Modo demonstração", () => {
     expect(isDemoMode()).toBe(false);
     vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("VERCEL_ENV", "production");
+    expect(isDemoMode()).toBe(true);
+    vi.stubEnv("VERCEL_ENV", "");
     expect(isDemoMode()).toBe(false);
   });
 
