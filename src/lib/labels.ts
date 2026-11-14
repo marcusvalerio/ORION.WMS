@@ -51,6 +51,8 @@ export const STATUS: Record<"receipt" | "task" | "outbound" | "inventory" | "div
     pending: { label: "Na fila", tone: "warning" },
     sent: { label: "Enviado", tone: "success" },
     failed: { label: "Falhou", tone: "danger" },
+    sending: { label: "Enviando", tone: "progress" },
+    discarded: { label: "Descartado", tone: "neutral" },
   },
 };
 
@@ -180,4 +182,11 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "user.password_changed": "Senha alterada pelo usuário",
   "user.warehouses_updated": "Depósitos do usuário alterados",
   "settings.updated": "Configurações do WMS alteradas",
+  "company.updated": "Dados da empresa alterados",
+  "company.atlas_linked": "Empresa vinculada ao ATLAS.ERP",
+  "company.atlas_synced": "Empresa sincronizada com o ATLAS.ERP",
+  "company.atlas_unlinked": "Vínculo com o ATLAS.ERP removido",
+  "integration.processed": "Fila de integração processada",
+  "integration.retried": "Evento de integração reenviado",
+  "integration.discarded": "Evento de integração descartado",
 };

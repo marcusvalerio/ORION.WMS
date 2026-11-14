@@ -2,6 +2,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { getDb } from "@/server/db";
 import { buildReport, REPORTS, toCsv } from "@/server/services/reports";
+import { companyHeaderLines, getCompanyProfile } from "@/server/services/company";
 import { DomainError, PermissionError, toUserMessage } from "@/server/errors";
 
 export const dynamic = "force-dynamic";
@@ -14,9 +15,19 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   if (user.mustChangePassword) return NextResponse.json({ error: "Troca de senha obrigatória." }, { status: 403 });
   if (!(report in REPORTS)) return NextResponse.json({ error: "Relatório inexistente." }, { status: 404 });
   try {
-    const table = await buildReport({ db: await getDb(), user }, report, request.nextUrl.searchParams);
+    const db = await getDb();
+    const table = await buildReport({ db, user }, report, request.nextUrl.searchParams);
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
-    return new NextResponse(toCsv(table), {
+    // Identificação da empresa (razão social, CNPJ e endereço) antes do cabeçalho; ?cabecalho=0 omite.
+    const preamble =
+      request.nextUrl.searchParams.get("cabecalho") === "0"
+        ? []
+        : [
+            ...companyHeaderLines(await getCompanyProfile(db, user.companyId)).map((line) => [line]),
+            [`${REPORTS[report as keyof typeof REPORTS]} — gerado em ${new Date().toLocaleString("pt-BR", { timeZone: "America/Sao_Paulo" })}`],
+            [],
+          ];
+    return new NextResponse(toCsv(table, preamble), {
       headers: {
         "Content-Type": "text/csv; charset=utf-8",
         "Content-Disposition": `attachment; filename="orion-${report}-${stamp}.csv"`,

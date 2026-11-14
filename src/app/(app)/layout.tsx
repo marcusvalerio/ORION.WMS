@@ -2,6 +2,7 @@ import Link from "next/link";
 import { redirect } from "next/navigation";
 import { KeyRound, LogOut, Smartphone } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
+import { getCompanyProfile } from "@/server/services/company";
 import { logoutAction } from "@/server/actions/auth";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopSearch } from "@/components/layout/top-search";
@@ -12,16 +13,19 @@ import { PERMISSIONS, ROLE_LABELS, can, type Permission } from "@/lib/permission
 export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user } = await requireCtx();
+  const { user, db } = await requireCtx();
   if (user.mustChangePassword) redirect("/trocar-senha");
+  const company = await getCompanyProfile(db, user.companyId);
+  const companyTitle = [company.legal_name, company.document_formatted ? `CNPJ ${company.document_formatted}` : null].filter(Boolean).join(" — ");
   const allowed = (Object.keys(PERMISSIONS) as Permission[]).filter((p) => can(user.role, p));
   return (
     <div className="min-h-dvh">
       <Sidebar allowed={allowed} />
       <div className="lg:pl-60">
         <header className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-slate-200 bg-white/90 px-6 backdrop-blur lg:flex">
-          <div className="flex items-center gap-2 text-sm">
+          <div className="flex items-center gap-2 text-sm" title={companyTitle || undefined}>
             <span className="font-medium text-slate-800">{user.companyName}</span>
+            {company.document_formatted ? <span className="text-xs text-slate-500">CNPJ {company.document_formatted}</span> : null}
             {user.companyIsDemo ? <DemoBadge /> : null}
           </div>
           <TopSearch className="mx-6 w-full max-w-md" />

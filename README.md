@@ -50,6 +50,12 @@ Veja [`.env.example`](.env.example). Nenhuma é obrigatória em desenvolvimento.
 | `SESSION_SECRET` | Segredo (≥ 32 caracteres) do cookie de sessão. **Obrigatório em produção.** Em desenvolvimento, um segredo aleatório é gerado em `.data/session-secret`. |
 | `WMS_AUTO_SEED` | `false` desliga a carga automática dos dados de demonstração. |
 | `WMS_DEMO_MODE` | `true`: abre sem login, como a administradora de demonstração, com banco PGlite temporário e sem `SESSION_SECRET`. Sem a variável, liga sozinho na **Vercel** (preview e produção) quando não há `DATABASE_URL`; `false` desliga. Os dados voltam ao inicial quando o servidor reinicia. |
+| `ATLAS_DATABASE_URL` | Conexão Postgres **somente leitura** com o banco do ATLAS.ERP, para importar os dados da empresa. Só no servidor. Sem ela, os dados são editados manualmente. |
+| `ERP_OUTBOX_TRANSPORT` | `local` ou `http`. Sem a variável: `http` se `ERP_WEBHOOK_URL` existir, senão `local`. |
+| `ERP_WEBHOOK_URL` | Endpoint do ERP que recebe os eventos da outbox (POST JSON assinado). |
+| `ERP_WEBHOOK_SECRET` | Segredo (≥ 16 caracteres) da assinatura HMAC-SHA256 dos eventos. |
+| `ERP_WEBHOOK_TIMEOUT_MS` | Tempo máximo de cada envio (padrão 10000). |
+| `CRON_SECRET` | Token (≥ 16 caracteres) que protege `/api/integracao/processar`. |
 
 ### Scripts
 
@@ -94,13 +100,15 @@ supabase/migrations/       Migrations SQL versionadas (ERP, WMS, RLS)
 scripts/db.ts              migrate / seed / reset
 src/app/(app)/             Telas autenticadas (uma pasta por módulo)
 src/app/api/relatorios/    Exportação CSV protegida
+src/app/api/health/        Saúde (pública, sem dados sensíveis)
+src/app/api/integracao/    Processamento da outbox (CRON_SECRET)
 src/components/            UI (design system), formulários, componentes WMS
 src/lib/                   Permissões, rótulos, formatação (compartilhados)
 src/server/db/             Drivers (PGlite/Postgres), migrations, conexão
 src/server/auth/           Senha (scrypt), token HMAC, sessão
 src/server/services/       Regras de negócio e operações transacionais
 src/server/actions/        Server Actions (camada fina sobre os serviços)
-src/server/integrations/   Gateway do ERP
+src/server/integrations/   Gateway do ERP, conector ATLAS (somente leitura) e outbox
 src/server/seed/           Dados de demonstração
 tests/                     Testes funcionais e de integridade
 ```
@@ -119,3 +127,60 @@ Detalhes, limitações e próximos passos: [`docs/RELATORIO-MVP.md`](docs/RELATO
 - **Acesso por depósito** (`wms.user_warehouses`): sem depósitos marcados, o usuário acessa todos; com depósitos marcados, só vê e opera estoque, movimentações, endereços, tarefas, recebimentos, pedidos de saída, expedições e inventários desses depósitos.
 - **Gestão › Configurações** (administrador): parâmetros do WMS por empresa (`wms.company_settings`). Primeiro parâmetro: *segregação de funções no inventário* (ligado por padrão) — quem registrou contagem não aprova o mesmo inventário.
 - **Gestão › Produtividade** (administrador, supervisor, auditor): por operador e período — tarefas concluídas por tipo, tempo médio (início → conclusão), unidades movimentadas, itens separados, linhas conferidas e acuracidade de separação; exportação CSV em `/api/relatorios/produtividade`.
+## Integração com o ATLAS.ERP e operação
+
+### Dados da empresa (ATLAS.ERP, somente leitura)
+
+*Gestão › Dados da empresa* (administrador) mostra razão social, CNPJ, contato e endereço usados no cabeçalho, no topo dos CSV de relatórios e nas etiquetas de expedição (`getCompanyProfile` em `src/server/services/company.ts`).
+
+- **Sem `ATLAS_DATABASE_URL`**: a tela explica a configuração e os dados são editados manualmente (CNPJ validado pelos dígitos verificadores, UF e CEP normalizados).
+- **Buscar no ERP**: lista as empresas `active` de `public.companies` do ATLAS (nome, razão social, CNPJ). *Vincular* copia os dados e grava a origem `atlas`, o id externo e a data da sincronização. Empresa inativa ou com CNPJ inválido é recusada.
+- **Sincronizar agora**: mostra campo a campo o que mudou e só grava após a confirmação. Se o registro no ATLAS mudar entre a pré-visualização e a confirmação, a gravação é recusada para nova revisão. Vínculo, sincronização, edição e desvínculo ficam na auditoria.
+- O WMS **nunca escreve no ATLAS**: toda leitura roda em `SET TRANSACTION READ ONLY` e só a tabela `public.companies` é consultada.
+
+Crie no banco do ATLAS um usuário com acesso apenas a essa tabela:
+
+```sql
+-- Execute no banco do ATLAS.ERP como superusuário/dono do schema
+create role orion_wms_reader login password '<senha forte>';
+grant connect on database <banco_atlas> to orion_wms_reader;
+grant usage on schema public to orion_wms_reader;
+grant select on public.companies to orion_wms_reader;   -- nenhuma outra tabela
+alter role orion_wms_reader set default_transaction_read_only = on;
+```
+
+E configure no servidor do WMS (nunca com prefixo `NEXT_PUBLIC_`):
+
+```
+ATLAS_DATABASE_URL=postgres://orion_wms_reader:<senha>@<host-atlas>:5432/<banco_atlas>?sslmode=require
+```
+
+### Processador da outbox (`wms.integration_events`)
+
+Cada operação grava seus eventos na mesma transação (`receipt.completed`, `outbound.shipped`). O processador (`src/server/integrations/outbox/`) os entrega por um transporte plugável:
+
+| Transporte | Comportamento |
+| --- | --- |
+| `local` (padrão) | Aplica o evento no schema `erp` deste banco (status do pedido de compra/venda), na mesma transação que marca o evento como enviado. Idempotente. |
+| `http` | `POST` JSON para `ERP_WEBHOOK_URL` com timeout. Cabeçalhos: `Idempotency-Key` e `X-Orion-Event-Id` (= id do evento; o ERP deve ignorar ids repetidos), `X-Orion-Timestamp` e `X-Orion-Signature: sha256=<hex>`, que é o HMAC-SHA256 de `"<timestamp>.<corpo>"` com `ERP_WEBHOOK_SECRET`. Qualquer resposta fora de 2xx conta como falha. |
+
+Status: **Na fila** → **Enviando** → **Enviado**. Em caso de falha o evento volta para a fila com backoff exponencial (30 s, 1 min, 2 min… até 1 h). Depois de 8 tentativas fica como **Falhou**. Cada evento guarda o último erro, a próxima tentativa e o número de tentativas. A reserva usa `FOR UPDATE SKIP LOCKED`, então dois processadores nunca pegam o mesmo evento. Um evento preso em “Enviando” por mais de 5 min volta a ser elegível.
+
+*Gestão › Integração* tem filtros, payload, contadores por status e o botão **Processar fila** (supervisor/admin). **Reenviar** e **Descartar com motivo** são exclusivos do administrador e ficam auditados.
+
+**Processamento agendado**: `POST /api/integracao/processar` (também aceita `GET`) com `Authorization: Bearer <CRON_SECRET>`. Sem `CRON_SECRET` a rota responde 503; com token errado, 401. No Vercel, defina `CRON_SECRET` no projeto e acrescente ao `vercel.json`:
+
+```json
+{ "crons": [{ "path": "/api/integracao/processar", "schedule": "*/5 * * * *" }] }
+```
+
+O Vercel Cron envia o cabeçalho `Authorization: Bearer $CRON_SECRET` automaticamente. No plano Hobby o cron roda no máximo uma vez por dia; use um agendador externo (`curl -X POST -H "Authorization: Bearer $CRON_SECRET" https://<app>/api/integracao/processar`) se precisar de mais frequência.
+
+### Saúde do sistema
+
+- `GET /api/health` (pública, para monitoramento): `status` (`ok` / `degraded` / `error`), versão, banco (ok e latência), migrations aplicadas/disponíveis/pendentes e tamanho da fila (na fila e com falha). Não expõe hosts, segredos nem dados de empresa. Responde 503 quando o banco está indisponível.
+- *Gestão › Saúde* (administrador): o mesmo com detalhes (driver, migrations pendentes, fila por status, evento mais antigo e se `ATLAS_DATABASE_URL`, transporte e `CRON_SECRET` estão configurados, sem mostrar valores).
+
+### CI
+
+`.github/workflows/ci.yml` roda em todo push e pull request (Node 22, cache do npm): `npm ci`, `npm run check` (lint + typecheck + testes) e `npm run build` com `WMS_DEMO_MODE=true`.

@@ -38,11 +38,11 @@ export async function createPgliteDb(dataDir?: string): Promise<Db> {
 const RETRYABLE = new Set(["40001", "40P01"]); // serialization_failure, deadlock_detected
 
 /** PostgreSQL/Supabase via DATABASE_URL (somente servidor). */
-export async function createPostgresDb(connectionString: string): Promise<Db> {
+export async function createPostgresDb(connectionString: string, options: { max?: number; statementTimeoutMs?: number } = {}): Promise<Db> {
   const { default: pgLib } = await import("pg");
   pgLib.types.setTypeParser(NUMERIC_OID, toNumber);
   pgLib.types.setTypeParser(INT8_OID, toNumber);
-  const pool = new pgLib.Pool({ connectionString, max: 10 });
+  const pool = new pgLib.Pool({ connectionString, max: options.max ?? 10, statement_timeout: options.statementTimeoutMs });
 
   return {
     driver: "postgres",

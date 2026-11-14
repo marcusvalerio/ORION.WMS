@@ -41,6 +41,10 @@ export const PERMISSIONS = {
   "users.manage": ["admin"],
   "settings.manage": ["admin"],
   "productivity.view": ["admin", "supervisor", "auditor"],
+  "company.manage": ["admin"],
+  "integration.process": MANAGERS,
+  "integration.manage": ["admin"],
+  "system.health": ["admin"],
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

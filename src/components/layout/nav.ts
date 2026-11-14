@@ -48,6 +48,9 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Usuários", href: "/usuarios", icon: "Users", permission: "users.manage" },
       { label: "Produtividade", href: "/produtividade", icon: "Activity", permission: "productivity.view" },
       { label: "Configurações", href: "/configuracoes", icon: "Settings", permission: "settings.manage" },
+      { label: "Integração", href: "/integracao", icon: "RefreshCw", permission: "audit.view" },
+      { label: "Dados da empresa", href: "/empresa", icon: "Building2", permission: "company.manage" },
+      { label: "Saúde", href: "/saude", icon: "HeartPulse", permission: "system.health" },
     ],
   },
 ];
