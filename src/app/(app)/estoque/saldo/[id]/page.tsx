@@ -50,6 +50,7 @@ export default async function BalancePage({ params }: { params: Promise<{ id: st
                   ["Endereço", <Link key="l" href={`/armazem/enderecos/${b.location_id}`} className="link font-mono text-xs">{b.location_code}</Link>],
                   ["Produto", <Link key="p" href={`/produtos/${b.product_id}`} className="link">{b.sku}</Link>],
                   ["Lote", b.lot_code || "—"],
+                  ["País de origem do lote", b.origin_country ?? "—"],
                   ["Validade", fmtDate(b.expiry_date)],
                   ["Físico", fmtQty(b.quantity)],
                   ["Reservado", fmtQty(b.reserved_qty)],
