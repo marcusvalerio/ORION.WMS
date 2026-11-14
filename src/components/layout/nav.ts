@@ -45,6 +45,9 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Relatórios", href: "/relatorios", icon: "FileChartColumn" },
       { label: "Indicadores", href: "/indicadores", icon: "Gauge" },
       { label: "Auditoria", href: "/auditoria", icon: "ShieldCheck", permission: "audit.view" },
+      { label: "Usuários", href: "/usuarios", icon: "Users", permission: "users.manage" },
+      { label: "Produtividade", href: "/produtividade", icon: "Activity", permission: "productivity.view" },
+      { label: "Configurações", href: "/configuracoes", icon: "Settings", permission: "settings.manage" },
     ],
   },
 ];

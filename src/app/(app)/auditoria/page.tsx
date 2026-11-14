@@ -30,6 +30,7 @@ const ENTITY_LABELS: Record<string, string> = {
   divergence: "Divergência",
   task: "Tarefa",
   user: "Usuário",
+  company_settings: "Configurações",
 };
 
 const ENTITY_HREF: Record<string, string> = {
@@ -40,6 +41,7 @@ const ENTITY_HREF: Record<string, string> = {
   product: "/produtos/",
   task: "/tarefas/",
   stock_balance: "/estoque/saldo/",
+  user: "/usuarios/",
 };
 
 export default async function AuditPage({ searchParams }: { searchParams: SearchParams }) {

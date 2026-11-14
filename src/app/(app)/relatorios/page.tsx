@@ -23,6 +23,7 @@ const DESCRIPTIONS: Record<ReportKey, string> = {
   inventarios: "Sessões de inventário, escopo, itens contados e diferenças.",
   pedidos: "Pedidos de saída em separação e seu progresso por etapa.",
   expedicoes: "Expedições confirmadas com transportadora, documento e quantidades.",
+  produtividade: "Tarefas, unidades movimentadas, tempo médio, separação e conferência por operador (últimos 30 dias).",
 };
 
 const DEEP_LINKS: Partial<Record<ReportKey, string>> = {
@@ -34,6 +35,7 @@ const DEEP_LINKS: Partial<Record<ReportKey, string>> = {
   inventarios: "/inventario",
   pedidos: "/separacao",
   expedicoes: "/expedicao",
+  produtividade: "/produtividade",
 };
 
 export default async function ReportsPage({ searchParams }: { searchParams: SearchParams }) {

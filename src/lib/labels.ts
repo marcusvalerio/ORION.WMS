@@ -172,4 +172,12 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "product.packaging_deactivated": "Unidade logística desativada",
   "auth.login": "Login",
   "auth.logout": "Logout",
+  "user.created": "Usuário criado",
+  "user.updated": "Usuário alterado",
+  "user.activated": "Usuário ativado",
+  "user.deactivated": "Usuário inativado",
+  "user.password_reset": "Senha redefinida pelo administrador",
+  "user.password_changed": "Senha alterada pelo usuário",
+  "user.warehouses_updated": "Depósitos do usuário alterados",
+  "settings.updated": "Configurações do WMS alteradas",
 };
