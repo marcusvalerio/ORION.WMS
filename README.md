@@ -195,3 +195,13 @@ O Vercel Cron envia o cabeçalho `Authorization: Bearer $CRON_SECRET` automatica
 - **Cancelamento após a separação**: supervisor/admin (`outbound.cancel_picking`) cancela pedido ou linha em separação/separado/conferido; tarefas abertas são canceladas, reservas no endereço liberadas e o que já foi separado gera **tarefa de devolução** (movimento `return`). Evento `outbound.cancelled`/`outbound.line_cancelled` na outbox.
 - **Curva ABC** (*Gestão › Curva ABC*): giro por unidades ou linhas separadas nos últimos N dias, cortes A/B configuráveis (padrão 80/15/5), gráfico e tabela; sugestões de reendereçamento de itens A para endereços de picking/níveis baixos, com geração de transferência.
 - **Número de série**: produtos com controle de série (demo: SEN-005) exigem as séries na separação e a leitura das mesmas séries na expedição; série duplicada em estoque é barrada pelo banco.
+
+## Comércio exterior e produção (Frente F)
+
+Migration `20261114000006_comex_production.sql`. Arquitetura e eventos do ecossistema em [`docs/ECOSSISTEMA.md`](docs/ECOSSISTEMA.md).
+
+- **Importação** (card "Importação" no recebimento): DI/DUIMP, Incoterm 2020, país de origem (ISO 3166 alfa-2), contêiner (dígito ISO 6346 validado no servidor e no banco), lacre e NCM por item (8 dígitos). Com "reter até o desembaraço" o recebimento não é liberado para armazenagem até um supervisor registrar o desembaraço (`customs.clear`); o banco também impede. O país de origem segue o lote (`wms.lot_origins`) e aparece na consulta de estoque, no saldo e no packing list. Evento `import.cleared`.
+- **Exportação** (card "Exportação" no pedido de saída): Incoterm, destino, invoice e RE/DU-E; volumes com pesos e dimensões (nunca acima do separado); packing list bilíngue em `/etiquetas/packing-list/[id]` e etiqueta de volume bilíngue em `/etiquetas/volumes/[id]`; estufagem com contêiner ISO 6346 e lacre. Pedido de exportação só é expedido com o packing list fechado. Evento `export.packed`.
+- **Produção** (`/producao`): requisição a partir da ordem de produção do ERP, reserva FEFO (tudo ou nada configurável), tarefas de separação até o endereço da linha (zona tipo "Produção"), entrega à linha com confirmação, devolução de sobras e entrada do produto acabado com o lote da ordem, que vira armazenagem normal. Eventos `production.materials_delivered`, `production.leftovers_returned`, `production.output_received`.
+- Permissões novas: `comex.manage`, `customs.clear`, `production.manage` (admin/supervisor); `export.pack`, `production.operate` (operacionais).
+- Seed: NCM nos produtos, zona `PRD` com a linha `DEP-01/RUA-PR/...`, produto acabado `SUP-006` e a ordem `OP-2026-001` (5 un; componentes CHP-004 ×5 e LUB-002 ×2), sem requisição nem reserva.
