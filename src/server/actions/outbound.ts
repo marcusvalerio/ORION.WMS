@@ -50,7 +50,9 @@ export async function shipOrderAction(_: ActionState, fd: FormData) {
 
 export async function cancelOrderAction(_: ActionState, fd: FormData) {
   return runAction(fd, async ({ ctx, data, id }) => {
-    await outbound.cancelOrder(ctx, id, data);
-    return "Pedido cancelado e reservas liberadas.";
+    const r = await outbound.cancelOrder(ctx, id, data);
+    return r.returns.length
+      ? `Pedido cancelado. Reservas liberadas e devolução ao endereço gerada: ${r.returns.join(", ")}.`
+      : "Pedido cancelado e reservas liberadas.";
   });
 }

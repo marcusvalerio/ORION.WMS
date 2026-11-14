@@ -110,3 +110,11 @@ tests/                     Testes funcionais e de integridade
 3. As políticas RLS são criadas automaticamente quando o schema `auth` existe. Os schemas `erp` e `wms` não são expostos pela API REST por padrão; toda escrita passa pelo servidor.
 
 Detalhes, limitações e próximos passos: [`docs/RELATORIO-MVP.md`](docs/RELATORIO-MVP.md).
+
+## Saída, reposição e slotting (Frente D)
+
+- **Ondas** (*Operações › Ondas*): agrupe pedidos reservados por doca, transportadora, data prevista (planejamento no pedido) ou seleção manual. Liberar a onda consolida as reservas em tarefas por endereço/produto/lote, com a quantidade de cada pedido (`wms.task_allocations`) e sequência de roteiro (rua → módulo em serpentina → nível → posição). Separada a onda, cada pedido é **distribuído** na doca e segue para a conferência individual. Um pedido fica em no máximo uma onda ativa (índice único).
+- **Reposição** (*Operações › Reposição*): mínimo/máximo por produto em endereço de zona de picking. Tarefas de reposição (pulmão → picking, FEFO, até o máximo) são geradas após separação, ajuste e expedição ou pelo botão *Verificar reposição*, sem duplicar tarefa aberta por endereço. Falta encontrada na separação em endereço de picking gera **reposição de emergência** (prioridade alta). Demonstração: LUB-002 em `RUA-PK/MOD-01` (mín. 10, máx. 20).
+- **Cancelamento após a separação**: supervisor/admin (`outbound.cancel_picking`) cancela pedido ou linha em separação/separado/conferido; tarefas abertas são canceladas, reservas no endereço liberadas e o que já foi separado gera **tarefa de devolução** (movimento `return`). Evento `outbound.cancelled`/`outbound.line_cancelled` na outbox.
+- **Curva ABC** (*Gestão › Curva ABC*): giro por unidades ou linhas separadas nos últimos N dias, cortes A/B configuráveis (padrão 80/15/5), gráfico e tabela; sugestões de reendereçamento de itens A para endereços de picking/níveis baixos, com geração de transferência.
+- **Número de série**: produtos com controle de série (demo: SEN-005) exigem as séries na separação e a leitura das mesmas séries na expedição; série duplicada em estoque é barrada pelo banco.

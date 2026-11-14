@@ -11,16 +11,21 @@ import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card
 import { Alert } from "@/components/ui/alert";
 import { DemoBadge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
 import { Stepper } from "@/components/ui/stepper";
-import { Field, Input } from "@/components/ui/fields";
+import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { TaskTable } from "@/components/wms/task-table";
 import { HistoryList } from "@/components/wms/history";
 import { DivergenceList } from "@/components/wms/divergence-list";
-import { fmtDateTime, fmtQty } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
 import { cn } from "@/components/ui/cn";
+import { cancelOrderLineAction, setOrderPlanningAction } from "@/server/actions/fulfillment";
+import { listDocks } from "@/server/services/waves";
+import { serialsOfOrder } from "@/server/services/serials";
+import { Badge } from "@/components/ui/badge";
+import { Textarea } from "@/components/ui/fields";
 
 export const metadata = { title: "Pedido de saída" };
 
@@ -32,11 +37,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const ctx = await requireCtx();
   const o = await getOrder(ctx, id);
   if (!o) notFound();
-  const [tasks, divergences, history] = await Promise.all([
+  const [tasks, divergences, history, docks, serials, returns] = await Promise.all([
     listTasks(ctx, { q: o.code, type: "picking", pageSize: 100, sort: "code" }),
     listDivergences(ctx, { orderId: id }),
     entityHistory(ctx, "outbound_order", id),
+    listDocks(ctx),
+    serialsOfOrder(ctx, id),
+    listTasks(ctx, { q: o.code, type: "return", pageSize: 100, sort: "code" }),
   ]);
+  const activeLines = o.lines.filter((l) => !l.cancelled_at);
+  const canCancelLine = can(ctx.user.role, "outbound.cancel_picking") && ["open", "reserved", "picking", "picked", "checked"].includes(o.status);
+  const returnTasks = returns.rows.filter((t) => t.order_id === id);
   const role = ctx.user.role;
   const pickTasks = tasks.rows.filter((t) => t.order_id === id);
   const shortage = o.lines.filter((l) => l.available_now < l.requested_qty);
@@ -67,7 +78,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               ["Separado em", fmtDateTime(o.picked_at)],
               ["Conferido em", fmtDateTime(o.checked_at)],
               ["Expedido em", fmtDateTime(o.shipped_at)],
+              ["Transportadora", o.carrier],
+              ["Expedição prevista", o.planned_ship_date ? fmtDate(o.planned_ship_date) : null],
+              ["Onda", o.wave_id ? <Link key="w" href={`/ondas/${o.wave_id}`} className="link">{o.wave_code}</Link> : null],
               ["Observações", o.notes],
+              ["Motivo do cancelamento", o.cancel_reason],
             ]}
           />
         </CardBody>
@@ -88,6 +103,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     <th className="num">Separado</th>
                     <th className="num">Conferido</th>
                     <th className="num">Expedido</th>
+                    {canCancelLine ? <th /> : null}
                   </tr>
                 </thead>
                 <tbody>
@@ -96,6 +112,10 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       <td>
                         <span className="font-medium">{l.sku}</span>
                         <span className="block text-xs text-slate-500">{l.description}</span>
+                        {l.serial_controlled ? <Badge tone="info">Nº de série</Badge> : null}
+                        {l.cancelled_at ? (
+                          <span className="block text-xs text-red-600">Cancelada: {l.cancel_reason}</span>
+                        ) : null}
                       </td>
                       <td className="num">
                         {fmtQty(l.requested_qty)} {l.uom}
@@ -107,6 +127,24 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                       <td className="num">{fmtQty(l.picked_qty)}</td>
                       <td className="num">{fmtQty(l.checked_qty)}</td>
                       <td className="num font-medium">{fmtQty(l.shipped_qty)}</td>
+                      {canCancelLine ? (
+                        <td className="text-right">
+                          {!l.cancelled_at && activeLines.length > 0 ? (
+                            <ActionForm
+                              action={cancelOrderLineAction}
+                              confirm={`Cancelar a linha ${l.sku}? O que já foi separado volta ao endereço por tarefa de devolução.`}
+                              className="flex items-center justify-end gap-1"
+                            >
+                              <input type="hidden" name="_id" value={id} />
+                              <input type="hidden" name="lineId" value={l.id} />
+                              <Input name="reason" required minLength={5} placeholder="Motivo" aria-label={`Motivo do cancelamento de ${l.sku}`} className="w-32" />
+                              <SubmitButton size="sm" variant="danger">
+                                Cancelar
+                              </SubmitButton>
+                            </ActionForm>
+                          ) : null}
+                        </td>
+                      ) : null}
                     </tr>
                   ))}
                 </tbody>
@@ -128,7 +166,15 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </CardBody>
             ) : null}
 
-            {o.status === "reserved" && can(role, "outbound.reserve") ? (
+            {o.status === "reserved" && can(role, "outbound.reserve") && o.wave_id ? (
+              <CardBody className="border-t border-slate-100">
+                <Alert level="info">
+                  Pedido na onda <Link href={`/ondas/${o.wave_id}`} className="link">{o.wave_code}</Link>: a separação é liberada pela onda.
+                </Alert>
+              </CardBody>
+            ) : null}
+
+            {o.status === "reserved" && can(role, "outbound.reserve") && !o.wave_id ? (
               <CardBody className="border-t border-slate-100">
                 <ActionForm action={releasePickingAction}>
                   <input type="hidden" name="_id" value={id} />
@@ -144,7 +190,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <ActionForm action={checkOrderAction} className="space-y-3">
                   <input type="hidden" name="_id" value={id} />
                   <div className="grid gap-3 sm:grid-cols-2">
-                    {o.lines.map((l, idx) => (
+                    {activeLines.map((l, idx) => (
                       <Field key={l.id} label={`${l.sku} — conferido (separado: ${fmtQty(l.picked_qty)})`} required>
                         <input type="hidden" name={`lines.${idx}.lineId`} value={l.id} />
                         <Input name={`lines.${idx}.checkedQty`} type="number" min={0} step="any" required />
@@ -176,6 +222,19 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                   <Field label="Documento (NF/romaneio)">
                     <Input name="documentRef" maxLength={60} />
                   </Field>
+                  {activeLines
+                    .filter((l) => l.serial_controlled && l.checked_qty > 0)
+                    .map((l) => (
+                      <Field
+                        key={l.id}
+                        label={`Séries lidas — ${l.sku} (${fmtQty(l.checked_qty)})`}
+                        hint="Uma por linha. Precisam ser exatamente as séries separadas."
+                        required
+                        className="sm:col-span-3"
+                      >
+                        <Textarea name={`serials.${l.id}`} required />
+                      </Field>
+                    ))}
                   <div className="sm:col-span-3">
                     <SubmitButton variant="success">Confirmar expedição</SubmitButton>
                   </div>
@@ -229,6 +288,39 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </Card>
           ) : null}
 
+          {serials.length ? (
+            <Card>
+              <CardHeader title={`Números de série (${serials.length})`} />
+              <TableWrap>
+                <table className="table-base">
+                  <thead>
+                    <tr>
+                      <th>Produto</th>
+                      <th>Série</th>
+                      <th>Situação</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {serials.map((s) => (
+                      <tr key={`${s.sku}-${s.serial}`}>
+                        <td>{s.sku}</td>
+                        <td className="code">{s.serial}</td>
+                        <td>{s.status === "shipped" ? "Expedida" : s.status === "picked" ? "Separada (doca)" : "Em estoque"}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </TableWrap>
+            </Card>
+          ) : null}
+
+          {returnTasks.length ? (
+            <Card>
+              <CardHeader title="Devoluções ao endereço" description="Geradas pelo cancelamento após a separação. O volume fica reservado na doca até a devolução." />
+              <TaskTable rows={returnTasks} />
+            </Card>
+          ) : null}
+
           {pickTasks.length ? (
             <Card>
               <CardHeader title="Tarefas de separação" description="Execute pela central de tarefas. Ao concluir todas, o pedido passa a Separado." />
@@ -249,7 +341,42 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           </Card>
           {["open", "reserved"].includes(o.status) && can(role, "outbound.reserve") ? (
             <Card>
-              <CardHeader title="Cancelar pedido" description="Permitido antes da separação. Reservas são liberadas." />
+              <CardHeader title="Planejamento de saída" description="Usado para agrupar o pedido em ondas (doca, transportadora, data)." />
+              <CardBody>
+                <ActionForm action={setOrderPlanningAction} className="space-y-3">
+                  <input type="hidden" name="_id" value={id} />
+                  <Field label="Transportadora">
+                    <Input name="carrier" defaultValue={o.carrier ?? ""} maxLength={120} />
+                  </Field>
+                  <Field label="Data prevista de expedição">
+                    <Input name="plannedShipDate" type="date" defaultValue={o.planned_ship_date ?? ""} />
+                  </Field>
+                  <Field label="Doca">
+                    <Select
+                      name="dockLocationId"
+                      defaultValue={o.staging_location_id ?? ""}
+                      placeholder="Definida ao liberar"
+                      options={docks.filter((d) => d.warehouse_id === o.warehouse_id).map((d) => ({ value: d.id, label: d.code }))}
+                    />
+                  </Field>
+                  <SubmitButton size="sm" variant="secondary">
+                    Salvar planejamento
+                  </SubmitButton>
+                </ActionForm>
+              </CardBody>
+            </Card>
+          ) : null}
+          {(["open", "reserved"].includes(o.status) && can(role, "outbound.reserve")) ||
+          (["picking", "picked", "checked"].includes(o.status) && can(role, "outbound.cancel_picking")) ? (
+            <Card>
+              <CardHeader
+                title="Cancelar pedido"
+                description={
+                  ["open", "reserved"].includes(o.status)
+                    ? "Reservas são liberadas."
+                    : "Separação já iniciada: tarefas abertas são canceladas, reservas no endereço liberadas e o que já foi separado volta ao endereço por tarefa de devolução. O ERP é avisado."
+                }
+              />
               <CardBody>
                 <ActionForm action={cancelOrderAction} confirm="Cancelar este pedido e liberar as reservas?" className="space-y-3">
                   <input type="hidden" name="_id" value={id} />

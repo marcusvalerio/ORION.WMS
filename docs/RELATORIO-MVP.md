@@ -113,10 +113,10 @@ Não concluído nesta versão:
 - **Processador da outbox**: eventos ficam "Na fila"; falta o worker que envia ao ERP externo com retentativas.
 - **NF-e/SEFAZ**: sem consulta ou importação de XML; apenas associação manual.
 - **Controle de acesso por depósito**: o isolamento é por empresa e perfil; falta a tabela usuário × depósito.
-- **Número de série**: parâmetro registrado; captura por unidade não implementada.
-- **Reposição (replenishment)**: tipo de tarefa previsto no modelo, sem geração automática.
+- **Número de série**: captura na separação e na expedição implementada (Frente D); o recebimento ainda não captura séries — a série é registrada na primeira separação.
+- **Reposição (replenishment)**: implementada na Frente D (mín./máx., geração automática e de emergência).
 - **Recebimento parcial do mesmo pedido em várias entregas**: hoje um recebimento por pedido; a sobra fica registrada como divergência para tratamento.
-- **Cancelamento após o início da separação**: bloqueado; exige fluxo de devolução ao endereço.
+- **Cancelamento após o início da separação**: implementado na Frente D, com tarefas de devolução ao endereço.
 - **Gestão de usuários pela interface**: usuários são criados por seed/SQL.
 - **Leitura de código de barras/coletor**: a confirmação é por seleção; leitura por scanner é a evolução natural para operadores.
 - **Segregação de funções na aprovação de inventário** (quem conta ≠ quem aprova): não imposta.

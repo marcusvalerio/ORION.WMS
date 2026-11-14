@@ -37,6 +37,8 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Inventário", href: "/inventario", icon: "ClipboardList" },
       { label: "Separação", href: "/separacao", icon: "ScanLine" },
       { label: "Expedição", href: "/expedicao", icon: "Truck" },
+      { label: "Ondas", href: "/ondas", icon: "Waves" },
+      { label: "Reposição", href: "/reposicao", icon: "RefreshCw" },
     ],
   },
   {
@@ -45,6 +47,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Relatórios", href: "/relatorios", icon: "FileChartColumn" },
       { label: "Indicadores", href: "/indicadores", icon: "Gauge" },
       { label: "Auditoria", href: "/auditoria", icon: "ShieldCheck", permission: "audit.view" },
+      { label: "Curva ABC", href: "/curva-abc", icon: "ChartColumnBig" },
     ],
   },
 ];

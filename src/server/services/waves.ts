@@ -804,3 +804,13 @@ export async function detachOrderFromWaveTx(tx: Queryable, ctx: Ctx, orderId: st
     await completeWaveIfDone(tx, ctx, w);
   }
 }
+
+/** Distribuição de uma tarefa consolidada entre os pedidos (tela da tarefa). */
+export async function taskAllocations(ctx: Ctx, taskId: string) {
+  return ctx.db.query<{ order_id: string; order_code: string; customer_name: string; quantity: number; picked_qty: number | null; status: string }>(
+    `select a.order_id, o.code as order_code, o.customer_name, a.quantity, a.picked_qty, a.status
+     from wms.task_allocations a join wms.outbound_orders o on o.id = a.order_id
+     where a.task_id = $1 and a.company_id = $2 order by o.priority, o.created_at`,
+    [taskId, ctx.user.companyId],
+  );
+}

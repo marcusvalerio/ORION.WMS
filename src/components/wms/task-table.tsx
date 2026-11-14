@@ -9,6 +9,7 @@ import { fmtDateTime, fmtQty } from "@/lib/format";
 export function taskDocument(t: TaskRow): { label: string; href: string } | null {
   if (t.receipt_id && t.receipt_code) return { label: t.receipt_code, href: `/recebimentos/${t.receipt_id}` };
   if (t.order_id && t.order_code) return { label: t.order_code, href: `/separacao/${t.order_id}` };
+  if (t.wave_id && t.wave_code) return { label: `Onda ${t.wave_code}`, href: `/ondas/${t.wave_id}` };
   if (t.inventory_id && t.inventory_code) return { label: t.inventory_code, href: `/inventario/${t.inventory_id}` };
   return null;
 }
