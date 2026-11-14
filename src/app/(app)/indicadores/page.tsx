@@ -22,12 +22,12 @@ export default async function IndicatorsPage() {
       />
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {performance.map((p) => (
-          <div key={p.label} className="rounded-lg border border-slate-200 bg-white p-4 shadow-xs">
-            <p className="text-xs font-medium text-slate-500">{p.label}</p>
-            <p className="mt-1 text-2xl font-semibold text-slate-900 tabular-nums">
+          <div key={p.label} className="rounded-lg border border-line bg-surface p-4 shadow-xs">
+            <p className="text-xs font-medium text-muted">{p.label}</p>
+            <p className="mt-1 text-2xl font-semibold text-fg tabular-nums">
               {p.value === null ? "—" : p.unit === "%" ? fmtPct(p.value) : `${fmtQty(Math.round(p.value * 10) / 10)}${p.unit ? ` ${p.unit}` : ""}`}
             </p>
-            <p className="mt-2 text-xs text-slate-500">{p.definition}</p>
+            <p className="mt-2 text-xs text-muted">{p.definition}</p>
           </div>
         ))}
       </div>
@@ -63,11 +63,11 @@ export default async function IndicatorsPage() {
         </Card>
         <Card>
           <CardHeader title="Definições dos indicadores do dashboard" />
-          <dl className="divide-y divide-slate-100">
+          <dl className="divide-y divide-line">
             {kpis.map((k) => (
               <div key={k.key} className="grid gap-1 px-4 py-2.5 sm:grid-cols-3">
-                <dt className="text-sm font-medium text-slate-800">{k.label}</dt>
-                <dd className="text-xs text-slate-600 sm:col-span-2">{k.definition}</dd>
+                <dt className="text-sm font-medium text-fg">{k.label}</dt>
+                <dd className="text-xs text-fg-2 sm:col-span-2">{k.definition}</dd>
               </div>
             ))}
           </dl>

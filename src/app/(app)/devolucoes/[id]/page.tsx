@@ -77,7 +77,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ id: str
                     <tr key={i.id}>
                       <td>
                         <span className="font-medium">{i.sku}</span>
-                        <span className="block text-xs text-slate-500">{i.description}</span>
+                        <span className="block text-xs text-muted">{i.description}</span>
                       </td>
                       <td className="text-xs">
                         {i.lot_code || "—"} / {fmtDate(i.expiry_date)}
@@ -89,7 +89,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ id: str
                         {i.inspected ? (
                           <span className="text-xs">
                             Apto {fmtQty(i.approved_qty)} · avariado {fmtQty(i.damaged_qty)} · descarte {fmtQty(i.discarded_qty)}
-                            <span className="block text-slate-500">
+                            <span className="block text-muted">
                               {i.inspected_by_name} · {fmtDateTime(i.inspected_at)}
                               {i.inspection_notes ? ` · ${i.inspection_notes}` : ""}
                             </span>
@@ -110,7 +110,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ id: str
                             <Input name="notes" placeholder="Observação da inspeção" className="col-span-4" aria-label="Observação" />
                           </ActionForm>
                         ) : (
-                          <span className="text-xs text-slate-500">{r.status === "pending" ? "Aguardando inspeção (supervisor)" : "—"}</span>
+                          <span className="text-xs text-muted">{r.status === "pending" ? "Aguardando inspeção (supervisor)" : "—"}</span>
                         )}
                       </td>
                     </tr>
@@ -122,7 +122,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ id: str
           {r.tasks.length ? (
             <Card>
               <CardHeader title="Tarefas de armazenagem" />
-              <ul className="divide-y divide-slate-100 text-sm">
+              <ul className="divide-y divide-line text-sm">
                 {r.tasks.map((t) => (
                   <li key={t.id} className="flex items-center justify-between px-4 py-2">
                     <Link className="link" href={`/tarefas/${t.id}`}>

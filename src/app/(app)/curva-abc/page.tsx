@@ -14,7 +14,7 @@ import { can } from "@/lib/permissions";
 export const metadata = { title: "Curva ABC e slotting" };
 
 const TONE = { A: "success", B: "warning", C: "neutral" } as const;
-const BAR = { A: "bg-emerald-500", B: "bg-amber-400", C: "bg-slate-300" } as const;
+const BAR = { A: "bg-ok-solid", B: "bg-warn-solid", C: "bg-line-strong" } as const;
 
 export default async function AbcPage() {
   const ctx = await requireCtx();
@@ -41,11 +41,11 @@ export default async function AbcPage() {
               <ul className="space-y-2" aria-label="Gráfico de giro por produto">
                 {rows.map((r) => (
                   <li key={r.product_id} className="grid grid-cols-[88px_1fr_120px] items-center gap-2 text-xs">
-                    <span className="truncate font-medium text-slate-700">{r.sku}</span>
-                    <span className="flex h-3 overflow-hidden rounded bg-slate-100">
+                    <span className="truncate font-medium text-fg-2">{r.sku}</span>
+                    <span className="flex h-3 overflow-hidden rounded bg-subtle">
                       <span className={BAR[r.abc]} style={{ width: `${max ? (r.metric / max) * 100 : 0}%` }} />
                     </span>
-                    <span className="text-right text-slate-500 tabular-nums">
+                    <span className="text-right text-muted tabular-nums">
                       {fmtQty(r.metric)} · {r.cumulative.toFixed(1)}% acum.
                     </span>
                   </li>
@@ -86,7 +86,7 @@ export default async function AbcPage() {
                 </div>
               </ActionForm>
             ) : (
-              <p className="text-sm text-slate-600">
+              <p className="text-sm text-fg-2">
                 {settings.days} dias · {basisLabel} · {settings.a_pct}/{settings.b_pct}/{Math.round((100 - settings.a_pct - settings.b_pct) * 100) / 100}
               </p>
             )}
@@ -114,7 +114,7 @@ export default async function AbcPage() {
                 <tr key={r.product_id}>
                   <td>
                     <span className="font-medium">{r.sku}</span>
-                    <span className="block text-xs text-slate-500">{r.description}</span>
+                    <span className="block text-xs text-muted">{r.description}</span>
                   </td>
                   <td>
                     <Badge tone={TONE[r.abc]}>{r.abc}</Badge>
@@ -154,7 +154,7 @@ export default async function AbcPage() {
                   <tr key={s.balance_id}>
                     <td>
                       {s.sku} <Badge tone={TONE[s.abc]}>{s.abc}</Badge>
-                      {s.lot_code ? <span className="block text-[11px] text-slate-500">Lote {s.lot_code}</span> : null}
+                      {s.lot_code ? <span className="block text-[11px] text-muted">Lote {s.lot_code}</span> : null}
                     </td>
                     <td className="font-mono text-[11px] whitespace-nowrap">{s.from_code}</td>
                     <td className="font-mono text-[11px] whitespace-nowrap">{s.to_code}</td>
@@ -181,7 +181,7 @@ export default async function AbcPage() {
           </TableWrap>
         ) : (
           <CardBody>
-            <p className="text-sm text-slate-500">Nenhuma sugestão: os itens A já estão em endereços de acesso fácil (ou não há destino compatível livre).</p>
+            <p className="text-sm text-muted">Nenhuma sugestão: os itens A já estão em endereços de acesso fácil (ou não há destino compatível livre).</p>
           </CardBody>
         )}
       </Card>

@@ -26,6 +26,7 @@ import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
 import { cn } from "@/components/ui/cn";
+import { InventoryMode } from "@/components/layout/inventory-mode";
 
 export const metadata = { title: "Inventário" };
 
@@ -46,7 +47,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
   const diffs = inv.items.filter((i) => i.counted_qty !== null && i.counted_qty !== i.expected_qty);
 
   return (
-    <>
+    <InventoryMode>
       <PageHeader
         title={`Inventário ${inv.code}`}
         badges={
@@ -69,8 +70,8 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
               ["Aprovado por", inv.approved_by_name ? `${inv.approved_by_name} · ${fmtDateTime(inv.approved_at)}` : "—"],
             ]}
           />
-          {inv.notes ? <p className="mt-3 text-sm text-slate-600">Observações: {inv.notes}</p> : null}
-          {inv.approval_notes ? <p className="mt-1 text-sm text-slate-600">Aprovação: {inv.approval_notes}</p> : null}
+          {inv.notes ? <p className="mt-3 text-sm text-fg-2">Observações: {inv.notes}</p> : null}
+          {inv.approval_notes ? <p className="mt-1 text-sm text-fg-2">Aprovação: {inv.approval_notes}</p> : null}
         </CardBody>
       </Card>
 
@@ -86,7 +87,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
                 <ActionForm action={recordCountsAction}>
                   <input type="hidden" name="_id" value={id} />
                   <CountTable items={inv.items} editable />
-                  <CardBody className="flex flex-wrap gap-2 border-t border-slate-100">
+                  <CardBody className="flex flex-wrap gap-2 border-t border-line">
                     <SubmitButton variant="secondary">Salvar contagens</SubmitButton>
                   </CardBody>
                 </ActionForm>
@@ -133,12 +134,12 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
                 can(role, "inventory.count") ? (
                   <ActionForm action={submitInventoryAction} confirm="Submeter a contagem para aprovação? Não será mais possível alterar as quantidades.">
                     <input type="hidden" name="_id" value={id} />
-                    <p className="mb-3 text-sm text-slate-600">Ao submeter, as diferenças viram divergências e aguardam aprovação de um supervisor.</p>
+                    <p className="mb-3 text-sm text-fg-2">Ao submeter, as diferenças viram divergências e aguardam aprovação de um supervisor.</p>
                     <SubmitButton disabled={counted < inv.items.length || inv.items.length === 0}>Submeter para aprovação</SubmitButton>
-                    {counted < inv.items.length ? <p className="mt-2 text-xs text-amber-700">Faltam {inv.items.length - counted} item(ns) a contar.</p> : null}
+                    {counted < inv.items.length ? <p className="mt-2 text-xs text-warn-fg">Faltam {inv.items.length - counted} item(ns) a contar.</p> : null}
                   </ActionForm>
                 ) : (
-                  <p className="text-sm text-slate-500">Contagem em andamento.</p>
+                  <p className="text-sm text-muted">Contagem em andamento.</p>
                 )
               ) : null}
 
@@ -155,7 +156,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
                       </Field>
                       <SubmitButton variant="success">Aprovar e ajustar estoque</SubmitButton>
                     </ActionForm>
-                    <ActionForm action={rejectInventoryAction} className="space-y-3 border-t border-slate-100 pt-4">
+                    <ActionForm action={rejectInventoryAction} className="space-y-3 border-t border-line pt-4">
                       <input type="hidden" name="_id" value={id} />
                       <Field label="Motivo da recontagem" required>
                         <Input name="notes" required minLength={5} />
@@ -164,7 +165,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
                     </ActionForm>
                   </>
                 ) : (
-                  <p className="text-sm text-slate-500">Aguardando aprovação de um supervisor.</p>
+                  <p className="text-sm text-muted">Aguardando aprovação de um supervisor.</p>
                 )
               ) : null}
 
@@ -172,7 +173,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
               {inv.status === "cancelled" ? <Alert level="warning">Inventário cancelado.</Alert> : null}
 
               {(counting || inv.status === "submitted") && can(role, "inventory.create") ? (
-                <ActionForm action={cancelInventoryAction} confirm="Cancelar este inventário?" className="space-y-3 border-t border-slate-100 pt-4">
+                <ActionForm action={cancelInventoryAction} confirm="Cancelar este inventário?" className="space-y-3 border-t border-line pt-4">
                   <input type="hidden" name="_id" value={id} />
                   <Field label="Motivo do cancelamento" required>
                     <Input name="reason" required minLength={5} />
@@ -190,7 +191,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
           </Card>
         </div>
       </div>
-    </>
+    </InventoryMode>
   );
 }
 
@@ -219,7 +220,7 @@ function CountTable({ items, editable }: { items: Item[]; editable?: boolean }) 
                 <td className="font-mono text-[11px] whitespace-nowrap">{i.location_code}</td>
                 <td>
                   <span className="font-medium">{i.sku}</span>
-                  <span className="block text-xs text-slate-500">{i.description}</span>
+                  <span className="block text-xs text-muted">{i.description}</span>
                 </td>
                 <td className="text-xs">
                   {i.lot_code || "—"} / {fmtDate(i.expiry_date)}
@@ -235,7 +236,7 @@ function CountTable({ items, editable }: { items: Item[]; editable?: boolean }) 
                     fmtQty(i.counted_qty)
                   )}
                 </td>
-                <td className={cn("num font-medium", diff && diff < 0 ? "text-red-600" : diff && diff > 0 ? "text-amber-600" : "text-slate-500")}>
+                <td className={cn("num font-medium", diff && diff < 0 ? "text-crit-fg" : diff && diff > 0 ? "text-warn-fg" : "text-muted")}>
                   {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtQty(diff)}`}
                   {i.adjusted ? <Badge tone="success" className="ml-1">Ajustado</Badge> : null}
                 </td>
@@ -243,7 +244,7 @@ function CountTable({ items, editable }: { items: Item[]; editable?: boolean }) 
                   {editable ? (
                     <Input name={`items.${idx}.notes`} defaultValue={i.notes ?? ""} aria-label={`Observação ${i.sku}`} />
                   ) : (
-                    <span className="text-xs text-slate-600">{i.notes ?? "—"}</span>
+                    <span className="text-xs text-fg-2">{i.notes ?? "—"}</span>
                   )}
                 </td>
               </tr>

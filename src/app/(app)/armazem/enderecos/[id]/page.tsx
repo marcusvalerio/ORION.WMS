@@ -92,7 +92,7 @@ export default async function LocationPage({ params }: { params: Promise<{ id: s
                           <Link href={`/estoque/saldo/${b.id}`} className="link">
                             {b.sku}
                           </Link>
-                          <span className="block text-xs text-slate-500">{b.description}</span>
+                          <span className="block text-xs text-muted">{b.description}</span>
                         </td>
                         <td className="code">{b.lot_code || "—"}</td>
                         <td>{fmtDate(b.expiry_date)}</td>
@@ -216,11 +216,11 @@ export default async function LocationPage({ params }: { params: Promise<{ id: s
           <Card>
             <CardHeader title="Histórico de alterações" />
             {history.length ? (
-              <ul className="divide-y divide-slate-100 text-sm">
+              <ul className="divide-y divide-line text-sm">
                 {history.map((h) => (
                   <li key={h.id} className="px-4 py-2.5">
-                    <p className="font-medium text-slate-800">{AUDIT_ACTION_LABELS[h.action] ?? h.action}</p>
-                    <p className="text-xs text-slate-500">
+                    <p className="font-medium text-fg">{AUDIT_ACTION_LABELS[h.action] ?? h.action}</p>
+                    <p className="text-xs text-muted">
                       {h.user_name} · {fmtDateTime(h.created_at)}
                       {typeof h.details.reason === "string" ? ` · ${h.details.reason}` : ""}
                     </p>

@@ -29,7 +29,7 @@ export default async function ShippingLabelsPage({ params, searchParams }: { par
       <PrintToolbar backHref={`/separacao/${id}`} title={`Etiquetas de volume${data ? ` — ${data.order.code}` : ""}`} count={data?.labels.length ?? 0}>
         <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Quantidade de volumes</span>
+            <span className="text-xs text-fg-2">Quantidade de volumes</span>
             <input
               type="number"
               name="volumes"
@@ -37,13 +37,13 @@ export default async function ShippingLabelsPage({ params, searchParams }: { par
               max={MAX_VOLUMES}
               step={1}
               defaultValue={Number.isFinite(volumes) ? volumes : 1}
-              className="h-9 w-28 rounded-md border border-slate-300 px-2"
+              className="h-9 w-28 rounded-md border border-line-strong px-2"
             />
           </label>
-          <button type="submit" className="h-9 rounded-md border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50">
+          <button type="submit" className="h-9 rounded-md border border-line-strong bg-surface px-3 font-medium hover:bg-canvas">
             Gerar
           </button>
-          {error ? <span className="text-sm text-red-700">{error}</span> : null}
+          {error ? <span className="text-sm text-crit-fg">{error}</span> : null}
         </form>
       </PrintToolbar>
       {data ? (

@@ -92,22 +92,22 @@ export function CountRunner({ inventoryId, inventoryCode }: { inventoryId: strin
       {step === "location" ? <ScanField key="loc" label="Endereço" onScan={scanLocation} busy={busy} /> : null}
       {step === "product" && location ? (
         <>
-          <p className="font-mono text-xl font-bold text-slate-950">{location.code}</p>
+          <p className="font-mono text-xl font-bold text-fg">{location.code}</p>
           <ScanField key="prod" label="Produto (EAN ou SKU)" onScan={scanProduct} busy={busy} />
-          <ul className="divide-y divide-slate-200 rounded-xl border-2 border-slate-300 bg-white">
-            {location.items.length === 0 ? <li className="p-3 text-base text-slate-700">Nenhum item previsto neste endereço.</li> : null}
+          <ul className="divide-y divide-line rounded-xl border-2 border-line-strong bg-surface">
+            {location.items.length === 0 ? <li className="p-3 text-base text-fg-2">Nenhum item previsto neste endereço.</li> : null}
             {location.items.map((i) => (
               <li key={i.id} className="flex items-center justify-between gap-2 p-3 text-base">
                 <span>
                   <strong className="font-mono">{i.sku}</strong> {i.lot_code ? `· lote ${i.lot_code}` : ""}
-                  <span className="block text-sm text-slate-600">{i.description}</span>
+                  <span className="block text-sm text-fg-2">{i.description}</span>
                 </span>
                 {i.counted ? (
-                  <span className="flex items-center gap-1 font-bold text-emerald-800">
+                  <span className="flex items-center gap-1 font-bold text-ok-fg">
                     <Check className="size-5" aria-hidden /> contado
                   </span>
                 ) : (
-                  <span className="font-semibold text-amber-800">a contar</span>
+                  <span className="font-semibold text-warn-fg">a contar</span>
                 )}
               </li>
             ))}
@@ -119,17 +119,17 @@ export function CountRunner({ inventoryId, inventoryCode }: { inventoryId: strin
       ) : null}
       {step === "quantity" && product ? (
         <>
-          <p className="text-lg text-slate-900">
+          <p className="text-lg text-fg">
             <strong className="font-mono">{product.sku}</strong> — {product.description}
           </p>
           {needLot || lotsHere.length > 1 ? (
             <label className="block">
-              <span className="mb-1 block text-lg font-bold text-slate-900">Lote</span>
+              <span className="mb-1 block text-lg font-bold text-fg">Lote</span>
               <input
                 list="lots-here"
                 value={lot}
                 onChange={(e) => setLot(e.target.value.toUpperCase())}
-                className="h-14 w-full rounded-xl border-2 border-slate-900 px-3 font-mono text-xl"
+                className="h-14 w-full rounded-xl border-2 border-fg px-3 font-mono text-xl"
               />
               <datalist id="lots-here">
                 {lotsHere.map((l) => (

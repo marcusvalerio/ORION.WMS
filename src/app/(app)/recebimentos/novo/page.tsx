@@ -70,7 +70,7 @@ export default async function NewReceiptPage() {
                   <Link className="link" href={`/recebimentos/nfe/${n.id}`}>
                     NF {n.number}/{n.series} — {n.emitter_name}
                   </Link>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted">
                     {fmtDateTime(n.created_at)}
                     {n.pending_links ? ` · ${n.pending_links} item(ns) pendente(s) de vínculo` : ""}
                   </span>
@@ -104,13 +104,13 @@ export default async function NewReceiptPage() {
                     <td>{po.supplier_name}</td>
                     <td>
                       {fmtDate(po.issue_date)}
-                      <span className="block text-xs text-slate-500">prev. {fmtDate(po.expected_date)}</span>
+                      <span className="block text-xs text-muted">prev. {fmtDate(po.expected_date)}</span>
                     </td>
                     <td className="num">{po.item_count}</td>
                     <td className="num">{fmtQty(po.total_qty)}</td>
                     <td className="num">
                       {fmtQty(po.pending_qty)}
-                      {po.in_transit_qty ? <span className="block text-xs text-slate-500">{fmtQty(po.in_transit_qty)} em andamento</span> : null}
+                      {po.in_transit_qty ? <span className="block text-xs text-muted">{fmtQty(po.in_transit_qty)} em andamento</span> : null}
                     </td>
                     <td>
                       <Badge tone={po.status === "open" ? "info" : po.status === "received" ? "success" : "neutral"}>{PO_STATUS[po.status]}</Badge>
@@ -124,7 +124,7 @@ export default async function NewReceiptPage() {
                           <SubmitButton size="sm">Receber saldo</SubmitButton>
                         </ActionForm>
                       ) : (
-                        <span className="text-xs text-slate-400">{po.pending_qty > 0 ? "Indisponível" : "Sem saldo pendente"}</span>
+                        <span className="text-xs text-muted">{po.pending_qty > 0 ? "Indisponível" : "Sem saldo pendente"}</span>
                       )}
                       <span className="mt-1 block text-xs">
                         <Link className="link" href={`/recebimentos/pedido/${po.id}`}>
@@ -167,7 +167,7 @@ export default async function NewReceiptPage() {
                 </Field>
               </div>
             ))}
-            <p className="text-xs text-slate-500 md:col-span-2">Linhas sem produto são ignoradas.</p>
+            <p className="text-xs text-muted md:col-span-2">Linhas sem produto são ignoradas.</p>
             <div className="md:col-span-2">
               <SubmitButton>Criar recebimento</SubmitButton>
             </div>

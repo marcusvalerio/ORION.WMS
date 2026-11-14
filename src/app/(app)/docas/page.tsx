@@ -24,11 +24,11 @@ export const metadata = { title: "Agenda de docas" };
 
 const PX_PER_MIN = 0.8;
 const TONE_BG: Record<string, string> = {
-  scheduled: "border-sky-300 bg-sky-50 text-sky-900",
-  checked_in: "border-brand-300 bg-brand-50 text-brand-900",
-  completed: "border-emerald-300 bg-emerald-50 text-emerald-900",
-  no_show: "border-red-300 bg-red-50 text-red-900 opacity-70",
-  cancelled: "border-slate-200 bg-slate-50 text-slate-500 line-through opacity-60",
+  scheduled: "border-info-line bg-info-bg text-info-fg",
+  checked_in: "border-accent bg-accent-soft text-link",
+  completed: "border-ok-line bg-ok-bg text-ok-fg",
+  no_show: "border-crit-line bg-crit-bg text-crit-fg opacity-70",
+  cancelled: "border-line bg-canvas text-muted line-through opacity-60",
 };
 
 function shiftDate(date: string, days: number) {
@@ -100,21 +100,21 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
             <div className="grid min-w-[640px]" style={{ gridTemplateColumns: `56px repeat(${activeDocks.length}, minmax(160px, 1fr))` }}>
               <div />
               {activeDocks.map((d) => (
-                <div key={d.id} className="border-b border-slate-200 px-2 pb-2 text-xs font-semibold text-slate-700">
-                  {d.code} <span className="font-normal text-slate-500">· {DOCK_TYPE_LABELS[d.dock_type]}</span>
+                <div key={d.id} className="border-b border-line px-2 pb-2 text-xs font-semibold text-fg-2">
+                  {d.code} <span className="font-normal text-muted">· {DOCK_TYPE_LABELS[d.dock_type]}</span>
                 </div>
               ))}
               <div className="relative" style={{ height }}>
                 {hours.map((h) => (
-                  <span key={h} className="absolute right-2 -translate-y-1/2 text-[11px] text-slate-400" style={{ top: (h - startHour) * 60 * PX_PER_MIN }}>
+                  <span key={h} className="absolute right-2 -translate-y-1/2 text-[11px] text-muted" style={{ top: (h - startHour) * 60 * PX_PER_MIN }}>
                     {String(h).padStart(2, "0")}:00
                   </span>
                 ))}
               </div>
               {activeDocks.map((d) => (
-                <div key={d.id} className="relative border-l border-slate-100" style={{ height }}>
+                <div key={d.id} className="relative border-l border-line" style={{ height }}>
                   {hours.map((h) => (
-                    <div key={h} className="absolute inset-x-0 border-t border-dashed border-slate-100" style={{ top: (h - startHour) * 60 * PX_PER_MIN }} />
+                    <div key={h} className="absolute inset-x-0 border-t border-dashed border-line" style={{ top: (h - startHour) * 60 * PX_PER_MIN }} />
                   ))}
                   {visible
                     .filter((a) => a.dock_id === d.id)
@@ -207,7 +207,7 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
                         </td>
                         <td>
                           {a.carrier ?? "—"}
-                          {a.vehicle_plate ? <span className="block font-mono text-xs text-slate-500">{a.vehicle_plate}</span> : null}
+                          {a.vehicle_plate ? <span className="block font-mono text-xs text-muted">{a.vehicle_plate}</span> : null}
                         </td>
                         <td>{a.po_number ?? a.outbound_code ?? "—"}</td>
                       </tr>
@@ -223,7 +223,7 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
         <div className="space-y-5">
           <Card>
             <CardHeader title="Docas" description="Cadastro por depósito." />
-            <ul className="divide-y divide-slate-100 text-sm">
+            <ul className="divide-y divide-line text-sm">
               {docks.map((d) => (
                 <li key={d.id} className="flex items-center justify-between gap-2 px-4 py-2">
                   <span>
@@ -231,7 +231,7 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
                       {d.warehouse_code} · {d.code}
                     </span>{" "}
                     {d.name}
-                    <span className="block text-xs text-slate-500">{DOCK_TYPE_LABELS[d.dock_type]}</span>
+                    <span className="block text-xs text-muted">{DOCK_TYPE_LABELS[d.dock_type]}</span>
                   </span>
                   {can(role, "dock.manage") ? (
                     <ActionForm action={toggleDockAction}>
@@ -248,7 +248,7 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
               ))}
             </ul>
             {can(role, "dock.manage") ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <Disclosure title="Cadastrar doca">
                   <ActionForm action={createDockAction} resetOnSuccess className="grid gap-3">
                     <Field label="Depósito" required>

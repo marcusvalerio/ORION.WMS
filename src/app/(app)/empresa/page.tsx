@@ -107,7 +107,7 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
               usuário <strong>somente leitura</strong> do ATLAS (nunca use o prefixo <code>NEXT_PUBLIC_</code>) e reinicie a aplicação. Enquanto isso, edite os dados
               manualmente abaixo.
             </p>
-            <pre className="mt-2 overflow-x-auto rounded bg-white/70 p-2 text-[11px] leading-relaxed text-slate-700">{ATLAS_SQL}</pre>
+            <pre className="mt-2 overflow-x-auto rounded bg-surface/70 p-2 text-[11px] leading-relaxed text-fg-2">{ATLAS_SQL}</pre>
           </Alert>
         ) : null}
         {errors.length ? <Alert level="danger">{errors.join(" ")}</Alert> : null}
@@ -203,8 +203,8 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
                       {preview.changes.map((c) => (
                         <tr key={c.field}>
                           <td className="font-medium">{c.label}</td>
-                          <td className="text-slate-500 line-through">{show(c.field, c.current)}</td>
-                          <td className="font-medium text-emerald-700">{show(c.field, c.incoming)}</td>
+                          <td className="text-muted line-through">{show(c.field, c.current)}</td>
+                          <td className="font-medium text-ok-fg">{show(c.field, c.incoming)}</td>
                         </tr>
                       ))}
                     </tbody>

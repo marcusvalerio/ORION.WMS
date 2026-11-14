@@ -10,11 +10,11 @@ export default async function CollectorInventories() {
   return (
     <div className="space-y-3">
       <h1 className="text-2xl font-bold">Contagem de inventário</h1>
-      {counts.length === 0 ? <p className="rounded-xl border-2 border-slate-300 bg-white p-4 text-lg">Nenhum inventário em contagem.</p> : null}
+      {counts.length === 0 ? <p className="rounded-xl border-2 border-line-strong bg-surface p-4 text-lg">Nenhum inventário em contagem.</p> : null}
       {counts.map((c) => (
-        <Link key={c.id} href={`/coletor/inventario/${c.id}`} className="block rounded-xl border-2 border-slate-900 bg-white p-4 active:bg-slate-200">
+        <Link key={c.id} href={`/coletor/inventario/${c.id}`} className="block rounded-xl border-2 border-fg bg-surface p-4 active:bg-line">
           <span className="block font-mono text-xl font-bold">{c.code}</span>
-          <span className="block text-base text-slate-700">
+          <span className="block text-base text-fg-2">
             {c.count_type === "general" ? "Geral" : "Rotativo"} · {c.warehouse_code}
             {c.scope ? ` · ${c.scope}` : ""}
           </span>

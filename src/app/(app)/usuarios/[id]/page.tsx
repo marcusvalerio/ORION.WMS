@@ -92,7 +92,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
               <SubmitButton variant={user.active ? "danger" : "success"} size="sm" disabled={user.active && (self || demoLocked)}>
                 {user.active ? "Inativar usuário" : "Reativar usuário"}
               </SubmitButton>
-              {user.active && self ? <p className="mt-1 text-xs text-slate-500">Você não pode inativar o seu próprio usuário.</p> : null}
+              {user.active && self ? <p className="mt-1 text-xs text-muted">Você não pode inativar o seu próprio usuário.</p> : null}
             </ActionForm>
           </CardBody>
         </Card>
@@ -116,14 +116,14 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
               <ul className="space-y-1.5 text-sm">
                 {history.map((h) => (
                   <li key={h.id} className="flex flex-wrap gap-x-2">
-                    <span className="text-slate-500">{fmtDateTime(h.created_at)}</span>
+                    <span className="text-muted">{fmtDateTime(h.created_at)}</span>
                     <span className="font-medium">{AUDIT_ACTION_LABELS[h.action] ?? h.action}</span>
-                    <span className="text-slate-500">por {h.user_name ?? "Sistema"}</span>
+                    <span className="text-muted">por {h.user_name ?? "Sistema"}</span>
                   </li>
                 ))}
               </ul>
             ) : (
-              <p className="text-sm text-slate-500">Sem registros.</p>
+              <p className="text-sm text-muted">Sem registros.</p>
             )}
           </CardBody>
         </Card>

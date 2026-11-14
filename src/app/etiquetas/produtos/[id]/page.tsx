@@ -27,18 +27,18 @@ export default async function ProductLabelPage({ params, searchParams }: { param
       <PrintToolbar backHref={`/produtos/${product.id}`} title={`Etiqueta de produto ${product.sku}`} count={labels.length}>
         <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Cópias</span>
-            <input type="number" name="copias" min={1} max={100} defaultValue={copies} className="h-9 w-24 rounded-md border border-slate-300 px-2" />
+            <span className="text-xs text-fg-2">Cópias</span>
+            <input type="number" name="copias" min={1} max={100} defaultValue={copies} className="h-9 w-24 rounded-md border border-line-strong px-2" />
           </label>
           {product.packaging.length ? (
             <label className="flex h-9 items-center gap-2">
               <input type="checkbox" name="embalagens" value="1" defaultChecked={withPackaging} /> Incluir embalagens ({product.packaging.length})
             </label>
           ) : null}
-          <button type="submit" className="h-9 rounded-md border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50">
+          <button type="submit" className="h-9 rounded-md border border-line-strong bg-surface px-3 font-medium hover:bg-canvas">
             Atualizar
           </button>
-          {!product.barcode ? <span className="text-xs text-amber-700">Produto sem EAN no ERP: o código de barras usa o SKU.</span> : null}
+          {!product.barcode ? <span className="text-xs text-warn-fg">Produto sem EAN no ERP: o código de barras usa o SKU.</span> : null}
         </form>
       </PrintToolbar>
       <div className="label-sheet">

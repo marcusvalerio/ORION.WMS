@@ -10,7 +10,7 @@ export const metadata = { title: { default: "Etiquetas", template: "%s · Etique
 export default async function LabelsLayout({ children }: { children: React.ReactNode }) {
   await requireCtx();
   return (
-    <div className="min-h-dvh bg-slate-100 pb-8 print:bg-white print:pb-0">
+    <div data-theme="light" className="min-h-dvh bg-subtle pb-8 print:bg-surface print:pb-0">
       <style>{`
         .label-sheet { display: flex; flex-wrap: wrap; gap: 4mm; justify-content: center; }
         .label { background: #fff; color: #000; border: 0.3mm dashed #94a3b8; box-sizing: border-box; overflow: hidden;

@@ -54,7 +54,7 @@ export default async function BalancePage({ params }: { params: Promise<{ id: st
                   ["Físico", fmtQty(b.quantity)],
                   ["Reservado", fmtQty(b.reserved_qty)],
                   ["Bloqueado", fmtQty(b.blocked_qty)],
-                  ["Disponível", <strong key="d" className="text-emerald-700">{fmtQty(b.available_qty)}</strong>],
+                  ["Disponível", <strong key="d" className="text-ok-fg">{fmtQty(b.available_qty)}</strong>],
                   ["Última atualização", fmtDateTime(b.updated_at)],
                 ]}
               />
@@ -140,7 +140,7 @@ export default async function BalancePage({ params }: { params: Promise<{ id: st
             </>
           ) : (
             <Card>
-              <CardBody className="text-sm text-slate-500">Bloqueios e desbloqueios exigem perfil de supervisor ou administrador.</CardBody>
+              <CardBody className="text-sm text-muted">Bloqueios e desbloqueios exigem perfil de supervisor ou administrador.</CardBody>
             </Card>
           )}
         </div>

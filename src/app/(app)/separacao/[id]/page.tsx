@@ -118,17 +118,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                     <tr key={l.id}>
                       <td>
                         <span className="font-medium">{l.sku}</span>
-                        <span className="block text-xs text-slate-500">{l.description}</span>
+                        <span className="block text-xs text-muted">{l.description}</span>
                         {l.serial_controlled ? <Badge tone="info">Nº de série</Badge> : null}
                         {l.cancelled_at ? (
-                          <span className="block text-xs text-red-600">Cancelada: {l.cancel_reason}</span>
+                          <span className="block text-xs text-crit-fg">Cancelada: {l.cancel_reason}</span>
                         ) : null}
                       </td>
                       <td className="num">
                         {fmtQty(l.requested_qty)} {l.uom}
                       </td>
                       {o.status === "open" ? (
-                        <td className={cn("num", l.available_now < l.requested_qty ? "font-semibold text-red-600" : "text-emerald-700")}>{fmtQty(l.available_now)}</td>
+                        <td className={cn("num", l.available_now < l.requested_qty ? "font-semibold text-crit-fg" : "text-ok-fg")}>{fmtQty(l.available_now)}</td>
                       ) : null}
                       <td className="num">{fmtQty(l.reserved_qty)}</td>
                       <td className="num">{fmtQty(l.picked_qty)}</td>
@@ -159,7 +159,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             </TableWrap>
 
             {o.status === "open" && can(role, "outbound.reserve") ? (
-              <CardBody className="space-y-3 border-t border-slate-100">
+              <CardBody className="space-y-3 border-t border-line">
                 {shortage.length ? (
                   <Alert level="warning" title="Disponibilidade insuficiente">
                     {shortage.map((l) => `${l.sku}: solicitado ${fmtQty(l.requested_qty)}, disponível ${fmtQty(l.available_now)}`).join("; ")}. A reserva é tudo-ou-nada e
@@ -174,7 +174,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
 
             {o.status === "reserved" && can(role, "outbound.reserve") && o.wave_id ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <Alert level="info">
                   Pedido na onda <Link href={`/ondas/${o.wave_id}`} className="link">{o.wave_code}</Link>: a separação é liberada pela onda.
                 </Alert>
@@ -182,7 +182,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
 
             {o.status === "reserved" && can(role, "outbound.reserve") && !o.wave_id ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <ActionForm action={releasePickingAction}>
                   <input type="hidden" name="_id" value={id} />
                   <SubmitButton>Liberar para separação (gerar tarefas)</SubmitButton>
@@ -191,9 +191,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
 
             {o.status === "picked" && can(role, "outbound.check") ? (
-              <CardBody className="border-t border-slate-100">
-                <h3 className="mb-1 text-sm font-semibold text-slate-800">Conferência final</h3>
-                <p className="mb-3 text-xs text-slate-500">Reconte os volumes na doca. Qualquer diferença em relação ao separado é registrada como divergência e bloqueia a expedição.</p>
+              <CardBody className="border-t border-line">
+                <h3 className="mb-1 text-sm font-semibold text-fg">Conferência final</h3>
+                <p className="mb-3 text-xs text-muted">Reconte os volumes na doca. Qualquer diferença em relação ao separado é registrada como divergência e bloqueia a expedição.</p>
                 <ActionForm action={checkOrderAction} className="space-y-3">
                   <input type="hidden" name="_id" value={id} />
                   <div className="grid gap-3 sm:grid-cols-2">
@@ -213,9 +213,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
 
             {o.status === "checked" && can(role, "outbound.ship") ? (
-              <CardBody className="border-t border-slate-100">
-                <h3 className="mb-1 text-sm font-semibold text-slate-800">Confirmar expedição</h3>
-                <p className="mb-3 text-xs text-slate-500">
+              <CardBody className="border-t border-line">
+                <h3 className="mb-1 text-sm font-semibold text-fg">Confirmar expedição</h3>
+                <p className="mb-3 text-xs text-muted">
                   Baixa física de {fmtQty(o.lines.reduce((a, l) => a + l.checked_qty, 0))} un da doca, consumo das reservas e comunicação ao ERP.
                 </p>
                 <ActionForm action={shipOrderAction} confirm="Confirmar a expedição? A baixa de estoque é definitiva." className="grid gap-3 sm:grid-cols-3">
@@ -250,7 +250,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             ) : null}
 
             {o.status === "shipped" && o.shipment ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <Alert level="success" title={`Expedição ${o.shipment.code} confirmada`}>
                   {fmtDateTime(o.shipment.shipped_at)} por {o.shipment.shipped_by_name}
                   {o.shipment.carrier ? ` · ${o.shipment.carrier}` : ""}

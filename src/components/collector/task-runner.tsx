@@ -114,10 +114,10 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
   return (
     <div className="space-y-4">
       <StepDots steps={flow.map((s) => STEP_LABELS[s])} current={index} />
-      <section className="rounded-xl border-2 border-slate-300 bg-white px-4 py-2">
+      <section className="rounded-xl border-2 border-line-strong bg-surface px-4 py-2">
         <InfoRow label="Produto">
           <strong className="font-mono">{task.sku}</strong> — {task.description}
-          {task.lot_code ? <span className="block text-base text-slate-700">Lote {task.lot_code}</span> : null}
+          {task.lot_code ? <span className="block text-base text-fg-2">Lote {task.lot_code}</span> : null}
         </InfoRow>
         <InfoRow label="Quantidade" strong>
           {task.quantity} {task.uom}
@@ -157,7 +157,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
       ) : null}
       {step === "quantity" ? (
         <div className="space-y-3">
-          <p className="text-base text-slate-700">{scans.productLabel}</p>
+          <p className="text-base text-fg-2">{scans.productLabel}</p>
           <ScanField
             key="quantity"
             label={`Quantidade (${task.uom ?? "un"})`}
@@ -174,11 +174,11 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
           />
           {task.task_type === "picking" ? (
             <label className="block">
-              <span className="mb-1 block text-base font-semibold text-slate-800">Observação (se faltar)</span>
+              <span className="mb-1 block text-base font-semibold text-fg">Observação (se faltar)</span>
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="h-14 w-full rounded-xl border-2 border-slate-400 px-3 text-lg"
+                className="h-14 w-full rounded-xl border-2 border-line-strong px-3 text-lg"
                 maxLength={300}
               />
             </label>
@@ -191,7 +191,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
       {step === "done" && result ? (
         <div className="space-y-4">
           {task.task_type === "picking" ? (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-slate-900 bg-amber-300 p-4 text-slate-950">
+            <div className="flex items-center gap-3 rounded-xl border-2 border-fg bg-warn-solid p-4 text-fg">
               <Truck className="size-10 shrink-0" aria-hidden />
               <p className="text-xl font-bold">
                 Leve à doca <span className="block font-mono text-2xl">{result.destination}</span>
@@ -199,7 +199,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
               </p>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-emerald-800 bg-emerald-50 p-4 text-emerald-950">
+            <div className="flex items-center gap-3 rounded-xl border-2 border-ok-solid bg-ok-bg p-4 text-ok-fg">
               <CheckCircle2 className="size-10 shrink-0" aria-hidden />
               <p className="text-xl font-bold">
                 Guardado em <span className="block font-mono text-2xl">{result.destination}</span>
@@ -208,7 +208,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
           )}
           <Link
             href="/coletor/tarefas"
-            className="flex min-h-14 w-full items-center justify-center rounded-xl bg-brand-700 px-4 text-xl font-bold text-white"
+            className="flex min-h-14 w-full items-center justify-center rounded-xl bg-action px-4 text-xl font-bold text-on-action"
           >
             Próxima tarefa
           </Link>

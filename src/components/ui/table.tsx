@@ -30,9 +30,9 @@ export function SortTh({
   const Icon = active ? (desc ? ArrowDown : ArrowUp) : ArrowUpDown;
   return (
     <th className={className} aria-sort={active ? (desc ? "descending" : "ascending") : "none"}>
-      <Link href={`?${qs}`} className="inline-flex items-center gap-1 hover:text-slate-800">
+      <Link href={`?${qs}`} className="inline-flex items-center gap-1 hover:text-fg">
         {label}
-        <Icon className={cn("size-3", active ? "text-brand-600" : "text-slate-300")} aria-hidden />
+        <Icon className={cn("size-3", active ? "text-link" : "text-muted")} aria-hidden />
       </Link>
     </th>
   );
@@ -57,14 +57,14 @@ export function Pagination({
   const from = total === 0 ? 0 : (page - 1) * pageSize + 1;
   const to = Math.min(total, page * pageSize);
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-slate-100 px-4 py-2.5 text-xs text-slate-500">
+    <div className="flex flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-2.5 text-xs text-muted">
       <span>
         {from}–{to} de {total}
       </span>
       {pages > 1 ? (
         <div className="flex items-center gap-1">
           {page > 1 ? (
-            <Link href={href(page - 1)} className="rounded border border-slate-200 bg-white px-2 py-1 hover:bg-slate-50">
+            <Link href={href(page - 1)} className="rounded border border-line bg-surface px-2 py-1 hover:bg-canvas">
               Anterior
             </Link>
           ) : null}
@@ -72,7 +72,7 @@ export function Pagination({
             Página {page} de {pages}
           </span>
           {page < pages ? (
-            <Link href={href(page + 1)} className="rounded border border-slate-200 bg-white px-2 py-1 hover:bg-slate-50">
+            <Link href={href(page + 1)} className="rounded border border-line bg-surface px-2 py-1 hover:bg-canvas">
               Próxima
             </Link>
           ) : null}

@@ -26,14 +26,14 @@ export default async function LocationLabelsPage({ searchParams }: { searchParam
       ids: ids.length ? ids : null,
     }),
   ]);
-  const select = "h-9 rounded-md border border-slate-300 bg-white px-2 text-sm";
+  const select = "h-9 rounded-md border border-line-strong bg-surface px-2 text-sm";
   return (
     <>
       <PrintToolbar backHref="/armazem/enderecos" title="Etiquetas de endereço" count={result.rows.length}>
         <form method="get" className="flex flex-wrap items-end gap-2 text-sm">
           {ids.length ? <input type="hidden" name="ids" value={ids.join(",")} /> : null}
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Depósito</span>
+            <span className="text-xs text-fg-2">Depósito</span>
             <select name="warehouseId" defaultValue={warehouseId ?? ""} className={select}>
               <option value="">Todos</option>
               {warehouses.map((w) => (
@@ -44,7 +44,7 @@ export default async function LocationLabelsPage({ searchParams }: { searchParam
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Zona</span>
+            <span className="text-xs text-fg-2">Zona</span>
             <select name="zoneId" defaultValue={p.zoneId ?? ""} className={select}>
               <option value="">Todas</option>
               {zones.map((z) => (
@@ -55,7 +55,7 @@ export default async function LocationLabelsPage({ searchParams }: { searchParam
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Rua</span>
+            <span className="text-xs text-fg-2">Rua</span>
             <select name="aisle" defaultValue={p.aisle ?? ""} className={select}>
               <option value="">Todas</option>
               {aisles.map((a) => (
@@ -66,11 +66,11 @@ export default async function LocationLabelsPage({ searchParams }: { searchParam
             </select>
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Código contém</span>
+            <span className="text-xs text-fg-2">Código contém</span>
             <input name="q" defaultValue={p.q ?? ""} className={`${select} w-40`} />
           </label>
           <label className="flex flex-col gap-1">
-            <span className="text-xs text-slate-600">Seta</span>
+            <span className="text-xs text-fg-2">Seta</span>
             <select name="seta" defaultValue={arrowMode} className={select}>
               <option value="auto">Automática pelo nível</option>
               <option value="up">Para cima</option>
@@ -78,16 +78,16 @@ export default async function LocationLabelsPage({ searchParams }: { searchParam
               <option value="none">Sem seta</option>
             </select>
           </label>
-          <button type="submit" className="h-9 rounded-md border border-slate-300 bg-white px-3 font-medium hover:bg-slate-50">
+          <button type="submit" className="h-9 rounded-md border border-line-strong bg-surface px-3 font-medium hover:bg-canvas">
             Filtrar
           </button>
-          {ids.length ? <span className="text-xs text-slate-600">Seleção: {ids.length} endereço(s)</span> : null}
+          {ids.length ? <span className="text-xs text-fg-2">Seleção: {ids.length} endereço(s)</span> : null}
         </form>
         {result.truncated ? (
-          <p className="mt-2 text-sm text-amber-700">Mostrando os primeiros {MAX_LOCATION_LABELS}. Refine o filtro para imprimir o restante.</p>
+          <p className="mt-2 text-sm text-warn-fg">Mostrando os primeiros {MAX_LOCATION_LABELS}. Refine o filtro para imprimir o restante.</p>
         ) : null}
       </PrintToolbar>
-      {result.rows.length === 0 ? <p className="no-print text-center text-slate-600">Nenhum endereço no filtro.</p> : null}
+      {result.rows.length === 0 ? <p className="no-print text-center text-fg-2">Nenhum endereço no filtro.</p> : null}
       <div className="label-sheet">
         {result.rows.map((l) => {
           const arrow = arrowMode === "auto" ? levelArrow(l.level) : arrowMode;

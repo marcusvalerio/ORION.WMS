@@ -19,7 +19,7 @@ export function WarehouseChecklist({
           label={
             <span>
               <span className="font-medium">{w.code}</span> — {w.name}
-              {!w.active ? <span className="text-xs text-slate-500"> (inativo)</span> : null}
+              {!w.active ? <span className="text-xs text-muted"> (inativo)</span> : null}
             </span>
           }
         />

@@ -22,17 +22,17 @@ export function PoBalanceTable({ rows }: { rows: PoItemBalance[] }) {
         <tbody>
           {rows.map((b) => (
             <tr key={b.purchase_order_item_id}>
-              <td className="text-slate-400">{b.line_no}</td>
+              <td className="text-muted">{b.line_no}</td>
               <td>
                 <span className="font-medium">{b.sku}</span>
-                <span className="block text-xs text-slate-500">{b.description}</span>
+                <span className="block text-xs text-muted">{b.description}</span>
               </td>
               <td className="num">
                 {fmtQty(b.ordered)} {b.uom}
               </td>
               <td className="num">{fmtQty(b.received)}</td>
               <td className="num">{b.in_transit ? fmtQty(b.in_transit) : "—"}</td>
-              <td className={b.pending > 0 ? "num font-medium text-amber-700" : "num font-medium text-emerald-700"}>{fmtQty(b.pending)}</td>
+              <td className={b.pending > 0 ? "num font-medium text-warn-fg" : "num font-medium text-ok-fg"}>{fmtQty(b.pending)}</td>
             </tr>
           ))}
         </tbody>
@@ -43,7 +43,7 @@ export function PoBalanceTable({ rows }: { rows: PoItemBalance[] }) {
 
 /** Histórico de entregas (recebimentos) do pedido. */
 export function PoDeliveriesTable({ rows, currentId }: { rows: PoDeliveryRow[]; currentId?: string }) {
-  if (!rows.length) return <p className="px-4 py-3 text-sm text-slate-500">Nenhuma entrega registrada.</p>;
+  if (!rows.length) return <p className="px-4 py-3 text-sm text-muted">Nenhuma entrega registrada.</p>;
   return (
     <TableWrap>
       <table className="table-base">
@@ -60,8 +60,8 @@ export function PoDeliveriesTable({ rows, currentId }: { rows: PoDeliveryRow[]; 
         </thead>
         <tbody>
           {rows.map((r, i) => (
-            <tr key={r.id} className={r.id === currentId ? "bg-brand-50/40" : undefined}>
-              <td className="text-slate-500">{i + 1}ª</td>
+            <tr key={r.id} className={r.id === currentId ? "bg-accent-soft/40" : undefined}>
+              <td className="text-muted">{i + 1}ª</td>
               <td>
                 <Link className="link" href={`/recebimentos/${r.id}`}>
                   {r.code}

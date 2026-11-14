@@ -67,13 +67,13 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
               href={`?r=${key}`}
               className={cn(
                 "flex items-start gap-2 rounded-lg border px-3 py-2.5",
-                key === selected ? "border-brand-300 bg-brand-50" : "border-slate-200 bg-white hover:border-brand-200",
+                key === selected ? "border-accent bg-accent-soft" : "border-line bg-surface hover:border-accent",
               )}
             >
-              <FileText className={cn("mt-0.5 size-4 shrink-0", key === selected ? "text-brand-600" : "text-slate-400")} aria-hidden />
+              <FileText className={cn("mt-0.5 size-4 shrink-0", key === selected ? "text-link" : "text-muted")} aria-hidden />
               <span>
-                <span className="block text-sm font-medium text-slate-800">{REPORTS[key]}</span>
-                <span className="block text-xs text-slate-500">{DESCRIPTIONS[key]}</span>
+                <span className="block text-sm font-medium text-fg">{REPORTS[key]}</span>
+                <span className="block text-xs text-muted">{DESCRIPTIONS[key]}</span>
               </span>
             </Link>
           ))}

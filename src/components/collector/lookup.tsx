@@ -30,8 +30,8 @@ export function Lookup() {
       <ScanField label="Endereço ou produto" onScan={scan} busy={busy} submitLabel="Consultar" />
       <FeedbackBanner feedback={feedback} />
       {result ? (
-        <section className="rounded-xl border-2 border-slate-300 bg-white">
-          <header className="border-b-2 border-slate-200 p-3">
+        <section className="rounded-xl border-2 border-line-strong bg-surface">
+          <header className="border-b-2 border-line p-3">
             {result.kind === "location" ? (
               <p className="font-mono text-xl font-bold">{result.location.code}</p>
             ) : (
@@ -46,14 +46,14 @@ export function Lookup() {
             )}
           </header>
           {result.balances.length === 0 ? (
-            <p className="p-3 text-lg text-slate-700">{result.kind === "location" ? "Endereço vazio." : "Sem saldo em nenhum endereço."}</p>
+            <p className="p-3 text-lg text-fg-2">{result.kind === "location" ? "Endereço vazio." : "Sem saldo em nenhum endereço."}</p>
           ) : (
-            <ul className="divide-y divide-slate-200">
+            <ul className="divide-y divide-line">
               {result.balances.map((b, i) => (
                 <li key={i} className="p-3">
                   <p className="font-mono text-lg font-bold break-all">{result.kind === "location" ? b.sku : b.location_code}</p>
-                  {result.kind === "location" ? <p className="text-sm text-slate-700">{b.description}</p> : null}
-                  <p className="text-base text-slate-900">
+                  {result.kind === "location" ? <p className="text-sm text-fg-2">{b.description}</p> : null}
+                  <p className="text-base text-fg">
                     {b.lot_code ? `Lote ${b.lot_code} · ` : ""}
                     {b.expiry_date ? `Val. ${b.expiry_date.split("-").reverse().join("/")} · ` : ""}
                     Físico <strong>{fmt(b.quantity)}</strong> · Disp. <strong>{fmt(b.available_qty)}</strong>

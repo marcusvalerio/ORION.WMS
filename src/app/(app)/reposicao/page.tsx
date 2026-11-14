@@ -65,7 +65,7 @@ export default async function ReplenishmentPage() {
                     <td className="font-mono text-[11px] whitespace-nowrap">{s.location_code}</td>
                     <td>
                       <span className="font-medium">{s.sku}</span>
-                      <span className="block text-xs text-slate-500">{s.description}</span>
+                      <span className="block text-xs text-muted">{s.description}</span>
                     </td>
                     <td className="num">{fmtQty(s.min_qty)}</td>
                     <td className="num">{fmtQty(s.max_qty)}</td>
@@ -132,7 +132,7 @@ export default async function ReplenishmentPage() {
                 </div>
               </ActionForm>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 Não há endereços ativos em zona de picking. Cadastre uma zona do tipo Picking em{" "}
                 <Link href="/armazem/estrutura" className="link">
                   Estrutura física

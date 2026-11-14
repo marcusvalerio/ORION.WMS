@@ -110,14 +110,14 @@ export default async function InventoryListPage() {
                     </td>
                     <td>
                       {r.warehouse_code}
-                      <span className="block text-xs text-slate-500">{r.scope || "Depósito inteiro"}</span>
+                      <span className="block text-xs text-muted">{r.scope || "Depósito inteiro"}</span>
                     </td>
                     <td className="num">{r.items}</td>
                     <td className="num">{r.counted}</td>
                     <td className="num">{r.differences ? <Badge tone="warning">{r.differences}</Badge> : "0"}</td>
                     <td>
                       {r.created_by_name}
-                      <span className="block text-xs text-slate-500">{fmtDateTime(r.created_at)}</span>
+                      <span className="block text-xs text-muted">{fmtDateTime(r.created_at)}</span>
                     </td>
                     <td>{fmtDateTime(r.approved_at)}</td>
                   </tr>

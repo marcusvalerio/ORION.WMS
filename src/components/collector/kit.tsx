@@ -27,9 +27,9 @@ export function useFeedback(initial: Feedback | null = null) {
 }
 
 const TONES: Record<Tone, string> = {
-  ok: "border-emerald-700 bg-emerald-600 text-white",
-  error: "border-red-800 bg-red-600 text-white",
-  info: "border-slate-300 bg-white text-slate-900",
+  ok: "border-ok-solid bg-ok-solid text-on-solid",
+  error: "border-crit-solid bg-crit-solid text-on-solid",
+  info: "border-line-strong bg-surface text-fg",
 };
 
 export function FeedbackBanner({ feedback }: { feedback: Feedback | null }) {
@@ -102,11 +102,11 @@ export function ScanField({
   return (
     <form onSubmit={submit} className="space-y-3">
       <label className="block">
-        <span className="mb-1 flex items-center gap-2 text-lg font-bold text-slate-900">
-          <ScanLine className="size-6 text-brand-600" aria-hidden />
+        <span className="mb-1 flex items-center gap-2 text-lg font-bold text-fg">
+          <ScanLine className="size-6 text-link" aria-hidden />
           {label}
         </span>
-        {hint ? <span className="mb-2 block text-base text-slate-600">{hint}</span> : null}
+        {hint ? <span className="mb-2 block text-base text-fg-2">{hint}</span> : null}
         <div className="flex gap-2">
           <input
             ref={ref}
@@ -120,7 +120,7 @@ export function ScanField({
             spellCheck={false}
             enterKeyHint="go"
             aria-label={label}
-            className="h-16 min-w-0 flex-1 rounded-xl border-2 border-slate-900 bg-white px-4 font-mono text-2xl text-slate-950 outline-none focus:border-brand-600 focus:ring-4 focus:ring-brand-200"
+            className="h-16 min-w-0 flex-1 rounded-xl border-2 border-fg bg-surface px-4 font-mono text-2xl text-fg outline-none focus:border-focus focus:ring-4 focus:ring-focus"
           />
           {!numeric ? (
             <button
@@ -133,7 +133,7 @@ export function ScanField({
               aria-label={manual ? "Ocultar teclado" : "Digitar manualmente"}
               className={cn(
                 "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2",
-                manual ? "border-brand-700 bg-brand-600 text-white" : "border-slate-900 bg-white text-slate-900",
+                manual ? "border-focus bg-action text-on-action" : "border-fg bg-surface text-fg",
               )}
             >
               <Keyboard className="size-7" aria-hidden />
@@ -159,10 +159,10 @@ export function BigButton({
       {...props}
       className={cn(
         "flex min-h-14 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xl font-bold transition-colors disabled:opacity-50",
-        variant === "primary" && "bg-brand-700 text-white active:bg-brand-800",
-        variant === "secondary" && "border-2 border-slate-900 bg-white text-slate-900 active:bg-slate-100",
-        variant === "success" && "bg-emerald-700 text-white active:bg-emerald-800",
-        variant === "danger" && "bg-red-700 text-white active:bg-red-800",
+        variant === "primary" && "bg-action text-on-action active:bg-action",
+        variant === "secondary" && "border-2 border-fg bg-surface text-fg active:bg-subtle",
+        variant === "success" && "bg-ok-solid text-on-solid active:brightness-90",
+        variant === "danger" && "bg-crit-solid text-on-solid active:brightness-90",
         className,
       )}
     >
@@ -173,9 +173,9 @@ export function BigButton({
 
 export function InfoRow({ label, children, strong }: { label: string; children: ReactNode; strong?: boolean }) {
   return (
-    <div className="flex flex-col border-b border-slate-200 py-2 last:border-0">
-      <span className="text-sm font-semibold tracking-wide text-slate-600 uppercase">{label}</span>
-      <span className={cn("break-words text-slate-950", strong ? "font-mono text-2xl font-bold" : "text-lg")}>{children}</span>
+    <div className="flex flex-col border-b border-line py-2 last:border-0">
+      <span className="text-sm font-semibold tracking-wide text-fg-2 uppercase">{label}</span>
+      <span className={cn("break-words text-fg", strong ? "font-mono text-2xl font-bold" : "text-lg")}>{children}</span>
     </div>
   );
 }
@@ -189,7 +189,7 @@ export function StepDots({ steps, current }: { steps: string[]; current: number 
           aria-current={i === current ? "step" : undefined}
           className={cn(
             "flex-1 rounded-md py-1.5 text-center text-xs font-bold uppercase",
-            i < current ? "bg-emerald-700 text-white" : i === current ? "bg-slate-900 text-white" : "bg-slate-200 text-slate-600",
+            i < current ? "bg-ok-solid text-on-solid" : i === current ? "bg-action text-on-action" : "bg-line text-fg-2",
           )}
         >
           {s}

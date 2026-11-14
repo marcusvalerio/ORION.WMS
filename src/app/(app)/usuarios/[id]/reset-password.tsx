@@ -25,7 +25,7 @@ export function ResetPassword({ userId, disabled }: { userId: string; disabled?:
         Redefinir senha
       </button>
       {state.ok && state.temporaryPassword ? (
-        <div role="status" className="rounded-md border border-amber-200 bg-amber-50 p-3 text-sm text-amber-900">
+        <div role="status" className="rounded-md border border-warn-line bg-warn-bg p-3 text-sm text-warn-fg">
           <p className="font-medium">Senha temporária (exibida só agora):</p>
           <p className="mt-1 font-mono text-base tracking-wide select-all">{state.temporaryPassword}</p>
           <p className="mt-1 text-xs">Entregue ao usuário por um canal seguro. A troca será exigida no próximo acesso.</p>

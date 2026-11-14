@@ -20,10 +20,10 @@ export function Field({
     <div className={className}>
       <label className="label" htmlFor={htmlFor}>
         {label}
-        {required ? <span className="text-red-600"> *</span> : null}
+        {required ? <span className="text-crit-fg"> *</span> : null}
       </label>
       {children}
-      {hint ? <p className="mt-1 text-xs text-slate-500">{hint}</p> : null}
+      {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
     </div>
   );
 }
@@ -56,8 +56,8 @@ export function Select({
 
 export function Checkbox({ label, className, ...props }: ComponentProps<"input"> & { label: ReactNode }) {
   return (
-    <label className={cn("flex items-center gap-2 text-sm text-slate-700", className)}>
-      <input type="checkbox" className="size-4 rounded border-slate-300 text-brand-600 focus:ring-brand-500" {...props} />
+    <label className={cn("flex items-center gap-2 text-sm text-fg-2", className)}>
+      <input type="checkbox" className="size-4 rounded border-line-strong text-link focus:ring-focus" {...props} />
       {label}
     </label>
   );

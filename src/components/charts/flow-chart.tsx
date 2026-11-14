@@ -18,8 +18,8 @@ export function FlowChart({ data }: { data: { day: string; received: number; shi
       <svg viewBox={`0 0 ${w} ${h}`} className="h-auto w-full" role="img" aria-label="Unidades armazenadas e expedidas por dia">
         {ticks.map((t) => (
           <g key={t}>
-            <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} stroke="#e2e8f0" strokeDasharray={t ? "3 3" : undefined} />
-            <text x={pad.l - 6} y={y(t) + 3} textAnchor="end" className="fill-slate-400 text-[10px]">
+            <line x1={pad.l} x2={w - pad.r} y1={y(t)} y2={y(t)} className="stroke-line" strokeDasharray={t ? "3 3" : undefined} />
+            <text x={pad.l - 6} y={y(t) + 3} textAnchor="end" className="fill-muted text-[10px]">
               {fmtQty(t)}
             </text>
           </g>
@@ -28,14 +28,14 @@ export function FlowChart({ data }: { data: { day: string; received: number; shi
           const cx = pad.l + slot * i + slot / 2;
           return (
             <g key={d.day}>
-              <rect x={cx - bw - 1} y={y(d.received)} width={bw} height={pad.t + innerH - y(d.received)} rx={2} className="fill-brand-500">
+              <rect x={cx - bw - 1} y={y(d.received)} width={bw} height={pad.t + innerH - y(d.received)} rx={2} className="fill-series-1">
                 <title>{`${fmtDate(d.day)} — armazenado: ${fmtQty(d.received)} un`}</title>
               </rect>
-              <rect x={cx + 1} y={y(d.shipped)} width={bw} height={pad.t + innerH - y(d.shipped)} rx={2} className="fill-emerald-500">
+              <rect x={cx + 1} y={y(d.shipped)} width={bw} height={pad.t + innerH - y(d.shipped)} rx={2} className="fill-chart-2">
                 <title>{`${fmtDate(d.day)} — expedido: ${fmtQty(d.shipped)} un`}</title>
               </rect>
               {i % 2 === data.length % 2 ? (
-                <text x={cx} y={h - 6} textAnchor="middle" className="fill-slate-400 text-[10px]">
+                <text x={cx} y={h - 6} textAnchor="middle" className="fill-muted text-[10px]">
                   {fmtDate(d.day).slice(0, 5)}
                 </text>
               ) : null}
@@ -43,12 +43,12 @@ export function FlowChart({ data }: { data: { day: string; received: number; shi
           );
         })}
       </svg>
-      <figcaption className="mt-2 flex flex-wrap gap-4 text-xs text-slate-600">
+      <figcaption className="mt-2 flex flex-wrap gap-4 text-xs text-fg-2">
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-brand-500" /> Armazenado (entrada) · {fmtQty(total.r)} un
+          <span className="size-2.5 rounded-sm bg-series-1" /> Armazenado (entrada) · {fmtQty(total.r)} un
         </span>
         <span className="flex items-center gap-1.5">
-          <span className="size-2.5 rounded-sm bg-emerald-500" /> Expedido (saída) · {fmtQty(total.s)} un
+          <span className="size-2.5 rounded-sm bg-chart-2" /> Expedido (saída) · {fmtQty(total.s)} un
         </span>
       </figcaption>
     </figure>

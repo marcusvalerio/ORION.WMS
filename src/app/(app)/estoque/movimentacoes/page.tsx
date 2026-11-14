@@ -124,7 +124,7 @@ export default async function MovementsPage({ searchParams }: { searchParams: Se
                           (m.reference_code ?? "—")
                         )}
                         {m.task_code && m.task_id ? (
-                          <Link href={`/tarefas/${m.task_id}`} className="block text-xs text-slate-500 hover:underline">
+                          <Link href={`/tarefas/${m.task_id}`} className="block text-xs text-muted hover:underline">
                             {m.task_code}
                           </Link>
                         ) : null}

@@ -97,7 +97,7 @@ export default async function PurchaseOrderDeliveriesPage({ params }: { params: 
                       <td>
                         <input type="hidden" name={`items.${i}.purchaseOrderItemId`} value={b.purchase_order_item_id} />
                         <span className="font-medium">{b.sku}</span>
-                        <span className="block text-xs text-slate-500">{b.description}</span>
+                        <span className="block text-xs text-muted">{b.description}</span>
                       </td>
                       <td className="num">
                         {fmtQty(b.pending)} {b.uom}
@@ -119,7 +119,7 @@ export default async function PurchaseOrderDeliveriesPage({ params }: { params: 
                 </tbody>
               </table>
             </TableWrap>
-            <CardBody className="grid gap-3 border-t border-slate-100 md:grid-cols-4 md:items-end">
+            <CardBody className="grid gap-3 border-t border-line md:grid-cols-4 md:items-end">
               <Field label="Depósito de destino" required>
                 <Select name="warehouseId" required options={warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
               </Field>

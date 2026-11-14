@@ -18,7 +18,7 @@ export function Barcode128({
   try {
     code = encodeCode128(value);
   } catch {
-    return <span className="text-xs text-red-700">Código não imprimível em Code 128: {value}</span>;
+    return <span className="text-xs text-crit-fg">Código não imprimível em Code 128: {value}</span>;
   }
   const quiet = 10;
   const width = code.modules + quiet * 2;

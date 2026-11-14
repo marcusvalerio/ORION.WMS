@@ -152,7 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <EmptyState title="Nenhuma unidade logística cadastrada" />
             )}
             {manage ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <ActionForm action={addPackagingAction} resetOnSuccess className="grid grid-cols-2 gap-3 md:grid-cols-5">
                   <input type="hidden" name="_id" value={id} />
                   <Field label="Código" required>
@@ -183,7 +183,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <Checkbox name="lotControlled" label="Controla lote" defaultChecked={product.lot_controlled} disabled={!manage} />
               <Checkbox name="expiryControlled" label="Controla validade (FEFO)" defaultChecked={product.expiry_controlled} disabled={!manage} />
               <Checkbox name="serialControlled" label="Controla número de série" defaultChecked={product.serial_controlled} disabled={!manage} />
-              <p className="text-xs text-slate-500">O rastreio individual por número de série é registrado como parâmetro; a captura por unidade está planejada.</p>
+              <p className="text-xs text-muted">O rastreio individual por número de série é registrado como parâmetro; a captura por unidade está planejada.</p>
               <Field label="Classe de armazenagem">
                 <Select
                   name="storageClass"
@@ -204,7 +204,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   options={zones.filter((z) => ["storage", "picking"].includes(z.zone_type)).map((z) => ({ value: z.id, label: `${z.warehouse_code} · ${z.code} — ${z.name}` }))}
                 />
               </Field>
-              {manage ? <SubmitButton>Salvar parâmetros</SubmitButton> : <p className="text-xs text-slate-500">Somente administradores e supervisores alteram parâmetros.</p>}
+              {manage ? <SubmitButton>Salvar parâmetros</SubmitButton> : <p className="text-xs text-muted">Somente administradores e supervisores alteram parâmetros.</p>}
             </ActionForm>
           </CardBody>
         </Card>

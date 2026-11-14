@@ -90,7 +90,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               ["Criado por", `${r.created_by_name} · ${fmtDateTime(r.created_at)}`],
             ]}
           />
-          {r.notes ? <p className="rounded bg-slate-50 px-3 py-2 text-sm text-slate-600">Observações: {r.notes}</p> : null}
+          {r.notes ? <p className="rounded bg-canvas px-3 py-2 text-sm text-fg-2">Observações: {r.notes}</p> : null}
         </CardBody>
       </Card>
 
@@ -101,7 +101,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               <CardHeader title="Itens previstos" description="Registre a chegada física para iniciar a conferência." />
               <ItemsTable items={r.items} />
               {can(role, "receipt.check") ? (
-                <CardBody className="flex flex-wrap gap-3 border-t border-slate-100">
+                <CardBody className="flex flex-wrap gap-3 border-t border-line">
                   <ActionForm action={startCheckAction}>
                     <input type="hidden" name="_id" value={id} />
                     <SubmitButton>Registrar chegada e iniciar conferência</SubmitButton>
@@ -140,7 +140,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                             <td>
                               <input type="hidden" name={`items.${idx}.itemId`} value={i.id} />
                               <span className="font-medium">{i.sku}</span>
-                              <span className="block text-xs text-slate-500">{i.description}</span>
+                              <span className="block text-xs text-muted">{i.description}</span>
                             </td>
                             <td className="num">
                               {fmtQty(i.expected_qty)} {i.uom}
@@ -159,7 +159,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                                 name={`items.${idx}.lotCode`}
                                 defaultValue={i.lot_code}
                                 placeholder={i.lot_controlled ? "Obrigatório" : "—"}
-                                className={i.lot_controlled ? "border-amber-300" : undefined}
+                                className={i.lot_controlled ? "border-warn-line" : undefined}
                                 aria-label={`Lote ${i.sku}`}
                               />
                             </td>
@@ -168,7 +168,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                                 name={`items.${idx}.expiryDate`}
                                 type="date"
                                 defaultValue={i.expiry_date ?? ""}
-                                className={i.expiry_controlled ? "border-amber-300" : undefined}
+                                className={i.expiry_controlled ? "border-warn-line" : undefined}
                                 aria-label={`Validade ${i.sku}`}
                               />
                             </td>
@@ -180,11 +180,11 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                       </tbody>
                     </table>
                   </TableWrap>
-                  <CardBody className="space-y-3 border-t border-slate-100">
+                  <CardBody className="space-y-3 border-t border-line">
                     <Field label="Observações da conferência">
                       <Textarea name="checkNotes" maxLength={2000} placeholder="Condições do veículo, embalagens, temperatura…" />
                     </Field>
-                    <p className="text-xs text-slate-500">Campos com borda amarela são obrigatórios para este produto (lote/validade).</p>
+                    <p className="text-xs text-muted">Campos com borda amarela são obrigatórios para este produto (lote/validade).</p>
                     <div className="flex flex-wrap gap-2">
                       <SubmitButton variant="secondary">Salvar contagem</SubmitButton>
                       <SubmitButton name="finish" value="1">
@@ -207,7 +207,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               />
               <ItemsTable items={r.items} showResult />
               {r.status === "checked" ? (
-                <CardBody className="space-y-3 border-t border-slate-100">
+                <CardBody className="space-y-3 border-t border-line">
                   <Alert level="info">
                     Serão liberados para armazenagem apenas os volumes elegíveis (conferido − avariado − retido). Quantidades retidas pelo controle de qualidade
                     permanecem bloqueadas até liberação explícita do supervisor.
@@ -218,7 +218,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                       <SubmitButton>Liberar itens e gerar tarefas de armazenagem</SubmitButton>
                     </ActionForm>
                   ) : (
-                    <p className="text-sm text-slate-500">Aguardando liberação por um supervisor.</p>
+                    <p className="text-sm text-muted">Aguardando liberação por um supervisor.</p>
                   )}
                 </CardBody>
               ) : null}
@@ -254,10 +254,10 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                         </td>
                         <td className="whitespace-nowrap">
                           {t.sku}
-                          {t.lot_code ? <span className="block text-xs text-slate-500">Lote {t.lot_code}</span> : null}
+                          {t.lot_code ? <span className="block text-xs text-muted">Lote {t.lot_code}</span> : null}
                         </td>
                         <td className="num">{fmtQty(t.quantity)}</td>
-                        <td className="font-mono text-[11px] whitespace-nowrap">{t.to_code ?? t.suggested_code ?? <span className="font-sans text-xs text-red-600">Sem endereço elegível</span>}</td>
+                        <td className="font-mono text-[11px] whitespace-nowrap">{t.to_code ?? t.suggested_code ?? <span className="font-sans text-xs text-crit-fg">Sem endereço elegível</span>}</td>
                         <td>
                           <PriorityBadge priority={t.priority} />
                         </td>
@@ -281,7 +281,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                       <input type="hidden" name="_id" value={i.id} />
                       <div className="text-sm">
                         <span className="font-medium">{i.sku}</span>
-                        <span className="block text-xs text-slate-500">Retido: {fmtQty(i.quality_hold_qty)}</span>
+                        <span className="block text-xs text-muted">Retido: {fmtQty(i.quality_hold_qty)}</span>
                       </div>
                       <Field label="Quantidade">
                         <Input name="quantity" type="number" min={0} max={i.quality_hold_qty} step="any" required />
@@ -308,7 +308,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                 }
               />
               <PoBalanceTable rows={poBalance} />
-              <div className="border-t border-slate-100">
+              <div className="border-t border-line">
                 <PoDeliveriesTable rows={poDeliveries} currentId={id} />
               </div>
             </Card>
@@ -318,7 +318,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             <CardHeader title={`Divergências (${divergences.length})`} description="Faltas, sobras, avarias e retenções nunca são ocultadas: permanecem registradas mesmo após tratamento." />
             <DivergenceList rows={divergences} canResolve={can(role, "divergence.resolve")} />
             {["expected", "checking", "checked", "released"].includes(r.status) && can(role, "divergence.create") ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <Disclosure title="Registrar divergência ou ocorrência manual">
                   <ActionForm action={addReceiptDivergenceAction} resetOnSuccess className="grid gap-3 sm:grid-cols-3">
                     <input type="hidden" name="_id" value={id} />
@@ -403,10 +403,10 @@ function ItemsTable({ items, showResult }: { items: ReceiptItemRow[]; showResult
             const diff = (i.counted_qty ?? 0) - i.expected_qty;
             return (
               <tr key={i.id}>
-                <td className="text-slate-400">{i.line_no}</td>
+                <td className="text-muted">{i.line_no}</td>
                 <td>
                   <span className="font-medium">{i.sku}</span>
-                  <span className="block text-xs text-slate-500">{i.description}</span>
+                  <span className="block text-xs text-muted">{i.description}</span>
                 </td>
                 <td className="num">
                   {fmtQty(i.expected_qty)} {i.uom}
@@ -415,7 +415,7 @@ function ItemsTable({ items, showResult }: { items: ReceiptItemRow[]; showResult
                   <>
                     <td className="num">
                       {fmtQty(i.counted_qty)}
-                      {diff !== 0 ? <span className={diff < 0 ? "ml-1 text-xs text-red-600" : "ml-1 text-xs text-amber-600"}>({diff > 0 ? "+" : ""}{fmtQty(diff)})</span> : null}
+                      {diff !== 0 ? <span className={diff < 0 ? "ml-1 text-xs text-crit-fg" : "ml-1 text-xs text-warn-fg"}>({diff > 0 ? "+" : ""}{fmtQty(diff)})</span> : null}
                     </td>
                     <td className="num">{i.damaged_qty ? fmtQty(i.damaged_qty) : "—"}</td>
                     <td className="num">{i.quality_hold_qty ? fmtQty(i.quality_hold_qty) : "—"}</td>
@@ -426,7 +426,7 @@ function ItemsTable({ items, showResult }: { items: ReceiptItemRow[]; showResult
                     <td className="num font-medium">{fmtQty(i.putaway_qty)}</td>
                   </>
                 ) : (
-                  <td className="text-xs text-slate-500">{[i.lot_controlled && "Lote", i.expiry_controlled && "Validade"].filter(Boolean).join(", ") || "—"}</td>
+                  <td className="text-xs text-muted">{[i.lot_controlled && "Lote", i.expiry_controlled && "Validade"].filter(Boolean).join(", ") || "—"}</td>
                 )}
               </tr>
             );

@@ -94,7 +94,7 @@ export default async function HealthPage() {
                 </span>
               ))}
             </div>
-            <p className="text-sm text-slate-600">
+            <p className="text-sm text-fg-2">
               Evento mais antigo na fila: {h.oldest_pending_at ? `${fmtDateTime(h.oldest_pending_at)} (${fmtRelative(h.oldest_pending_at)})` : "nenhum"}
             </p>
             {q.failed ? <Alert level="warning">Há {q.failed} evento(s) que esgotaram as tentativas. Reenvie ou descarte no painel de integração.</Alert> : null}

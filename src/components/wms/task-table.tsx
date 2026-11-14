@@ -55,12 +55,12 @@ export function TaskTable({ rows, header }: { rows: TaskRow[]; header?: React.Re
                 </td>
                 <td>
                   {t.sku ?? "—"}
-                  {t.lot_code ? <span className="block text-[11px] text-slate-500">Lote {t.lot_code}</span> : null}
+                  {t.lot_code ? <span className="block text-[11px] text-muted">Lote {t.lot_code}</span> : null}
                 </td>
                 <td className="num">{fmtQty(t.confirmed_qty ?? t.quantity)}</td>
                 <td className="font-mono text-[11px] whitespace-nowrap">{t.from_code ?? "—"}</td>
                 <td className="font-mono text-[11px] whitespace-nowrap">
-                  {t.to_code ?? t.suggested_code ?? (t.task_type === "putaway" ? <span className="font-sans text-xs text-red-600">Sem sugestão</span> : "—")}
+                  {t.to_code ?? t.suggested_code ?? (t.task_type === "putaway" ? <span className="font-sans text-xs text-crit-fg">Sem sugestão</span> : "—")}
                 </td>
                 <td>
                   {doc ? (

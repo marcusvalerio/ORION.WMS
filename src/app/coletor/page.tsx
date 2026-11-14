@@ -25,16 +25,16 @@ export default async function CollectorHome() {
         <Link
           key={href}
           href={href}
-          className="flex min-h-20 items-center gap-4 rounded-xl border-2 border-slate-900 bg-white px-4 py-3 active:bg-slate-200"
+          className="flex min-h-20 items-center gap-4 rounded-xl border-2 border-fg bg-surface px-4 py-3 active:bg-line"
         >
-          <Icon className="size-9 shrink-0 text-brand-700" aria-hidden />
+          <Icon className="size-9 shrink-0 text-link" aria-hidden />
           <span>
             <span className="block text-xl font-bold">{label}</span>
-            <span className="block text-base text-slate-700">{detail}</span>
+            <span className="block text-base text-fg-2">{detail}</span>
           </span>
         </Link>
       ))}
-      <Link href="/" className="flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 text-lg font-semibold text-slate-700 underline">
+      <Link href="/" className="flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 text-lg font-semibold text-fg-2 underline">
         <Monitor className="size-5" aria-hidden />
         Abrir o sistema completo
       </Link>

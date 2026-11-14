@@ -75,7 +75,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                 ]}
               />
               {task.wave_id ? (
-                <p className="mt-4 text-sm text-slate-600">
+                <p className="mt-4 text-sm text-fg-2">
                   Onda{" "}
                   <Link href={`/ondas/${task.wave_id}`} className="link">
                     {task.wave_code}
@@ -90,10 +90,10 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
               ) : null}
               {allocations.length ? (
                 <div className="mt-4">
-                  <p className="mb-1 text-xs font-semibold text-slate-600 uppercase">Distribuição por pedido</p>
+                  <p className="mb-1 text-xs font-semibold text-fg-2 uppercase">Distribuição por pedido</p>
                   <ul className="space-y-0.5 text-sm">
                     {allocations.map((a) => (
-                      <li key={a.order_id} className={a.status === "cancelled" ? "text-slate-400 line-through" : undefined}>
+                      <li key={a.order_id} className={a.status === "cancelled" ? "text-muted line-through" : undefined}>
                         <Link href={`/separacao/${a.order_id}`} className="link">
                           {a.order_code}
                         </Link>{" "}
@@ -104,7 +104,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                   </ul>
                 </div>
               ) : null}
-              {task.notes ? <p className="mt-4 rounded bg-slate-50 px-3 py-2 text-sm text-slate-600">{task.notes}</p> : null}
+              {task.notes ? <p className="mt-4 rounded bg-canvas px-3 py-2 text-sm text-fg-2">{task.notes}</p> : null}
             </CardBody>
           </Card>
 
@@ -239,7 +239,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                   </SubmitButton>
                 </ActionForm>
                 {task.task_type === "transfer" ? (
-                  <ActionForm action={cancelTaskAction} confirm="Cancelar esta tarefa?" className="space-y-3 border-t border-slate-100 pt-4">
+                  <ActionForm action={cancelTaskAction} confirm="Cancelar esta tarefa?" className="space-y-3 border-t border-line pt-4">
                     <input type="hidden" name="_id" value={task.id} />
                     <Field label="Motivo do cancelamento" required>
                       <Input name="reason" required minLength={5} />
@@ -257,12 +257,12 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
             <ol className="space-y-3 px-4 py-4">
               {task.events.map((e) => (
                 <li key={e.id} className="relative pl-5 text-sm">
-                  <span className="absolute top-1.5 left-0 size-2 rounded-full bg-brand-500" aria-hidden />
-                  <p className="font-medium text-slate-800">
+                  <span className="absolute top-1.5 left-0 size-2 rounded-full bg-action" aria-hidden />
+                  <p className="font-medium text-fg">
                     {EVENT_LABELS[e.event_type] ?? e.event_type}
-                    {e.to_status && e.from_status !== e.to_status ? <span className="font-normal text-slate-500"> → {STATUS.task[e.to_status]?.label}</span> : null}
+                    {e.to_status && e.from_status !== e.to_status ? <span className="font-normal text-muted"> → {STATUS.task[e.to_status]?.label}</span> : null}
                   </p>
-                  <p className="text-xs text-slate-500">
+                  <p className="text-xs text-muted">
                     {e.user_name} · {fmtDateTime(e.created_at)}
                   </p>
                 </li>

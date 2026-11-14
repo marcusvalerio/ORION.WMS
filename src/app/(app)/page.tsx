@@ -18,7 +18,7 @@ import { cn } from "@/components/ui/cn";
 export const metadata = { title: "Dashboard" };
 
 const ALERT_ICON = { danger: CircleAlert, warning: TriangleAlert, info: Info };
-const ALERT_STYLE = { danger: "text-red-600", warning: "text-amber-600", info: "text-sky-600" };
+const ALERT_STYLE = { danger: "text-crit-fg", warning: "text-warn-fg", info: "text-info-fg" };
 
 export default async function DashboardPage() {
   const ctx = await requireCtx();
@@ -75,16 +75,16 @@ export default async function DashboardPage() {
         <Card>
           <CardHeader title="Alertas operacionais" description="Pontos que exigem atenção agora." />
           {alerts.length ? (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {alerts.map((a, i) => {
                 const Icon = ALERT_ICON[a.level];
                 return (
                   <li key={i}>
-                    <Link href={a.href} className="flex items-start gap-2.5 px-4 py-3 hover:bg-slate-50">
+                    <Link href={a.href} className="flex items-start gap-2.5 px-4 py-3 hover:bg-canvas">
                       <Icon className={cn("mt-0.5 size-4 shrink-0", ALERT_STYLE[a.level])} aria-hidden />
                       <span className="min-w-0">
-                        <span className="block text-sm font-medium text-slate-800">{a.title}</span>
-                        <span className="block truncate text-xs text-slate-500">{a.detail}</span>
+                        <span className="block text-sm font-medium text-fg">{a.title}</span>
+                        <span className="block truncate text-xs text-muted">{a.detail}</span>
                       </span>
                     </Link>
                   </li>
@@ -106,17 +106,17 @@ export default async function DashboardPage() {
             }
           />
           {activity.length ? (
-            <ul className="divide-y divide-slate-100">
+            <ul className="divide-y divide-line">
               {activity.map((m) => (
                 <li key={m.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2.5 text-sm">
                   <span className="min-w-0">
-                    <span className="font-medium text-slate-800">{MOVEMENT_LABELS[m.movement_type]}</span>
-                    <span className="text-slate-500"> · {m.sku} · {fmtQty(m.quantity)} un</span>
-                    <span className="block truncate text-xs text-slate-500">
+                    <span className="font-medium text-fg">{MOVEMENT_LABELS[m.movement_type]}</span>
+                    <span className="text-muted"> · {m.sku} · {fmtQty(m.quantity)} un</span>
+                    <span className="block truncate text-xs text-muted">
                       {m.from_code ?? "—"} → {m.to_code ?? "saída"} {m.reference_code ? `· ${m.reference_code}` : ""}
                     </span>
                   </span>
-                  <span className="text-xs text-slate-500">
+                  <span className="text-xs text-muted">
                     {m.user_name} · {fmtRelative(m.created_at)}
                   </span>
                 </li>

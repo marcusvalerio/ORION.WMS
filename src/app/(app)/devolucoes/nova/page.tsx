@@ -45,23 +45,23 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Se
       <Card className="mb-5">
         <CardHeader title="Pedidos expedidos" />
         {orders.length ? (
-          <ul className="divide-y divide-slate-100 text-sm">
+          <ul className="divide-y divide-line text-sm">
             {orders.map((o) => (
               <li key={o.id} className="flex flex-wrap items-center justify-between gap-2 px-4 py-2">
                 <span>
                   <span className="font-medium">{o.code}</span> — {o.customer_name}
-                  <span className="block text-xs text-slate-500">
+                  <span className="block text-xs text-muted">
                     Expedido {fmtDateTime(o.shipped_at)} · {fmtQty(o.shipped)} un · já devolvido {fmtQty(o.returned)}
                   </span>
                 </span>
                 {o.id === orderId ? (
-                  <span className="text-xs font-medium text-brand-700">Selecionado</span>
+                  <span className="text-xs font-medium text-link">Selecionado</span>
                 ) : o.shipped > o.returned ? (
                   <Link className="link text-xs" href={`/devolucoes/nova?pedido=${o.id}`}>
                     Selecionar
                   </Link>
                 ) : (
-                  <span className="text-xs text-slate-400">Tudo devolvido</span>
+                  <span className="text-xs text-muted">Tudo devolvido</span>
                 )}
               </li>
             ))}
@@ -92,7 +92,7 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Se
                       <td>
                         <input type="hidden" name={`items.${i}.orderLineId`} value={l.id} />
                         <span className="font-medium">{l.sku}</span>
-                        <span className="block text-xs text-slate-500">{l.description}</span>
+                        <span className="block text-xs text-muted">{l.description}</span>
                       </td>
                       <td className="num">
                         {fmtQty(l.shipped_qty)} {l.uom}
@@ -113,7 +113,7 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Se
                 </tbody>
               </table>
             </TableWrap>
-            <CardBody className="grid gap-3 border-t border-slate-100 md:grid-cols-3 md:items-end">
+            <CardBody className="grid gap-3 border-t border-line md:grid-cols-3 md:items-end">
               <Field label="Motivo" required>
                 <Select name="reason" required options={RETURN_REASONS.map((r) => ({ value: r, label: RETURN_REASON_LABELS[r] }))} />
               </Field>

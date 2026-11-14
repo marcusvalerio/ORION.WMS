@@ -81,12 +81,12 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                       <Link href={`/usuarios/${u.id}`} className="link font-medium">
                         {u.name}
                       </Link>
-                      {u.id === ctx.user.id ? <span className="ml-1.5 text-[11px] text-slate-500">(você)</span> : null}
+                      {u.id === ctx.user.id ? <span className="ml-1.5 text-[11px] text-muted">(você)</span> : null}
                       {u.is_demo ? <DemoBadge className="ml-1.5" /> : null}
                     </td>
-                    <td className="text-slate-600">{u.email}</td>
+                    <td className="text-fg-2">{u.email}</td>
                     <td>{ROLE_LABELS[u.role]}</td>
-                    <td>{u.warehouse_codes?.length ? u.warehouse_codes.join(", ") : <span className="text-slate-500">Todos</span>}</td>
+                    <td>{u.warehouse_codes?.length ? u.warehouse_codes.join(", ") : <span className="text-muted">Todos</span>}</td>
                     <td className="space-x-1">
                       <Badge tone={u.active ? "success" : "neutral"}>{u.active ? "Ativo" : "Inativo"}</Badge>
                       {u.must_change_password ? <Badge tone="warning">Troca de senha pendente</Badge> : null}

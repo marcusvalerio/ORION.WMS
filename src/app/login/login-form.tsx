@@ -44,9 +44,9 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
         {state.message ? <FormMessage state={state} /> : null}
       </form>
       {demoUsers.length ? (
-        <div className="mt-6 border-t border-slate-100 pt-4">
-          <p className="text-xs font-medium text-slate-600">Perfis de demonstração</p>
-          <p className="mt-0.5 text-xs text-slate-500">Clique para preencher. Senha de demonstração: <code className="code">{DEMO_PASSWORD_HINT}</code></p>
+        <div className="mt-6 border-t border-line pt-4">
+          <p className="text-xs font-medium text-fg-2">Perfis de demonstração</p>
+          <p className="mt-0.5 text-xs text-muted">Clique para preencher. Senha de demonstração: <code className="code">{DEMO_PASSWORD_HINT}</code></p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {demoUsers.map((u) => (
               <button
@@ -56,10 +56,10 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
                   setEmail(u.email);
                   setPassword(DEMO_PASSWORD_HINT);
                 }}
-                className="rounded-md border border-slate-200 px-2.5 py-2 text-left hover:border-brand-300 hover:bg-brand-50"
+                className="rounded-md border border-line px-2.5 py-2 text-left hover:border-accent hover:bg-accent-soft"
               >
-                <span className="block text-xs font-medium text-slate-800">{u.roleLabel}</span>
-                <span className="block truncate text-[11px] text-slate-500">{u.name}</span>
+                <span className="block text-xs font-medium text-fg">{u.roleLabel}</span>
+                <span className="block truncate text-[11px] text-muted">{u.name}</span>
               </button>
             ))}
           </div>

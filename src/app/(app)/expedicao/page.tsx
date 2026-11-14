@@ -69,7 +69,7 @@ export default async function ShippingPage() {
                       <td>{s.customer_name}</td>
                       <td>
                         {s.carrier ?? "—"}
-                        <span className="block text-xs text-slate-500">{s.vehicle_plate ?? ""}</span>
+                        <span className="block text-xs text-muted">{s.vehicle_plate ?? ""}</span>
                       </td>
                       <td>{s.document_ref ?? "—"}</td>
                       <td className="num">{fmtQty(s.total)}</td>

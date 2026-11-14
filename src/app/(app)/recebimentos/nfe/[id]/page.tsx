@@ -68,13 +68,13 @@ export default async function NfePage({ params }: { params: Promise<{ id: string
             items={[
               ["Chave de acesso", <span key="k" className="font-mono text-xs">{n.access_key}</span>],
               ["Emissão", fmtDateTime(n.issued_at)],
-              ["Fornecedor (ERP)", n.supplier_name ?? <span className="text-amber-700">Não identificado pelo CNPJ</span>],
+              ["Fornecedor (ERP)", n.supplier_name ?? <span className="text-warn-fg">Não identificado pelo CNPJ</span>],
               ["Pedido de compra", n.po_number ?? "Sem pedido"],
               ["Recebimento", n.receipt_id ? <Link className="link" href={`/recebimentos/${n.receipt_id}`}>{n.receipt_code}</Link> : "—"],
               ["Importada em", fmtDateTime(n.created_at)],
             ]}
           />
-          <p className="text-xs text-slate-500">
+          <p className="text-xs text-muted">
             Leitura local do XML: o dígito verificador da chave é conferido, mas a assinatura digital e a autorização na SEFAZ não são consultadas.
           </p>
         </CardBody>
@@ -120,15 +120,15 @@ export default async function NfePage({ params }: { params: Promise<{ id: string
             <tbody>
               {n.items.map((i) => (
                 <tr key={i.id}>
-                  <td className="text-slate-400">{i.item_no}</td>
+                  <td className="text-muted">{i.item_no}</td>
                   <td className="text-xs">
                     <span className="font-mono">{i.supplier_code}</span>
-                    <span className="block text-slate-500">{i.ean ?? "sem GTIN"}</span>
+                    <span className="block text-muted">{i.ean ?? "sem GTIN"}</span>
                   </td>
                   <td className="text-xs">{i.description}</td>
                   <td className="num whitespace-nowrap">
                     {fmtQty(i.quantity)} {i.unit}
-                    {i.units_factor !== 1 ? <span className="block text-xs text-slate-500">= {fmtQty(i.quantity * i.units_factor)} {i.uom}</span> : null}
+                    {i.units_factor !== 1 ? <span className="block text-xs text-muted">= {fmtQty(i.quantity * i.units_factor)} {i.uom}</span> : null}
                   </td>
                   <td className="text-xs">
                     {i.lots.length
@@ -143,9 +143,9 @@ export default async function NfePage({ params }: { params: Promise<{ id: string
                     {i.product_id ? (
                       <div className="text-sm">
                         <span className="font-medium">{i.sku}</span> <Badge tone="success">{MATCH[i.match_source ?? ""] ?? i.match_source}</Badge>
-                        <span className="block text-xs text-slate-500">{i.product_description}</span>
+                        <span className="block text-xs text-muted">{i.product_description}</span>
                         {i.uom && i.uom !== i.unit && i.units_factor === 1 ? (
-                          <span className="block text-xs text-amber-700">Unidade da NF ({i.unit}) difere da do produto ({i.uom}) e não há embalagem com esse código.</span>
+                          <span className="block text-xs text-warn-fg">Unidade da NF ({i.unit}) difere da do produto ({i.uom}) e não há embalagem com esse código.</span>
                         ) : null}
                       </div>
                     ) : editable && n.supplier_id ? (
@@ -204,12 +204,12 @@ export default async function NfePage({ params }: { params: Promise<{ id: string
                   <tr key={c.product_id}>
                     <td>
                       <span className="font-medium">{c.sku}</span>
-                      <span className="block text-xs text-slate-500">{c.description}</span>
+                      <span className="block text-xs text-muted">{c.description}</span>
                     </td>
                     <td className="num">{c.ordered === null ? <Badge tone="danger">Fora do pedido</Badge> : fmtQty(c.ordered)}</td>
                     <td className="num">{c.pending === null ? "—" : fmtQty(c.pending)}</td>
                     <td className="num">{fmtQty(c.nfe_qty)}</td>
-                    <td className={`num font-medium ${c.difference && c.difference > 0 ? "text-red-600" : c.difference && c.difference < 0 ? "text-amber-700" : ""}`}>
+                    <td className={`num font-medium ${c.difference && c.difference > 0 ? "text-crit-fg" : c.difference && c.difference < 0 ? "text-warn-fg" : ""}`}>
                       {c.difference === null ? "—" : `${c.difference > 0 ? "+" : ""}${fmtQty(c.difference)}`}
                     </td>
                   </tr>
@@ -218,7 +218,7 @@ export default async function NfePage({ params }: { params: Promise<{ id: string
             </table>
           </TableWrap>
         ) : (
-          <p className="px-4 py-3 text-sm text-slate-500">Vincule os itens para comparar.</p>
+          <p className="px-4 py-3 text-sm text-muted">Vincule os itens para comparar.</p>
         )}
       </Card>
 

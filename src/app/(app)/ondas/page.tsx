@@ -105,9 +105,9 @@ export default async function WavesPage({ searchParams }: { searchParams: Search
                   </table>
                 </TableWrap>
               ) : (
-                <p className="text-sm text-slate-500">Nenhum pedido reservado fora de onda. Reserve pedidos em Separação para montar ondas.</p>
+                <p className="text-sm text-muted">Nenhum pedido reservado fora de onda. Reserve pedidos em Separação para montar ondas.</p>
               )}
-              <p className="text-xs text-slate-500">Na seleção manual, marque os pedidos. Nos demais critérios, entram todos os pedidos reservados que atendem ao valor informado.</p>
+              <p className="text-xs text-muted">Na seleção manual, marque os pedidos. Nos demais critérios, entram todos os pedidos reservados que atendem ao valor informado.</p>
               <SubmitButton>Criar onda</SubmitButton>
             </ActionForm>
           </CardBody>
@@ -156,7 +156,7 @@ export default async function WavesPage({ searchParams }: { searchParams: Search
                     </td>
                     <td>
                       {WAVE_GROUPING_LABELS[w.grouping]}
-                      {w.grouping_value ? <span className="block text-xs text-slate-500">{w.grouping_value}</span> : null}
+                      {w.grouping_value ? <span className="block text-xs text-muted">{w.grouping_value}</span> : null}
                     </td>
                     <td className="font-mono text-[11px]">{w.dock_code}</td>
                     <td className="num">{w.orders}</td>

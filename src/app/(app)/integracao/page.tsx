@@ -76,7 +76,7 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
             <Link
               key={s}
               href={`/integracao?status=${s}`}
-              className="flex items-center gap-2 rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:bg-slate-50"
+              className="flex items-center gap-2 rounded-md border border-line bg-surface px-3 py-2 text-sm hover:bg-canvas"
             >
               <StatusBadge kind="integration" status={s} />
               <span className="font-semibold tabular-nums">{list.counts[s] ?? 0}</span>
@@ -123,7 +123,7 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
                       <td className="whitespace-nowrap">{fmtDateTime(e.created_at)}</td>
                       <td>
                         <span className="font-mono text-xs">{e.event_type}</span>
-                        <span className="block text-[11px] text-slate-500">{codeOf(e)}</span>
+                        <span className="block text-[11px] text-muted">{codeOf(e)}</span>
                       </td>
                       <td>
                         <StatusBadge kind="integration" status={e.status} />
@@ -133,7 +133,7 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
                         {e.status === "sent" ? `Enviado ${fmtRelative(e.processed_at)}` : e.status === "pending" ? fmtDateTime(e.next_attempt_at) : "—"}
                       </td>
                       <td className="max-w-xs">
-                        <span className="line-clamp-2 text-xs break-all text-red-700">{e.last_error ?? ""}</span>
+                        <span className="line-clamp-2 text-xs break-all text-crit-fg">{e.last_error ?? ""}</span>
                       </td>
                       <td className="text-right">
                         <Link href={`/integracao?${new URLSearchParams({ ...clean(params), id: e.id })}`} className="link text-xs">
@@ -203,10 +203,10 @@ function EventDetail({ event: e, canManage }: { event: IntegrationEventRow; canM
         ) : null}
         <div>
           <p className="label">Payload</p>
-          <pre className="max-h-80 overflow-auto rounded-md bg-slate-50 p-3 text-xs text-slate-700">{JSON.stringify(e.payload, null, 2)}</pre>
+          <pre className="max-h-80 overflow-auto rounded-md bg-canvas p-3 text-xs text-fg-2">{JSON.stringify(e.payload, null, 2)}</pre>
         </div>
         {canManage && (canRetry || canDiscard) ? (
-          <div className="flex flex-wrap items-end gap-4 border-t border-slate-100 pt-4">
+          <div className="flex flex-wrap items-end gap-4 border-t border-line pt-4">
             {canRetry ? (
               <ActionForm action={retryEventAction} confirm="Devolver este evento à fila com as tentativas zeradas?">
                 <input type="hidden" name="_id" value={e.id} />

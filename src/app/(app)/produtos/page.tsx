@@ -83,7 +83,7 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
                         {p.lot_controlled ? <Badge tone="info">Lote</Badge> : null}
                         {p.expiry_controlled ? <Badge tone="info">Validade</Badge> : null}
                         {p.serial_controlled ? <Badge tone="info">Série</Badge> : null}
-                        {!p.lot_controlled && !p.expiry_controlled && !p.serial_controlled ? <span className="text-xs text-slate-400">—</span> : null}
+                        {!p.lot_controlled && !p.expiry_controlled && !p.serial_controlled ? <span className="text-xs text-muted">—</span> : null}
                       </div>
                     </td>
                     <td>{STORAGE_CLASS_LABELS[p.storage_class]}</td>

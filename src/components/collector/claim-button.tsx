@@ -27,12 +27,12 @@ export function ClaimButton({ taskId, label }: { taskId: string; label: string }
           buzz("ok");
           router.push(`/coletor/tarefas/${taskId}`);
         }}
-        className="flex min-h-14 w-full items-center justify-center rounded-xl bg-brand-700 px-4 text-xl font-bold text-white disabled:opacity-50"
+        className="flex min-h-14 w-full items-center justify-center rounded-xl bg-action px-4 text-xl font-bold text-on-action disabled:opacity-50"
       >
         {busy ? "Abrindo…" : label}
       </button>
       {error ? (
-        <p role="alert" className="mt-2 rounded-lg bg-red-600 p-3 text-base font-semibold text-white">
+        <p role="alert" className="mt-2 rounded-lg bg-crit-solid p-3 text-base font-semibold text-on-solid">
           {error}
         </p>
       ) : null}

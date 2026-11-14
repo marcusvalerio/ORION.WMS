@@ -56,7 +56,7 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Sear
             <Select name="status" defaultValue={params.status} placeholder="Todos" options={RETURN_STATUSES.map((s) => ({ value: s, label: STATUS.customerReturn[s].label }))} />
           </FilterField>
         </FilterBar>
-        <p className="border-t border-slate-100 px-4 py-2 text-xs text-slate-500">
+        <p className="border-t border-line px-4 py-2 text-xs text-muted">
           Total devolvido {fmtQty(totals.q)} · apto {fmtQty(totals.ok)} · avariado {fmtQty(totals.dmg)} · descartado {fmtQty(totals.disc)}
         </p>
         {rows.length ? (
@@ -101,7 +101,7 @@ export default async function ReturnsPage({ searchParams }: { searchParams: Sear
                     <td className="num">{fmtQty(r.discarded)}</td>
                     <td className="text-xs">
                       {fmtDateTime(r.created_at)}
-                      <span className="block text-slate-500">{r.created_by_name}</span>
+                      <span className="block text-muted">{r.created_by_name}</span>
                     </td>
                   </tr>
                 ))}

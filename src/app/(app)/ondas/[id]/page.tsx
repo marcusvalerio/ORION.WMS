@@ -141,7 +141,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
               </table>
             </TableWrap>
             {w.status === "draft" && manage && candidates.length ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <ActionForm action={addOrderToWaveAction} className="flex flex-wrap items-end gap-2">
                   <input type="hidden" name="_id" value={w.id} />
                   <Field label="Incluir pedido reservado" className="w-full sm:w-72">
@@ -184,12 +184,12 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
                         <td className="font-mono text-[11px] whitespace-nowrap">{t.from_code}</td>
                         <td>
                           {t.sku}
-                          {t.lot_code ? <span className="block text-[11px] text-slate-500">Lote {t.lot_code}</span> : null}
+                          {t.lot_code ? <span className="block text-[11px] text-muted">Lote {t.lot_code}</span> : null}
                         </td>
                         <td className="num">{fmtQty(t.confirmed_qty ?? t.quantity)}</td>
                         <td className="text-xs">
                           {t.allocations.map((a, i) => (
-                            <span key={i} className={a.status === "cancelled" ? "block text-slate-400 line-through" : "block"}>
+                            <span key={i} className={a.status === "cancelled" ? "block text-muted line-through" : "block"}>
                               {a.order_code}: {fmtQty(a.picked_qty ?? a.quantity)}
                               {a.picked_qty !== null && a.picked_qty < a.quantity ? ` de ${fmtQty(a.quantity)}` : ""}
                             </span>
@@ -206,7 +206,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
               </TableWrap>
             ) : (
               <CardBody>
-                <p className="text-sm text-slate-500">As tarefas são geradas ao liberar a onda.</p>
+                <p className="text-sm text-muted">As tarefas são geradas ao liberar a onda.</p>
               </CardBody>
             )}
           </Card>

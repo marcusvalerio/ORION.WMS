@@ -42,16 +42,16 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
             key={w.id}
             href={`?wh=${w.id}`}
             className={cn(
-              "rounded-lg border bg-white p-4 shadow-xs transition-colors",
-              w.id === current?.id ? "border-brand-400 ring-2 ring-brand-100" : "border-slate-200 hover:border-brand-300",
+              "rounded-lg border bg-surface p-4 shadow-xs transition-colors",
+              w.id === current?.id ? "border-focus ring-2 ring-focus" : "border-line hover:border-accent",
             )}
           >
             <div className="flex items-center justify-between gap-2">
               <span className="code">{w.code}</span>
               {w.active ? <Badge tone="success">Ativo</Badge> : <Badge>Inativo</Badge>}
             </div>
-            <p className="mt-1 font-medium text-slate-900">{w.name}</p>
-            <p className="mt-0.5 text-xs text-slate-500">
+            <p className="mt-1 font-medium text-fg">{w.name}</p>
+            <p className="mt-0.5 text-xs text-muted">
               {w.zone_count} zonas · {w.active_locations}/{w.location_count} endereços ativos
             </p>
             <OccupancyBar used={w.occupied} capacity={w.capacity} className="mt-3" />
@@ -83,13 +83,13 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
               }
             />
             {zones.length ? (
-              <div className="divide-y divide-slate-100">
+              <div className="divide-y divide-line">
                 {zones.map((z) => (
                   <div key={z.id} className="px-4 py-3">
                     <div className="flex flex-wrap items-center justify-between gap-2">
                       <div className="flex items-center gap-2">
                         <span className="code">{z.code}</span>
-                        <span className="text-sm font-medium text-slate-800">{z.name}</span>
+                        <span className="text-sm font-medium text-fg">{z.name}</span>
                         <Badge tone="info">{ZONE_TYPE_LABELS[z.zone_type]}</Badge>
                         {!z.active ? <Badge>Inativa</Badge> : null}
                       </div>
@@ -111,21 +111,21 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
                         <Link
                           key={a.aisle}
                           href={`/armazem/enderecos?zoneId=${z.id}&q=RUA-${a.aisle}`}
-                          className="rounded-md border border-slate-200 px-3 py-2 hover:border-brand-300 hover:bg-brand-50/40"
+                          className="rounded-md border border-line px-3 py-2 hover:border-accent hover:bg-accent-soft/40"
                         >
                           <div className="flex items-center justify-between text-xs">
-                            <span className="font-medium text-slate-700">Rua {a.aisle}</span>
-                            <span className="text-slate-500">{a.locations} end.</span>
+                            <span className="font-medium text-fg-2">Rua {a.aisle}</span>
+                            <span className="text-muted">{a.locations} end.</span>
                           </div>
-                          <div className="mt-1 flex gap-2 text-[11px] text-slate-500">
-                            <span className="text-emerald-700">{a.active} ativos</span>
-                            {a.blocked ? <span className="text-amber-700">{a.blocked} bloq.</span> : null}
+                          <div className="mt-1 flex gap-2 text-[11px] text-muted">
+                            <span className="text-ok-fg">{a.active} ativos</span>
+                            {a.blocked ? <span className="text-warn-fg">{a.blocked} bloq.</span> : null}
                             {a.inactive ? <span>{a.inactive} inat.</span> : null}
                           </div>
                           <OccupancyBar used={a.occupied} capacity={a.capacity} showLabel={false} className="mt-1.5" />
                         </Link>
                       ))}
-                      {!zonesById[z.id] ? <p className="text-xs text-slate-500">Nenhum endereço nesta zona.</p> : null}
+                      {!zonesById[z.id] ? <p className="text-xs text-muted">Nenhum endereço nesta zona.</p> : null}
                     </div>
                   </div>
                 ))}
@@ -168,7 +168,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
 
             {manage ? (
               <>
-                <Disclosure title="Gerar endereços em lote" icon={<Plus className="size-4 text-slate-400" />}>
+                <Disclosure title="Gerar endereços em lote" icon={<Plus className="size-4 text-muted" />}>
                   <ActionForm action={generateLocationsAction} className="grid grid-cols-2 gap-3">
                     <Field label="Zona" required className="col-span-2">
                       <Select name="zoneId" required options={zones.map((z) => ({ value: z.id, label: `${z.code} — ${z.name}` }))} />
@@ -205,7 +205,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
                     </div>
                   </ActionForm>
                 </Disclosure>
-                <Disclosure title="Nova zona" icon={<Plus className="size-4 text-slate-400" />}>
+                <Disclosure title="Nova zona" icon={<Plus className="size-4 text-muted" />}>
                   <ActionForm action={createZoneAction} resetOnSuccess className="grid grid-cols-2 gap-3">
                     <input type="hidden" name="warehouseId" value={current.id} />
                     <Field label="Código" required>
@@ -222,7 +222,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
                     </div>
                   </ActionForm>
                 </Disclosure>
-                <Disclosure title="Novo depósito" icon={<Plus className="size-4 text-slate-400" />}>
+                <Disclosure title="Novo depósito" icon={<Plus className="size-4 text-muted" />}>
                   <ActionForm action={createWarehouseAction} resetOnSuccess className="grid grid-cols-2 gap-3">
                     <Field label="Código" required>
                       <Input name="code" required maxLength={20} placeholder="DEP-02" />
@@ -241,7 +241,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
               </>
             ) : (
               <Card>
-                <CardBody className="text-sm text-slate-500">Somente administradores e supervisores alteram a estrutura física.</CardBody>
+                <CardBody className="text-sm text-muted">Somente administradores e supervisores alteram a estrutura física.</CardBody>
               </Card>
             )}
           </div>

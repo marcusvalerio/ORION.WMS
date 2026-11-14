@@ -90,7 +90,7 @@ export default async function ProductivityPage({ searchParams }: { searchParams:
                   <tr key={r.user_id}>
                     <td>
                       <span className="font-medium">{r.user_name}</span>
-                      <span className="block text-[11px] text-slate-500">
+                      <span className="block text-[11px] text-muted">
                         {ROLE_LABELS[r.role as Role] ?? r.role}
                         {!r.active ? " · inativo" : ""}
                       </span>
@@ -108,7 +108,7 @@ export default async function ProductivityPage({ searchParams }: { searchParams:
                     <td className="num">
                       {r.accuracy === null ? "—" : fmtPct(r.accuracy * 100)}
                       {r.picks_total ? (
-                        <span className="block text-[11px] text-slate-500">
+                        <span className="block text-[11px] text-muted">
                           {r.picks_accurate}/{r.picks_total}
                         </span>
                       ) : null}

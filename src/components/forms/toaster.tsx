@@ -48,13 +48,13 @@ export function Toaster() {
             key={t.id}
             role="status"
             className={cn(
-              "pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-lg border bg-white px-3 py-2.5 text-sm shadow-lg",
-              t.ok ? "border-emerald-200" : "border-red-200",
+              "pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-lg border bg-surface px-3 py-2.5 text-sm shadow-lg",
+              t.ok ? "border-ok-line" : "border-crit-line",
             )}
           >
-            <Icon className={cn("mt-0.5 size-4 shrink-0", t.ok ? "text-emerald-600" : "text-red-600")} aria-hidden />
-            <p className="flex-1 text-slate-800">{t.message}</p>
-            <button type="button" onClick={() => dismiss(t.id)} className="text-slate-400 hover:text-slate-700" aria-label="Fechar">
+            <Icon className={cn("mt-0.5 size-4 shrink-0", t.ok ? "text-ok-fg" : "text-crit-fg")} aria-hidden />
+            <p className="flex-1 text-fg">{t.message}</p>
+            <button type="button" onClick={() => dismiss(t.id)} className="text-muted hover:text-fg-2" aria-label="Fechar">
               <X className="size-4" />
             </button>
           </div>

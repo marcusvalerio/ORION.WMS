@@ -42,7 +42,7 @@ export default async function SettingsPage() {
                 .map((s) => (
                   <div key={s.key}>
                     <Checkbox name={s.key} defaultChecked={s.value} label={<span className="font-medium">{s.label}</span>} />
-                    <p className="mt-1 ml-6 text-xs text-slate-500">
+                    <p className="mt-1 ml-6 text-xs text-muted">
                       {s.description} Padrão: {s.default ? "ligado" : "desligado"}.
                       {s.customized && s.updatedAt ? ` Alterado em ${fmtDateTime(s.updatedAt)} por ${s.updatedByName ?? "—"}.` : null}
                     </p>
