@@ -97,6 +97,12 @@ export async function deliverToLineAction(_: ActionState, fd: FormData) {
 
 export async function returnLeftoversAction(_: ActionState, fd: FormData) {
   return runAction(fd, async ({ ctx, data, id, key }) => {
+    if (typeof data.lineLot === "string") {
+      const [lineId, lotCode = ""] = data.lineLot.split("|");
+      data.lineId = lineId;
+      data.lotCode = lotCode;
+      delete data.lineLot;
+    }
     const r = await production.returnLeftovers(ctx, id, data, { idempotencyKey: key });
     return `Sobra devolvida ao endereço ${r.location}.`;
   });

@@ -107,7 +107,7 @@ export async function setWarehouseActive(ctx: Ctx, id: string, active: boolean) 
 // Zonas
 // -----------------------------------------------------------------------------
 
-export const ZONE_TYPES = ["receiving", "storage", "picking", "shipping", "quarantine"] as const;
+export const ZONE_TYPES = ["receiving", "storage", "picking", "shipping", "quarantine", "production"] as const;
 
 export interface ZoneRow {
   id: string;
