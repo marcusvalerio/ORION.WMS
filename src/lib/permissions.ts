@@ -45,6 +45,10 @@ export const PERMISSIONS = {
   "integration.process": MANAGERS,
   "integration.manage": ["admin"],
   "system.health": ["admin"],
+  "dock.manage": MANAGERS,
+  "dock.schedule": ALL_OPERATIONAL,
+  "return.create": ALL_OPERATIONAL,
+  "return.inspect": MANAGERS,
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

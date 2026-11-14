@@ -24,6 +24,7 @@ const DESCRIPTIONS: Record<ReportKey, string> = {
   pedidos: "Pedidos de saída em separação e seu progresso por etapa.",
   expedicoes: "Expedições confirmadas com transportadora, documento e quantidades.",
   produtividade: "Tarefas, unidades movimentadas, tempo médio, separação e conferência por operador (últimos 30 dias).",
+  devolucoes: "Devoluções de cliente por pedido, motivo e resultado da inspeção (apto, avariado, descarte).",
 };
 
 const DEEP_LINKS: Partial<Record<ReportKey, string>> = {

@@ -29,6 +29,8 @@ import {
   RefreshCw,
   Building2,
   HeartPulse,
+  CalendarClock,
+  Undo2,
   type LucideIcon,
 } from "lucide-react";
 import { NAV } from "./nav";
@@ -58,6 +60,8 @@ const ICONS: Record<string, LucideIcon> = {
   RefreshCw,
   Building2,
   HeartPulse,
+  CalendarClock,
+  Undo2,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {

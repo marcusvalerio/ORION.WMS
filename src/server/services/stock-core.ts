@@ -61,17 +61,21 @@ export interface AddStockInput {
   quantity: number;
   /** Quantidade que já entra reservada (ex.: produto separado aguardando expedição). */
   reserved?: number;
+  /** Quantidade que já entra bloqueada (ex.: devolução avariada enviada à quarentena). */
+  blocked?: number;
 }
 
 export async function addStock(tx: Queryable, ctx: Ctx, input: AddStockInput): Promise<BalanceRow> {
   const reserved = input.reserved ?? 0;
+  const blocked = input.blocked ?? 0;
   const [row] = await tx.query<BalanceRow>(
     `insert into wms.stock_balances
-       (company_id, warehouse_id, location_id, product_id, lot_code, expiry_date, quantity, reserved_qty)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
+       (company_id, warehouse_id, location_id, product_id, lot_code, expiry_date, quantity, reserved_qty, blocked_qty)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      on conflict (location_id, product_id, lot_code) do update set
        quantity = wms.stock_balances.quantity + excluded.quantity,
        reserved_qty = wms.stock_balances.reserved_qty + excluded.reserved_qty,
+       blocked_qty = wms.stock_balances.blocked_qty + excluded.blocked_qty,
        expiry_date = coalesce(wms.stock_balances.expiry_date, excluded.expiry_date),
        version = wms.stock_balances.version + 1,
        updated_at = now()
@@ -85,6 +89,7 @@ export async function addStock(tx: Queryable, ctx: Ctx, input: AddStockInput): P
       input.expiryDate,
       input.quantity,
       reserved,
+      blocked,
     ],
   );
   return row;
@@ -141,7 +146,9 @@ export type MovementType =
   | "pick"
   | "shipment"
   | "block"
-  | "unblock";
+  | "unblock"
+  | "return_in"
+  | "discard";
 
 export interface MovementInput {
   warehouseId: string;
