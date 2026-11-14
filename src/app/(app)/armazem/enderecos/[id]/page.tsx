@@ -1,3 +1,4 @@
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
@@ -6,6 +7,7 @@ import { listMovements, listStock } from "@/server/services/stock";
 import { entityHistory } from "@/server/services/audit";
 import { deleteLocationAction, setLocationStatusAction, updateLocationAction } from "@/server/actions/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { OccupancyBar } from "@/components/ui/occupancy";
@@ -40,6 +42,11 @@ export default async function LocationPage({ params }: { params: Promise<{ id: s
         badges={<StatusBadge kind="location" status={loc.status} />}
         description={`${loc.zone_code} — ${loc.zone_name} (${ZONE_TYPE_LABELS[loc.zone_type]})`}
         breadcrumbs={[{ label: "Armazém" }, { label: "Endereços", href: "/armazem/enderecos" }, { label: loc.code }]}
+        actions={
+          <ButtonLink href={`/etiquetas/enderecos?ids=${loc.id}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">

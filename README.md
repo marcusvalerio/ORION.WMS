@@ -82,6 +82,8 @@ Cenários adicionais:
 
 - **Divergência no recebimento** — importe **PC-4588**: confira 55 de LUB-002 (3 avariadas) e 42 de ADE-003 (10 retidas pelo CQ). A finalização exige lote e validade; são registradas falta, sobra, avaria e retenção; só o elegível (52 e 32) vira tarefa, e o adesivo refrigerado só é sugerido na câmara fria.
 - **Separação acima da disponibilidade** — importe **PV-1002** (500 un) e tente reservar: a reserva é recusada por inteiro, sem reserva parcial.
+- **Coletor (celular/leitor de código de barras)** — como **Operador**, botão **Coletor** no topo; para qualquer perfil, o ícone de leitor de código de barras à direita do campo de busca do topo (rota `/coletor`): *Minhas tarefas* → **Pegar tarefa** → leia o endereço (etiqueta), o produto (EAN ou SKU) e confirme a quantidade. Leitores que funcionam como teclado (código + Enter) são aceitos direto no campo, sempre focado; o botão de teclado libera a digitação manual. Também há contagem de inventário (contagem cega) e consulta rápida (endereço → conteúdo; produto → onde está). Endereço diferente do sugerido é validado com as mesmas regras e a recusa é explicada.
+- **Etiquetas** — botões **Imprimir etiquetas** em *Endereços* (filtro atual, ou um endereço), no produto e no pedido de saída. Código de barras **Code 128** gerado no próprio sistema (SVG, sem dependência externa); a impressão usa o diálogo do navegador (`window.print`), com tamanhos físicos: endereço e produto 100×50 mm, volume de expedição 100×150 mm (pedido, cliente, volume *x de y*, doca).
 
 Os mesmos cenários estão automatizados em `tests/`.
 
