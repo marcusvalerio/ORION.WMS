@@ -38,6 +38,13 @@ export async function seedDemo(db: Db): Promise<void> {
   const ids = await db.transaction(async (tx) => {
     const company = await insert(tx, `insert into erp.companies (name, is_demo) values ('MetalSupply Componentes', true) returning id`, []);
     const c = company.id;
+    // Dados cadastrais fictícios (CNPJ de exemplo com dígitos válidos) para cabeçalho, CSV e etiquetas.
+    await tx.query(
+      `update erp.companies set legal_name = 'MetalSupply Componentes Industriais Ltda. (demo)', document = '11222333000181',
+         email = 'contato@metalsupply.demo', phone = '(11) 4000-0000', address = 'Av. das Indústrias, 1500 — Distrito Industrial',
+         city = 'São Paulo', state = 'SP', zip_code = '04000000' where id = $1`,
+      [c],
+    );
     const users: Record<string, string> = {};
     for (const u of DEMO_USERS) {
       const r = await insert(

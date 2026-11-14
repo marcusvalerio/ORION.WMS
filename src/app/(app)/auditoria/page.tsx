@@ -144,8 +144,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
       {events ? (
         <Card>
           <Alert level="info" className="m-4">
-            Outbox de integração: cada evento é gravado na mesma transação da operação. O conector de envio para um ERP externo ainda não está configurado — os eventos
-            permanecem “Na fila” até que um processador seja implantado (ver README). O status de pedidos de compra e de venda no ERP local já é atualizado diretamente.
+            Outbox de integração: cada evento é gravado na mesma transação da operação. O envio ao ERP, as retentativas, o reenvio e o descarte ficam no{" "}
+            <Link href="/integracao" className="link">
+              painel de Integração
+            </Link>
+            .
           </Alert>
           {events.length ? (
             <TableWrap>

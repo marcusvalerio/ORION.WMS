@@ -136,7 +136,7 @@ export type TransportConfig =
  * - `ERP_OUTBOX_TRANSPORT=local|http` escolhe explicitamente;
  * - sem a variável, usa `http` quando ERP_WEBHOOK_URL existe, senão `local`.
  */
-export function transportFromEnv(env: NodeJS.ProcessEnv = process.env): TransportConfig {
+export function transportFromEnv(env: Record<string, string | undefined> = process.env): TransportConfig {
   const url = env.ERP_WEBHOOK_URL?.trim();
   const choice = env.ERP_OUTBOX_TRANSPORT?.trim() || (url ? "http" : "local");
   if (choice !== "http") return { ok: true, transport: localTransport, description: "Local (schema erp deste banco)" };

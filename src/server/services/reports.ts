@@ -110,7 +110,8 @@ function csvCell(value: Cell): string {
 }
 
 /** CSV com separador ";" e BOM UTF-8 (compatível com Excel em pt-BR). */
-export function toCsv(table: Table): string {
-  const lines = [table.headers, ...table.rows].map((row) => row.map(csvCell).join(";"));
+/** CSV com `;` e BOM; `preamble` (opcional) são linhas de identificação antes do cabeçalho (ex.: empresa/CNPJ). */
+export function toCsv(table: Table, preamble: Cell[][] = []): string {
+  const lines = [...preamble, table.headers, ...table.rows].map((row) => row.map(csvCell).join(";"));
   return "﻿" + lines.join("\r\n") + "\r\n";
 }

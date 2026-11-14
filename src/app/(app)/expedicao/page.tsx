@@ -54,6 +54,7 @@ export default async function ShippingPage() {
                     <th className="num">Quantidade</th>
                     <th>Expedido em</th>
                     <th>Responsável</th>
+                    <th>Etiqueta</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -74,6 +75,11 @@ export default async function ShippingPage() {
                       <td className="num">{fmtQty(s.total)}</td>
                       <td className="whitespace-nowrap">{fmtDateTime(s.shipped_at)}</td>
                       <td>{s.shipped_by_name}</td>
+                      <td>
+                        <Link href={`/expedicao/etiqueta/${s.id}`} className="link">
+                          Imprimir
+                        </Link>
+                      </td>
                     </tr>
                   ))}
                 </tbody>
