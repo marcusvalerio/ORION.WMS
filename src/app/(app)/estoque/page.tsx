@@ -134,7 +134,10 @@ export default async function StockPage({ searchParams }: { searchParams: Search
                       <span className="font-medium text-fg">{b.sku}</span>
                       <span className="block text-xs text-muted">{b.description}</span>
                     </td>
-                    <td className="code">{b.lot_code || "—"}</td>
+                    <td className="code">
+                      {b.lot_code || "—"}
+                      {b.origin_country ? <span className="block text-xs text-slate-500">origem {b.origin_country}</span> : null}
+                    </td>
                     <td>
                       {fmtDate(b.expiry_date)}
                       {b.expiry_date && b.expiry_date < today ? <Badge tone="danger" className="ml-1">Vencido</Badge> : null}

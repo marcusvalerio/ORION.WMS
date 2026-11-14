@@ -9,6 +9,7 @@ import { parse, uuid, optionalText, optionalDate, qty, nonNegQty } from "../vali
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { getProductRules, suggestLocations } from "./stock-core";
+import { assertCustomsCleared, recordLotOrigins } from "./comex";
 
 export const RECEIPT_STATUSES = ["expected", "checking", "checked", "released", "completed", "cancelled"] as const;
 export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
@@ -723,6 +724,8 @@ export async function releaseReceipt(ctx: Ctx, receiptId: string, opts?: OpOptio
   return runOperation(ctx, "receipt.release", opts, async (tx) => {
     const r = await lockReceipt(tx, ctx, receiptId);
     requireStatus(r, ["checked"], "liberar o recebimento");
+    await assertCustomsCleared(tx, receiptId);
+    await recordLotOrigins(tx, ctx, receiptId);
     const items = await tx.query<{
       id: string;
       product_id: string;

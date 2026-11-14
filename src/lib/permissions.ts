@@ -53,6 +53,11 @@ export const PERMISSIONS = {
   "replenishment.manage": MANAGERS,
   "outbound.cancel_picking": MANAGERS,
   "slotting.manage": MANAGERS,
+  "comex.manage": MANAGERS,
+  "customs.clear": MANAGERS,
+  "export.pack": ALL_OPERATIONAL,
+  "production.manage": MANAGERS,
+  "production.operate": ALL_OPERATIONAL,
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

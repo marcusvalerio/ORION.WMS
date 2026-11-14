@@ -29,6 +29,7 @@ import { DIVERGENCE_TYPE_LABELS } from "@/lib/labels";
 import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
+import { ReceiptImportCard } from "@/components/wms/receipt-import-card";
 
 export const metadata = { title: "Recebimento" };
 
@@ -346,6 +347,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               </CardBody>
             ) : null}
           </Card>
+          <ReceiptImportCard ctx={ctx} receiptId={id} receiptStatus={r.status} />
         </div>
 
         <div className="space-y-5">

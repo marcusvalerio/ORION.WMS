@@ -3,7 +3,7 @@ export type Tone = "neutral" | "info" | "warning" | "success" | "danger" | "prog
 type StatusMap = Record<string, { label: string; tone: Tone }>;
 
 export const STATUS: Record<
-  "receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration" | "appointment" | "customerReturn" | "nfe" | "wave",
+  "receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration" | "appointment" | "customerReturn" | "nfe" | "wave" | "productionRequisition" | "customs",
   StatusMap
 > = {
   receipt: {
@@ -83,6 +83,19 @@ export const STATUS: Record<
     completed: { label: "Distribuída", tone: "success" },
     cancelled: { label: "Cancelada", tone: "danger" },
   },
+  productionRequisition: {
+    open: { label: "Aberta", tone: "neutral" },
+    reserved: { label: "Reservada", tone: "info" },
+    picking: { label: "Em separação", tone: "progress" },
+    delivered: { label: "Entregue à linha", tone: "warning" },
+    completed: { label: "Encerrada", tone: "success" },
+    cancelled: { label: "Cancelada", tone: "danger" },
+  },
+  customs: {
+    none: { label: "Sem retenção", tone: "neutral" },
+    awaiting: { label: "Aguardando desembaraço", tone: "warning" },
+    cleared: { label: "Desembaraçado", tone: "success" },
+  },
 };
 
 export function statusLabel(kind: keyof typeof STATUS, status: string): string {
@@ -96,6 +109,7 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   picking: "Separação",
   replenishment: "Reposição",
   return: "Devolução ao endereço",
+  production_pick: "Separação para produção",
 };
 
 export const MOVEMENT_LABELS: Record<string, string> = {
@@ -111,6 +125,9 @@ export const MOVEMENT_LABELS: Record<string, string> = {
   discard: "Descarte",
   replenishment: "Reposição de picking",
   return: "Devolução ao estoque",
+  production_pick: "Separação para produção",
+  production_issue: "Entrega à produção",
+  production_return: "Sobra devolvida pela produção",
 };
 
 export const ZONE_TYPE_LABELS: Record<string, string> = {
@@ -119,6 +136,7 @@ export const ZONE_TYPE_LABELS: Record<string, string> = {
   picking: "Picking",
   shipping: "Expedição",
   quarantine: "Quarentena",
+  production: "Produção (linha)",
 };
 
 export const LOCATION_TYPE_LABELS: Record<string, string> = {
@@ -272,6 +290,29 @@ export const RETURN_REASON_LABELS: Record<string, string> = {
   "outbound.planning_updated": "Planejamento de saída alterado",
   "slotting.settings_updated": "Parâmetros da curva ABC alterados",
   "slotting.transfer_created": "Transferência de slotting gerada",
+  "receipt.import_saved": "Dados de importação registrados",
+  "receipt.customs_cleared": "Desembaraço aduaneiro registrado",
+  "outbound.export_saved": "Dados de exportação registrados",
+  "export.package_added": "Volume de exportação incluído",
+  "export.package_removed": "Volume de exportação removido",
+  "export.packed": "Packing list fechado",
+  "export.stuffed": "Contêiner estufado",
+  "production.requisition_created": "Requisição de produção criada",
+  "production.reserved": "Componentes reservados",
+  "production.released": "Separação para produção liberada",
+  "production.delivered": "Entrega à linha confirmada",
+  "production.leftovers_returned": "Sobra devolvida ao estoque",
+  "production.output_received": "Produto acabado recebido",
+  "production.completed": "Requisição encerrada",
+  "production.cancelled": "Requisição cancelada",
+};
+
+export const PACKAGE_TYPE_LABELS: Record<string, string> = {
+  box: "Caixa / Box",
+  pallet: "Palete / Pallet",
+  crate: "Engradado / Crate",
+  drum: "Tambor / Drum",
+  other: "Outro / Other",
 };
 
 export const WAVE_GROUPING_LABELS: Record<string, string> = {

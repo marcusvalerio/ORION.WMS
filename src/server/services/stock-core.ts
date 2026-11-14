@@ -150,7 +150,10 @@ export type MovementType =
   | "return_in"
   | "discard"
   | "replenishment"
-  | "return";
+  | "return"
+  | "production_pick"
+  | "production_issue"
+  | "production_return";
 
 export interface MovementInput {
   warehouseId: string;

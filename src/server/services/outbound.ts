@@ -6,6 +6,7 @@ import { assertCan } from "../context";
 import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalDate, optionalUuid, qty, nonNegQty } from "../validation";
+import { assertExportReady } from "./comex";
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { availableOf, changeReserved, insertMovement, lockBalanceById, removeStock, type BalanceRow } from "./stock-core";
@@ -527,6 +528,7 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
   return runOperation(ctx, "outbound.ship", opts, async (tx) => {
     const o = await lockOrder(tx, ctx, orderId);
     requireStatus(o, ["checked"], "expedir");
+    await assertExportReady(tx, orderId);
     const reservations = await tx.query<{
       id: string;
       order_line_id: string;

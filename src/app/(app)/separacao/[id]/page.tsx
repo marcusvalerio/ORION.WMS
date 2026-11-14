@@ -22,6 +22,7 @@ import { DivergenceList } from "@/components/wms/divergence-list";
 import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
+import { ExportCard } from "@/components/wms/export-card";
 import { cn } from "@/components/ui/cn";
 import { cancelOrderLineAction, setOrderPlanningAction } from "@/server/actions/fulfillment";
 import { listDocks } from "@/server/services/waves";
@@ -405,6 +406,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </Link>
             </Alert>
           ) : null}
+          <ExportCard ctx={ctx} orderId={id} />
         </div>
       </div>
     </>

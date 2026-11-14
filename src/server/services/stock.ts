@@ -28,6 +28,8 @@ export interface BalanceListRow {
   blocked_qty: number;
   available_qty: number;
   updated_at: string;
+  /** País de origem do lote (importação), quando conhecido. */
+  origin_country: string | null;
 }
 
 export interface StockFilters {
@@ -79,7 +81,8 @@ const STOCK_FROM = `from wms.stock_balances b
   join wms.locations l on l.id = b.location_id
   join wms.zones z on z.id = l.zone_id
   join wms.warehouses w on w.id = b.warehouse_id
-  join erp.products p on p.id = b.product_id`;
+  join erp.products p on p.id = b.product_id
+  left join wms.lot_origins lo on lo.company_id = b.company_id and lo.product_id = b.product_id and lo.lot_code = b.lot_code`;
 
 export async function listStock(ctx: Ctx, f: StockFilters = {}) {
   const pageSize = f.pageSize ?? 50;
@@ -95,7 +98,7 @@ export async function listStock(ctx: Ctx, f: StockFilters = {}) {
     `select b.id, b.warehouse_id, w.code as warehouse_code, b.location_id, l.code as location_code, z.zone_type,
             l.status as location_status, b.product_id, p.sku, p.description, p.uom, b.lot_code, b.expiry_date::text as expiry_date,
             b.quantity, b.reserved_qty, b.blocked_qty, (b.quantity - b.reserved_qty - b.blocked_qty) as available_qty,
-            b.updated_at::text as updated_at
+            b.updated_at::text as updated_at, lo.origin_country
      ${STOCK_FROM} where ${where}
      order by ${STOCK_SORTS[f.sort ?? "location"] ?? STOCK_SORTS.location}
      ${pageSize > 0 ? `limit ${pageSize} offset ${(page - 1) * pageSize}` : ""}`,
@@ -109,7 +112,7 @@ export async function getBalance(ctx: Ctx, id: string) {
     `select b.id, b.warehouse_id, w.code as warehouse_code, b.location_id, l.code as location_code, z.zone_type,
             l.status as location_status, b.product_id, p.sku, p.description, p.uom, b.lot_code, b.expiry_date::text as expiry_date,
             b.quantity, b.reserved_qty, b.blocked_qty, (b.quantity - b.reserved_qty - b.blocked_qty) as available_qty,
-            b.updated_at::text as updated_at
+            b.updated_at::text as updated_at, lo.origin_country
      ${STOCK_FROM} where b.id = $1 and b.company_id = $2`,
     [id, ctx.user.companyId],
   );

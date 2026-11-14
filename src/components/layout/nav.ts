@@ -41,6 +41,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Expedição", href: "/expedicao", icon: "Truck" },
       { label: "Ondas", href: "/ondas", icon: "Waves" },
       { label: "Reposição", href: "/reposicao", icon: "RefreshCw" },
+      { label: "Produção", href: "/producao", icon: "Factory" },
     ],
   },
   {

@@ -227,6 +227,35 @@ export async function seedDemo(db: Db): Promise<void> {
       [pE, c],
     );
 
+    // Frente F — NCM dos produtos (cadastro fiscal do ERP), linha de produção e uma ordem de produção
+    // do MRP (sem requisição nem reserva, para não alterar saldos e números do roteiro).
+    for (const [id, ncm] of [
+      [pA, "84879000"],
+      [pB, "27101932"],
+      [pC, "35069190"],
+      [pD, "72085200"],
+      [pE, "85365090"],
+    ] as const)
+      await tx.query(`update erp.products set ncm = $2 where id = $1`, [id, ncm]);
+    const zPrd = await zone("PRD", "Produção — linha de montagem", "production");
+    await loc(zPrd, "PR", "01", "00", "00", "staging", null, 1000);
+    const pF = await product("SUP-006", "Suporte Montado F (produto acabado)", "7890000000062", "Produto acabado", 13, [100, 50, 10]);
+    await tx.query(
+      `insert into wms.product_settings (product_id, company_id, lot_controlled, storage_class) values ($1,$2,true,'bulky')`,
+      [pF, c],
+    );
+    await tx.query(`update erp.products set ncm = '73269090' where id = $1`, [pF]);
+    const [op] = await tx.query<{ id: string }>(
+      `insert into erp.production_orders (company_id, number, product_id, quantity, due_date, output_lot_code)
+       values ($1, 'OP-2026-001', $2, 5, current_date + 2, 'OP2026001') returning id`,
+      [c, pF],
+    );
+    await tx.query(
+      `insert into erp.production_order_components (production_order_id, line_no, product_id, quantity)
+       values ($1, 1, $2, 5), ($1, 2, $3, 2)`,
+      [op.id, pD, pB],
+    );
+
     return { company: c, admin: users.admin, pB, pD, wh: wh.id };
   });
 
