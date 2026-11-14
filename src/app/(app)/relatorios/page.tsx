@@ -23,6 +23,7 @@ const DESCRIPTIONS: Record<ReportKey, string> = {
   inventarios: "Sessões de inventário, escopo, itens contados e diferenças.",
   pedidos: "Pedidos de saída em separação e seu progresso por etapa.",
   expedicoes: "Expedições confirmadas com transportadora, documento e quantidades.",
+  devolucoes: "Devoluções de cliente por pedido, motivo e resultado da inspeção (apto, avariado, descarte).",
 };
 
 const DEEP_LINKS: Partial<Record<ReportKey, string>> = {

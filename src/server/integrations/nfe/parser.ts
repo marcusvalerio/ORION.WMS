@@ -14,7 +14,8 @@ import { DomainError } from "../../errors";
  * A assinatura digital do XML NÃO é verificada (exigiria a cadeia ICP-Brasil);
  * a chave de acesso tem o dígito verificador conferido.
  */
-export const MAX_NFE_BYTES = 1024 * 1024;
+/** Abaixo do limite padrão de 1 MB do corpo de Server Actions (inclui o overhead do multipart). */
+export const MAX_NFE_BYTES = 900 * 1024;
 
 export interface NfeLot {
   lot: string;

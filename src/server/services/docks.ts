@@ -218,6 +218,7 @@ export interface AppointmentRow {
   end_min: number;
   local_start: string;
   local_end: string;
+  local_date: string;
   carrier: string | null;
   vehicle_plate: string | null;
   purchase_order_id: string | null;
@@ -235,6 +236,7 @@ const APPT_SELECT = `
          extract(hour from a.starts_at at time zone $TZ) * 60 + extract(minute from a.starts_at at time zone $TZ) as start_min,
          extract(epoch from (a.ends_at - date_trunc('day', a.starts_at at time zone $TZ) at time zone $TZ)) / 60 as end_min,
          to_char(a.starts_at at time zone $TZ, 'HH24:MI') as local_start, to_char(a.ends_at at time zone $TZ, 'HH24:MI') as local_end,
+         to_char(a.starts_at at time zone $TZ, 'YYYY-MM-DD') as local_date,
          a.carrier, a.vehicle_plate, a.purchase_order_id, po.number as po_number, a.outbound_order_id, o.code as outbound_code,
          r.id as receipt_id, r.code as receipt_code, a.notes
   from wms.dock_appointments a join wms.docks d on d.id = a.dock_id

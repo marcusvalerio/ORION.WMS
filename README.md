@@ -82,6 +82,10 @@ Cenários adicionais:
 
 - **Divergência no recebimento** — importe **PC-4588**: confira 55 de LUB-002 (3 avariadas) e 42 de ADE-003 (10 retidas pelo CQ). A finalização exige lote e validade; são registradas falta, sobra, avaria e retenção; só o elegível (52 e 32) vira tarefa, e o adesivo refrigerado só é sugerido na câmara fria.
 - **Separação acima da disponibilidade** — importe **PV-1002** (500 un) e tente reservar: a reserva é recusada por inteiro, sem reserva parcial.
+- **Recebimento parcial** — em *Novo recebimento › Entrega parcial / histórico* do **PC-4587**, receba 60; o pedido fica *Recebido parcial* com saldo 40 e uma nova entrega leva o restante. Entregas simultâneas são serializadas por lock do pedido.
+- **NF-e (XML)** — importe `docs/exemplos/nfe-pc-4588-entrega-1.xml` em *Novo recebimento*: o emitente casa pelo CNPJ (Química Delta), o pedido pelo `xPed` (PC-4588) e o lubrificante pelo EAN; o adesivo (sem GTIN) fica pendente de vínculo — confirme o produto (o de-para é salvo) e crie o recebimento com lotes e validades da nota.
+- **Agenda de docas** — *Entrada › Agenda de docas*: grade do dia por doca, agendamento sem sobreposição (trigger com lock da doca no banco), check-in/não comparecimento/concluído; o agendamento demo AGD-000001 (PC-4587) cria o recebimento.
+- **Devolução de cliente** — depois de expedir PV-1001, *Entrada › Devoluções › Registrar*: até o expedido; na inspeção, apto gera armazenagem, avariado vai bloqueado à quarentena e descarte é baixado (movimento `discard`); a conclusão gera o evento `customer_return.completed` na outbox. Fuso da agenda: `WMS_TIMEZONE` (padrão `America/Sao_Paulo`).
 
 Os mesmos cenários estão automatizados em `tests/`.
 

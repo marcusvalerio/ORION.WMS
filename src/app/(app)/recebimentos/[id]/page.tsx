@@ -1,7 +1,8 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
-import { getReceipt, type ReceiptItemRow, type ReceiptStatus } from "@/server/services/receiving";
+import { getReceipt, listPurchaseOrderDeliveries, purchaseOrderBalance, type ReceiptItemRow, type ReceiptStatus } from "@/server/services/receiving";
+import { PoBalanceTable, PoDeliveriesTable } from "@/components/wms/po-balance";
 import { listTasks } from "@/server/services/tasks";
 import { listDivergences } from "@/server/services/divergences";
 import { entityHistory } from "@/server/services/audit";
@@ -39,10 +40,12 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
   const ctx = await requireCtx();
   const r = await getReceipt(ctx, id);
   if (!r) notFound();
-  const [tasks, divergences, history] = await Promise.all([
+  const [tasks, divergences, history, poBalance, poDeliveries] = await Promise.all([
     listTasks(ctx, { q: r.code, type: "putaway", pageSize: 100 }),
     listDivergences(ctx, { receiptId: id }),
     entityHistory(ctx, "receipt", id),
+    r.purchase_order_id ? purchaseOrderBalance(ctx.db, r.purchase_order_id) : Promise.resolve([]),
+    r.purchase_order_id ? listPurchaseOrderDeliveries(ctx.db, ctx.user.companyId, r.purchase_order_id) : Promise.resolve([]),
   ]);
   const role = ctx.user.role;
   const putawayTasks = tasks.rows.filter((t) => t.receipt_id === id);
@@ -78,6 +81,8 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               ["Nota fiscal", r.invoice_number],
               ["Chave NF-e", r.invoice_key ? <span className="font-mono text-xs">{r.invoice_key}</span> : "Não informada"],
               ["Chegada física", fmtDateTime(r.arrived_at)],
+              ["Agendamento de doca", r.appointment_id ? <Link className="link" href={`/docas/${r.appointment_id}`}>{r.appointment_code}</Link> : "—"],
+              ["Origem", r.nfe_import_id ? <Link className="link" href={`/recebimentos/nfe/${r.nfe_import_id}`}>XML da NF-e</Link> : r.purchase_order_id ? "Pedido de compra" : "Entrada avulsa"],
               ["Responsável pela conferência", r.checker_name],
               ["Conferência finalizada", fmtDateTime(r.checked_at)],
               ["Liberado", fmtDateTime(r.released_at)],
@@ -288,6 +293,24 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                     </ActionForm>
                   ))}
               </CardBody>
+            </Card>
+          ) : null}
+
+          {r.purchase_order_id ? (
+            <Card>
+              <CardHeader
+                title={`Pedido ${r.po_number}: saldo e entregas`}
+                description="O pedido pode ser recebido em várias entregas; o saldo considera todas as entregas não canceladas."
+                actions={
+                  <Link className="link text-xs" href={`/recebimentos/pedido/${r.purchase_order_id}`}>
+                    Abrir pedido
+                  </Link>
+                }
+              />
+              <PoBalanceTable rows={poBalance} />
+              <div className="border-t border-slate-100">
+                <PoDeliveriesTable rows={poDeliveries} currentId={id} />
+              </div>
             </Card>
           ) : null}
 

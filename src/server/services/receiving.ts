@@ -844,3 +844,29 @@ async function onReceiptCompleted(tx: Queryable, ctx: Ctx, receiptId: string) {
   await enqueueIntegrationEvent(tx, ctx, "receipt.completed", "receipt", receiptId, { code: r.code, purchaseOrderStatus: poStatus, items });
   await audit(tx, ctx, "receipt.completed", "receipt", receiptId, r.code);
 }
+
+/** Pedidos de compra do ERP com saldo pendente e número de entregas (tela de novo recebimento). */
+export async function listPurchaseOrdersWithBalance(ctx: Ctx) {
+  const orders = await erp.listPurchaseOrders(ctx.db, ctx.user.companyId);
+  const stats = await ctx.db.query<{ id: string; pending: number; in_transit: number; deliveries: number }>(
+    `select po.id,
+            coalesce(sum(greatest(b.ordered - b.received - b.in_transit, 0)), 0) as pending,
+            coalesce(sum(b.in_transit), 0) as in_transit,
+            (select count(*) from wms.receipts r where r.purchase_order_id = po.id and r.status <> 'cancelled') as deliveries
+     from erp.purchase_orders po
+     left join lateral (
+       select i.quantity as ordered,
+              coalesce(sum(case when r.status in ('checked', 'released', 'completed')
+                                then greatest(least(coalesce(ri.counted_qty, 0) - ri.damaged_qty, ri.expected_qty), 0) end), 0) as received,
+              coalesce(sum(case when r.status in ('expected', 'checking') then ri.expected_qty end), 0) as in_transit
+       from erp.purchase_order_items i
+       left join wms.receipt_items ri on ri.purchase_order_item_id = i.id
+       left join wms.receipts r on r.id = ri.receipt_id and r.status <> 'cancelled'
+       where i.purchase_order_id = po.id group by i.id
+     ) b on true
+     where po.company_id = $1 group by po.id`,
+    [ctx.user.companyId],
+  );
+  const byId = new Map(stats.map((s) => [s.id, s]));
+  return orders.map((o) => ({ ...o, pending_qty: byId.get(o.id)?.pending ?? 0, in_transit_qty: byId.get(o.id)?.in_transit ?? 0, deliveries: byId.get(o.id)?.deliveries ?? 0 }));
+}

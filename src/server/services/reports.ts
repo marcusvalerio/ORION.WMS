@@ -8,6 +8,8 @@ import { listDivergences } from "./divergences";
 import { listTasks } from "./tasks";
 import { listInventories } from "./inventory";
 import { listOrders, listShipments } from "./outbound";
+import { listReturns } from "./returns";
+import { RETURN_REASON_LABELS } from "@/lib/labels";
 import { MOVEMENT_LABELS, statusLabel, TASK_TYPE_LABELS, DIVERGENCE_TYPE_LABELS } from "@/lib/labels";
 
 export const REPORTS = {
@@ -19,6 +21,7 @@ export const REPORTS = {
   inventarios: "Inventários",
   pedidos: "Pedidos de saída / separação",
   expedicoes: "Expedições",
+  devolucoes: "Devoluções de cliente",
 } as const;
 export type ReportKey = keyof typeof REPORTS;
 
@@ -33,6 +36,13 @@ export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams
   assertCan(ctx, "reports.export");
   const p = (k: string) => params.get(k) || null;
   switch (key as ReportKey) {
+    case "devolucoes": {
+      const rows = await listReturns(ctx, { status: p("status"), q: p("q") });
+      return {
+        headers: ["Código", "Status", "Pedido", "Cliente", "Motivo", "Devolvido", "Apto", "Avariado", "Descarte", "Registrada em", "Concluída em", "Usuário"],
+        rows: rows.map((r) => [r.code, statusLabel("customerReturn", r.status), r.order_code, r.customer_name, RETURN_REASON_LABELS[r.reason] ?? r.reason, r.quantity, r.approved, r.damaged, r.discarded, r.created_at, r.completed_at, r.created_by_name]),
+      };
+    }
     case "estoque": {
       const { rows } = await listStock(ctx, {
         q: p("q"),
