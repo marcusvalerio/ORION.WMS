@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalDate, qty, nonNegQty } from "../validation";
 import * as erp from "../integrations/erp/gateway";
@@ -29,6 +30,7 @@ async function lockReceipt(tx: Queryable, ctx: Ctx, id: string): Promise<Receipt
     [id, ctx.user.companyId],
   );
   if (!r) throw new NotFoundError("Recebimento");
+  assertWarehouseAccess(ctx, r.warehouse_id);
   return r;
 }
 
@@ -61,6 +63,8 @@ export interface ReceiptListRow {
 
 export async function listReceipts(ctx: Ctx, f: { status?: string | null; q?: string | null } = {}) {
   const statuses = f.status ? f.status.split(",") : null;
+  const params: unknown[] = [ctx.user.companyId, statuses, f.q || null];
+  const scope = warehouseScope(ctx, "r.warehouse_id", params);
   return ctx.db.query<ReceiptListRow>(
     `select r.id, r.code, r.status, s.name as supplier_name, po.number as po_number, r.invoice_number,
             w.code as warehouse_code, r.arrived_at::text as arrived_at, r.created_at::text as created_at, r.is_demo,
@@ -75,9 +79,9 @@ export async function listReceipts(ctx: Ctx, f: { status?: string | null; q?: st
      where r.company_id = $1
        and ($2::text[] is null or r.status = any($2::text[]))
        and ($3::text is null or r.code ilike '%' || $3 || '%' or s.name ilike '%' || $3 || '%'
-            or po.number ilike '%' || $3 || '%' or r.invoice_number ilike '%' || $3 || '%')
+            or po.number ilike '%' || $3 || '%' or r.invoice_number ilike '%' || $3 || '%')${scope}
      order by r.created_at desc`,
-    [ctx.user.companyId, statuses, f.q || null],
+    params,
   );
 }
 
@@ -141,7 +145,7 @@ export async function getReceipt(ctx: Ctx, id: string) {
      where r.id = $1 and r.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  if (!header) return null;
+  if (!header || !hasWarehouseAccess(ctx, header.warehouse_id)) return null;
   const items = await ctx.db.query<ReceiptItemRow>(
     `select i.id, i.line_no, i.product_id, p.sku, p.description, p.uom,
             coalesce(s.lot_controlled, false) as lot_controlled, coalesce(s.expiry_controlled, false) as expiry_controlled,
@@ -259,6 +263,7 @@ export async function createManualReceipt(ctx: Ctx, input: unknown, opts?: OpOpt
 }
 
 async function assertWarehouseActive(tx: Queryable, ctx: Ctx, warehouseId: string) {
+  assertWarehouseAccess(ctx, warehouseId);
   const [wh] = await tx.query<{ active: boolean }>(`select active from wms.warehouses where id = $1 and company_id = $2`, [
     warehouseId,
     ctx.user.companyId,

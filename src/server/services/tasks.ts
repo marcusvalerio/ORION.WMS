@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalUuid, qty, nonNegQty, checkbox } from "../validation";
 import { audit, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
@@ -104,12 +105,13 @@ export async function listTasks(ctx: Ctx, f: TaskFilters = {}) {
   const pageSize = f.pageSize ?? 25;
   const page = Math.max(1, f.page ?? 1);
   const statuses = f.status ? f.status.split(",") : null;
-  const params = [ctx.user.companyId, f.type || null, statuses, f.priority ? Number(f.priority) : null, f.q || null, ctx.user.id];
+  const params: unknown[] = [ctx.user.companyId, f.type || null, statuses, f.priority ? Number(f.priority) : null, f.q || null, ctx.user.id];
+  const scope = warehouseScope(ctx, "t.warehouse_id", params);
   const where = `where t.company_id = $1 and ($2::text is null or t.task_type = $2)
     and ($3::text[] is null or t.status = any($3::text[])) and ($4::int is null or t.priority = $4)
     and ($5::text is null or t.code ilike '%' || $5 || '%' or p.sku ilike '%' || $5 || '%' or p.description ilike '%' || $5 || '%'
          or r.code ilike '%' || $5 || '%' or o.code ilike '%' || $5 || '%')
-    ${f.assigned === "me" ? "and t.assigned_to = $6" : f.assigned === "none" ? "and t.assigned_to is null and $6::uuid is not null" : "and $6::uuid is not null"}`;
+    ${f.assigned === "me" ? "and t.assigned_to = $6" : f.assigned === "none" ? "and t.assigned_to is null and $6::uuid is not null" : "and $6::uuid is not null"}${scope}`;
   const [count] = await ctx.db.query<{ total: number }>(
     `select count(*) as total from (${TASK_SELECT} ${where}) x`,
     params,
@@ -124,7 +126,7 @@ export async function listTasks(ctx: Ctx, f: TaskFilters = {}) {
 
 export async function getTask(ctx: Ctx, id: string) {
   const [task] = await ctx.db.query<TaskRow>(`${TASK_SELECT} where t.id = $1 and t.company_id = $2`, [id, ctx.user.companyId]);
-  if (!task) return null;
+  if (!task || !hasWarehouseAccess(ctx, task.warehouse_id)) return null;
   const events = await ctx.db.query<{
     id: string;
     event_type: string;
@@ -188,6 +190,7 @@ async function lockTask(tx: Queryable, ctx: Ctx, id: string): Promise<LockedTask
     [id, ctx.user.companyId],
   );
   if (!t) throw new NotFoundError("Tarefa");
+  assertWarehouseAccess(ctx, t.warehouse_id);
   return t;
 }
 
@@ -524,6 +527,7 @@ export async function createTransfer(ctx: Ctx, input: unknown, opts?: OpOptions)
   return runOperation(ctx, "task.create_transfer", opts, async (tx) => {
     const origin = await lockBalance(tx, ctx.user.companyId, d.fromLocationId, d.productId, d.lotCode);
     if (!origin) throw new DomainError("Não há saldo deste produto/lote no endereço de origem.", "INSUFFICIENT_STOCK");
+    assertWarehouseAccess(ctx, origin.warehouse_id);
     if (availableOf(origin) < d.quantity) {
       throw new DomainError(`Saldo disponível insuficiente: disponível ${availableOf(origin)}, solicitado ${d.quantity}.`, "INSUFFICIENT_STOCK");
     }

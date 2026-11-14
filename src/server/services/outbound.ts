@@ -3,6 +3,7 @@ import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, qty, nonNegQty } from "../validation";
 import * as erp from "../integrations/erp/gateway";
@@ -29,6 +30,7 @@ async function lockOrder(tx: Queryable, ctx: Ctx, id: string): Promise<OrderHead
     [id, ctx.user.companyId],
   );
   if (!o) throw new NotFoundError("Pedido de saída");
+  assertWarehouseAccess(ctx, o.warehouse_id);
   return o;
 }
 
@@ -63,6 +65,8 @@ export interface OrderListRow {
 
 export async function listOrders(ctx: Ctx, f: { status?: string | null; q?: string | null } = {}) {
   const statuses = f.status ? f.status.split(",") : null;
+  const params: unknown[] = [ctx.user.companyId, statuses, f.q || null];
+  const scope = warehouseScope(ctx, "o.warehouse_id", params);
   return ctx.db.query<OrderListRow>(
     `select o.id, o.code, o.status, o.customer_name, o.source, so.number as so_number, w.code as warehouse_code, o.priority,
             o.created_at::text as created_at, o.shipped_at::text as shipped_at, o.is_demo,
@@ -74,10 +78,10 @@ export async function listOrders(ctx: Ctx, f: { status?: string | null; q?: stri
      left join erp.sales_orders so on so.id = o.sales_order_id
      left join wms.outbound_order_lines l on l.order_id = o.id
      where o.company_id = $1 and ($2::text[] is null or o.status = any($2::text[]))
-       and ($3::text is null or o.code ilike '%' || $3 || '%' or o.customer_name ilike '%' || $3 || '%' or so.number ilike '%' || $3 || '%')
+       and ($3::text is null or o.code ilike '%' || $3 || '%' or o.customer_name ilike '%' || $3 || '%' or so.number ilike '%' || $3 || '%')${scope}
      group by o.id, w.code, so.number
      order by o.priority, o.created_at desc`,
-    [ctx.user.companyId, statuses, f.q || null],
+    params,
   );
 }
 
@@ -113,7 +117,7 @@ export async function getOrder(ctx: Ctx, id: string) {
      where o.id = $1 and o.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  if (!o) return null;
+  if (!o || !hasWarehouseAccess(ctx, o.warehouse_id)) return null;
   const lines = await ctx.db.query<{
     id: string;
     line_no: number;
@@ -229,6 +233,7 @@ async function insertOrder(
     lines: { productId: string; quantity: number }[];
   },
 ) {
+  assertWarehouseAccess(ctx, d.warehouseId);
   const [wh] = await tx.query<{ active: boolean }>(`select active from wms.warehouses where id = $1 and company_id = $2`, [
     d.warehouseId,
     ctx.user.companyId,
@@ -597,6 +602,8 @@ export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown) {
 }
 
 export async function listShipments(ctx: Ctx) {
+  const params: unknown[] = [ctx.user.companyId];
+  const scope = warehouseScope(ctx, "o.warehouse_id", params);
   return ctx.db.query<{
     id: string;
     code: string;
@@ -614,7 +621,7 @@ export async function listShipments(ctx: Ctx) {
             s.shipped_at::text as shipped_at, u.name as shipped_by_name,
             coalesce((select sum(shipped_qty) from wms.outbound_order_lines l where l.order_id = o.id), 0) as total
      from wms.shipments s join wms.outbound_orders o on o.id = s.order_id join wms.users u on u.id = s.shipped_by
-     where s.company_id = $1 order by s.shipped_at desc`,
-    [ctx.user.companyId],
+     where s.company_id = $1${scope} order by s.shipped_at desc`,
+    params,
   );
 }

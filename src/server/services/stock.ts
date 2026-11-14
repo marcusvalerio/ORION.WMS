@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalDate, qty } from "../validation";
 import { audit, runOperation, type OpOptions } from "./common";
@@ -68,6 +69,8 @@ function stockWhere(ctx: Ctx, f: StockFilters) {
   if (f.status === "reserved") where.push("b.reserved_qty > 0");
   if (f.status === "blocked") where.push("(b.blocked_qty > 0 or l.status = 'blocked')");
   if (f.status === "expired") where.push("b.expiry_date < current_date");
+  const scope = warehouseScope(ctx, "b.warehouse_id", params);
+  if (scope) where.push(scope.replace(/^ and /, ""));
   return { params, where: where.join(" and ") };
 }
 
@@ -109,16 +112,18 @@ export async function getBalance(ctx: Ctx, id: string) {
      ${STOCK_FROM} where b.id = $1 and b.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  return row ?? null;
+  return row && hasWarehouseAccess(ctx, row.warehouse_id) ? row : null;
 }
 
 /** Saldo consolidado por produto. */
 export async function stockByProduct(ctx: Ctx, productId: string) {
+  const params: unknown[] = [ctx.user.companyId, productId];
+  const scope = warehouseScope(ctx, "warehouse_id", params);
   const [row] = await ctx.db.query<{ quantity: number; reserved: number; blocked: number; available: number }>(
     `select coalesce(sum(quantity), 0) as quantity, coalesce(sum(reserved_qty), 0) as reserved,
             coalesce(sum(blocked_qty), 0) as blocked, coalesce(sum(quantity - reserved_qty - blocked_qty), 0) as available
-     from wms.stock_balances where company_id = $1 and product_id = $2`,
-    [ctx.user.companyId, productId],
+     from wms.stock_balances where company_id = $1 and product_id = $2${scope}`,
+    params,
   );
   return row;
 }
@@ -162,7 +167,7 @@ export interface MovementFilters {
 export async function listMovements(ctx: Ctx, f: MovementFilters = {}) {
   const pageSize = f.pageSize ?? 50;
   const page = Math.max(1, f.page ?? 1);
-  const params = [
+  const params: unknown[] = [
     ctx.user.companyId,
     f.productId || null,
     f.locationId || null,
@@ -171,12 +176,13 @@ export async function listMovements(ctx: Ctx, f: MovementFilters = {}) {
     f.to || null,
     f.q || null,
   ];
+  const scope = warehouseScope(ctx, "m.warehouse_id", params);
   const where = `where m.company_id = $1 and ($2::uuid is null or m.product_id = $2::uuid)
     and ($3::uuid is null or m.from_location_id = $3::uuid or m.to_location_id = $3::uuid)
     and ($4::text is null or m.movement_type = $4) and ($5::date is null or m.created_at >= $5::date)
     and ($6::date is null or m.created_at < ($6::date + 1))
     and ($7::text is null or p.sku ilike '%' || $7 || '%' or p.description ilike '%' || $7 || '%'
-         or m.reference_code ilike '%' || $7 || '%' or m.lot_code ilike '%' || $7 || '%')`;
+         or m.reference_code ilike '%' || $7 || '%' or m.lot_code ilike '%' || $7 || '%')${scope}`;
   const from = `from wms.stock_movements m join erp.products p on p.id = m.product_id
     join wms.users u on u.id = m.created_by join wms.warehouses w on w.id = m.warehouse_id
     left join wms.locations lf on lf.id = m.from_location_id left join wms.locations lt on lt.id = m.to_location_id
@@ -220,6 +226,7 @@ export async function adjustStock(ctx: Ctx, input: unknown, opts?: OpOptions) {
       [d.locationId, ctx.user.companyId],
     );
     if (!loc) throw new NotFoundError("Endereço");
+    assertWarehouseAccess(ctx, loc.warehouse_id);
     const balance = await lockBalance(tx, ctx.user.companyId, d.locationId, d.productId, d.lotCode);
     if (d.direction === "out") {
       if (!balance) throw new DomainError("Não há saldo deste produto/lote no endereço.", "INSUFFICIENT_STOCK");
@@ -278,6 +285,7 @@ export async function blockStock(ctx: Ctx, balanceId: string, input: unknown, op
   const d = parse(blockSchema, input);
   return runOperation(ctx, "stock.block", opts, async (tx) => {
     const b = await lockBalanceById(tx, ctx.user.companyId, balanceId);
+    assertWarehouseAccess(ctx, b.warehouse_id);
     if (d.quantity > availableOf(b)) {
       throw new DomainError(`Só é possível bloquear o saldo disponível (${availableOf(b)}).`, "INSUFFICIENT_STOCK");
     }
@@ -306,6 +314,7 @@ export async function unblockStock(ctx: Ctx, balanceId: string, input: unknown, 
   const d = parse(blockSchema, input);
   return runOperation(ctx, "stock.unblock", opts, async (tx) => {
     const b = await lockBalanceById(tx, ctx.user.companyId, balanceId);
+    assertWarehouseAccess(ctx, b.warehouse_id);
     if (d.quantity > b.blocked_qty) throw new DomainError(`Quantidade maior que a bloqueada (${b.blocked_qty}).`);
     await tx.query(`update wms.stock_balances set blocked_qty = blocked_qty - $2, version = version + 1, updated_at = now() where id = $1`, [
       balanceId,

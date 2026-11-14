@@ -3,10 +3,12 @@ import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalUuid, nonNegQty } from "../validation";
 import { audit, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { addStock, insertMovement, lockBalance, removeStock } from "./stock-core";
+import { getSetting } from "./settings";
 
 export const INVENTORY_STATUSES = ["counting", "submitted", "approved", "cancelled"] as const;
 
@@ -23,10 +25,13 @@ async function lockCount(tx: Queryable, ctx: Ctx, id: string): Promise<CountHead
     [id, ctx.user.companyId],
   );
   if (!c) throw new NotFoundError("Inventário");
+  assertWarehouseAccess(ctx, c.warehouse_id);
   return c;
 }
 
 export async function listInventories(ctx: Ctx) {
+  const params: unknown[] = [ctx.user.companyId];
+  const scope = warehouseScope(ctx, "c.warehouse_id", params);
   return ctx.db.query<{
     id: string;
     code: string;
@@ -51,8 +56,8 @@ export async function listInventories(ctx: Ctx) {
      from wms.inventory_counts c join wms.warehouses w on w.id = c.warehouse_id join wms.users u on u.id = c.created_by
      left join wms.zones z on z.id = c.zone_id left join wms.locations l on l.id = c.location_id
      left join erp.products p on p.id = c.product_id
-     where c.company_id = $1 order by c.created_at desc`,
-    [ctx.user.companyId],
+     where c.company_id = $1${scope} order by c.created_at desc`,
+    params,
   );
 }
 
@@ -87,7 +92,7 @@ export async function getInventory(ctx: Ctx, id: string) {
      where c.id = $1 and c.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  if (!c) return null;
+  if (!c || !hasWarehouseAccess(ctx, c.warehouse_id)) return null;
   const items = await ctx.db.query<{
     id: string;
     location_id: string;
@@ -134,6 +139,7 @@ const createSchema = z
 export async function createInventory(ctx: Ctx, input: unknown, opts?: OpOptions) {
   assertCan(ctx, "inventory.create");
   const d = parse(createSchema, input);
+  assertWarehouseAccess(ctx, d.warehouseId);
   return runOperation(ctx, "inventory.create", opts, async (tx) => {
     const [wh] = await tx.query(`select id from wms.warehouses where id = $1 and company_id = $2`, [d.warehouseId, ctx.user.companyId]);
     if (!wh) throw new NotFoundError("Depósito");
@@ -322,6 +328,27 @@ export async function submitInventory(ctx: Ctx, inventoryId: string, opts?: OpOp
 }
 
 /**
+ * Segregação de funções (parâmetro da empresa, ligado por padrão): quem
+ * registrou contagem — inclusive item encontrado, em qualquer rodada, conforme
+ * a trilha de auditoria imutável ou o item — não aprova o mesmo inventário.
+ */
+async function assertSegregationOfDuties(tx: Queryable, ctx: Ctx, c: CountHeader) {
+  if (!(await getSetting(tx, ctx.user.companyId, "inventory.segregation_of_duties"))) return;
+  const [row] = await tx.query<{ counted: boolean }>(
+    `select exists (select 1 from wms.inventory_count_items where inventory_id = $1 and counted_by = $2)
+         or exists (select 1 from wms.audit_log where company_id = $3 and entity_type = 'inventory' and entity_id = $1
+                      and user_id = $2 and action in ('inventory.counted', 'inventory.item_added')) as counted`,
+    [c.id, ctx.user.id, ctx.user.companyId],
+  );
+  if (row.counted) {
+    throw new DomainError(
+      `Segregação de funções: você registrou contagem no inventário ${c.code} e não pode aprová-lo. A aprovação deve ser feita por outro supervisor ou administrador.`,
+      "SEGREGATION_OF_DUTIES",
+    );
+  }
+}
+
+/**
  * Aprova e aplica os ajustes. Se o saldo de algum item mudou desde a abertura
  * (movimentação durante a contagem), a aprovação é recusada para evitar ajuste
  * sobre base desatualizada. Ajustes nunca reduzem abaixo do reservado/bloqueado.
@@ -332,6 +359,7 @@ export async function approveInventory(ctx: Ctx, inventoryId: string, input: unk
   return runOperation(ctx, "inventory.approve", opts, async (tx) => {
     const c = await lockCount(tx, ctx, inventoryId);
     if (c.status !== "submitted") throw new DomainError(`O inventário ${c.code} não está aguardando aprovação.`, "INVALID_STATUS");
+    await assertSegregationOfDuties(tx, ctx, c);
     const items = await tx.query<{
       id: string;
       location_id: string;

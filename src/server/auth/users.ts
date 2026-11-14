@@ -5,7 +5,9 @@ import { verifyPassword } from "./password";
 
 export async function loadSessionUser(db: Queryable, userId: string): Promise<SessionUser | null> {
   const [u] = await db.query<SessionUser>(
-    `select u.id, u.company_id as "companyId", c.name as "companyName", c.is_demo as "companyIsDemo", u.name, u.email, u.role
+    `select u.id, u.company_id as "companyId", c.name as "companyName", c.is_demo as "companyIsDemo", u.name, u.email, u.role,
+            u.must_change_password as "mustChangePassword",
+            (select json_agg(uw.warehouse_id order by uw.warehouse_id) from wms.user_warehouses uw where uw.user_id = u.id) as "warehouseIds"
      from wms.users u join erp.companies c on c.id = u.company_id where u.id = $1 and u.active`,
     [userId],
   );
