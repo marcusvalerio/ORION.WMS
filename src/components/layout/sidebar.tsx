@@ -34,6 +34,7 @@ import {
   Waves,
   ChartColumnBig,
   type LucideIcon,
+  Factory,
 } from "lucide-react";
 import { NAV } from "./nav";
 import { cn } from "@/components/ui/cn";
@@ -66,6 +67,7 @@ const ICONS: Record<string, LucideIcon> = {
   Undo2,
   Waves,
   ChartColumnBig,
+  Factory,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {

@@ -20,9 +20,10 @@ import {
 import { refreshReceiptCompletion } from "./receiving";
 import { afterPickTx, completeWavePickTx, refreshWaveStatus } from "./waves";
 import { completeReplenishmentTx, emergencyReplenishmentTx } from "./replenishment";
+import { completeProductionPickTx } from "./production";
 import { isSerialControlled, parseSerials, pickSerials, returnSerials } from "./serials";
 
-export const TASK_TYPES = ["putaway", "transfer", "inventory", "picking", "replenishment", "return"] as const;
+export const TASK_TYPES = ["putaway", "transfer", "inventory", "picking", "replenishment", "return", "production_pick"] as const;
 export const TASK_STATUSES = ["pending", "in_progress", "completed", "cancelled"] as const;
 export type TaskType = (typeof TASK_TYPES)[number];
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -190,13 +191,16 @@ interface LockedTask {
   assigned_to: string | null;
   customer_return_id: string | null;
   wave_id: string | null;
+  production_requisition_id: string | null;
+  production_reservation_id: string | null;
 }
 
 async function lockTask(tx: Queryable, ctx: Ctx, id: string): Promise<LockedTask> {
   const [t] = await tx.query<LockedTask>(
     `select id, code, task_type, status, warehouse_id, product_id, lot_code, expiry_date::text as expiry_date, quantity,
             from_location_id, suggested_location_id, to_location_id, receipt_id, receipt_item_id, order_id, order_line_id,
-            reservation_id, inventory_id, assigned_to, customer_return_id, wave_id
+            reservation_id, inventory_id, assigned_to, customer_return_id, wave_id,
+            production_requisition_id, production_reservation_id
      from wms.tasks where id = $1 and company_id = $2 for update`,
     [id, ctx.user.companyId],
   );
@@ -268,7 +272,7 @@ export async function cancelTask(ctx: Ctx, taskId: string, input: unknown) {
     if (t.task_type === "return") {
       throw new DomainError("Tarefas de devolução não podem ser canceladas: o volume separado ficaria sem destino na doca.");
     }
-    if (t.task_type === "putaway" || t.task_type === "picking") {
+    if (t.task_type === "putaway" || t.task_type === "picking" || t.task_type === "production_pick") {
       throw new DomainError(
         "Tarefas de armazenagem e separação não podem ser canceladas isoladamente: o volume ficaria sem destino. Conclua-a ou trate pelo documento de origem.",
       );
@@ -336,6 +340,9 @@ export async function completeTask(ctx: Ctx, taskId: string, input: unknown, opt
       case "return":
         ({ confirmed, destination } = await completeReturn(tx, ctx, t, d.locationId ?? null));
         break;
+      case "production_pick":
+        ({ confirmed, destination } = await completeProductionPickTx(tx, ctx, t, d.quantity ?? null, d.locationId ?? null));
+        break;
       case "inventory":
         throw new DomainError("Tarefas de inventário são concluídas ao submeter a contagem na tela de inventário.");
       default:
@@ -376,6 +383,10 @@ async function completePutaway(tx: Queryable, ctx: Ctx, t: LockedTask, locationI
     quantity: qtyToStore,
   });
   const [receipt] = await tx.query<{ code: string }>(`select code from wms.receipts where id = $1`, [t.receipt_id]);
+  // Produto acabado (Frente F) referencia a requisição de produção.
+  const [req] = t.production_requisition_id
+    ? await tx.query<{ code: string }>(`select code from wms.production_requisitions where id = $1`, [t.production_requisition_id])
+    : [];
   // Armazenagem de devolução de cliente (Frente C) referencia a devolução em vez do recebimento.
   const [ret] = t.customer_return_id
     ? await tx.query<{ code: string }>(`select code from wms.customer_returns where id = $1`, [t.customer_return_id])
@@ -388,10 +399,10 @@ async function completePutaway(tx: Queryable, ctx: Ctx, t: LockedTask, locationI
     expiryDate: t.expiry_date,
     quantity: qtyToStore,
     toLocationId: target,
-    reason: ret ? "Armazenagem de devolução de cliente" : "Armazenagem de recebimento",
-    referenceType: ret ? "customer_return" : "receipt",
-    referenceId: ret ? t.customer_return_id : t.receipt_id,
-    referenceCode: ret?.code ?? receipt?.code ?? null,
+    reason: req ? "Armazenagem de produto acabado" : ret ? "Armazenagem de devolução de cliente" : "Armazenagem de recebimento",
+    referenceType: req ? "production_requisition" : ret ? "customer_return" : "receipt",
+    referenceId: req ? t.production_requisition_id : ret ? t.customer_return_id : t.receipt_id,
+    referenceCode: req?.code ?? ret?.code ?? receipt?.code ?? null,
     taskId: t.id,
   });
   if (t.receipt_item_id) {
