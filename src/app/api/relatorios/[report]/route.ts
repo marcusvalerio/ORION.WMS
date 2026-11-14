@@ -11,6 +11,7 @@ export async function GET(request: NextRequest, { params }: { params: Promise<{ 
   const { report } = await params;
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
+  if (user.mustChangePassword) return NextResponse.json({ error: "Troca de senha obrigatória." }, { status: 403 });
   if (!(report in REPORTS)) return NextResponse.json({ error: "Relatório inexistente." }, { status: 404 });
   try {
     const table = await buildReport({ db: await getDb(), user }, report, request.nextUrl.searchParams);

@@ -1,4 +1,6 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { redirect } from "next/navigation";
+import { KeyRound, LogOut } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -10,6 +12,7 @@ export const dynamic = "force-dynamic";
 
 export default async function AppLayout({ children }: { children: React.ReactNode }) {
   const { user } = await requireCtx();
+  if (user.mustChangePassword) redirect("/trocar-senha");
   const allowed = (Object.keys(PERMISSIONS) as Permission[]).filter((p) => can(user.role, p));
   return (
     <div className="min-h-dvh">
@@ -43,6 +46,9 @@ function UserMenu({ name, role, compact }: { name: string; role: string; compact
         <p className={compact ? "text-xs font-medium text-slate-700" : "text-sm font-medium text-slate-800"}>{name}</p>
         {!compact ? <p className="text-xs text-slate-500">{role}</p> : null}
       </div>
+      <Link href="/trocar-senha" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="Trocar senha" aria-label="Trocar senha">
+        <KeyRound className="size-4" />
+      </Link>
       <form action={logoutAction}>
         <button type="submit" className="rounded-md p-2 text-slate-500 hover:bg-slate-100 hover:text-slate-800" title="Sair" aria-label="Sair">
           <LogOut className="size-4" />
