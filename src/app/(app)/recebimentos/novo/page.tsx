@@ -1,6 +1,9 @@
 import Link from "next/link";
 import { requireCtx } from "@/server/auth/session";
-import { listPurchaseOrders } from "@/server/integrations/erp/gateway";
+import { listPurchaseOrdersWithBalance } from "@/server/services/receiving";
+import { listNfeImports } from "@/server/services/nfe";
+import { importNfeAction } from "@/server/actions/inbound";
+import { StatusBadge } from "@/components/ui/badge";
 import { listWarehouses } from "@/server/services/warehouse";
 import { listProductOptions } from "@/server/services/products";
 import { createManualReceiptAction, createReceiptFromPoAction } from "@/server/actions/receiving";
@@ -13,7 +16,7 @@ import { Disclosure } from "@/components/ui/disclosure";
 import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
-import { fmtDate, fmtQty } from "@/lib/format";
+import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 
 export const metadata = { title: "Novo recebimento" };
@@ -30,23 +33,55 @@ export default async function NewReceiptPage() {
       </>
     );
   }
-  const [orders, warehouses, products, suppliers] = await Promise.all([
-    listPurchaseOrders(ctx.db, ctx.user.companyId),
+  const [orders, warehouses, products, suppliers, nfes] = await Promise.all([
+    listPurchaseOrdersWithBalance(ctx),
     listWarehouses(ctx),
     listProductOptions(ctx),
     ctx.db.query<{ id: string; code: string; name: string }>(`select id, code, name from erp.suppliers where company_id = $1 order by name`, [ctx.user.companyId]),
+    listNfeImports(ctx),
   ]);
+  const pendingNfes = nfes.filter((n) => n.status === "pending");
   const whOptions = warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }));
 
   return (
     <>
       <PageHeader
         title="Novo recebimento"
-        description="Importe um pedido de compra do ERP. Cada pedido gera um único recebimento ativo, evitando duplicidade por reenvio."
+        description="Importe o XML da NF-e ou um pedido de compra do ERP. Um pedido pode chegar em várias entregas: cada recebimento leva o saldo pendente, e o banco do pedido é travado para que entregas simultâneas não ultrapassem o pedido."
         breadcrumbs={[{ label: "Entrada" }, { label: "Recebimentos", href: "/recebimentos" }, { label: "Novo" }]}
       />
+      <Card className="mb-5">
+        <CardHeader
+          title="Importar XML da NF-e"
+          description="Modelo 55, layout 4.00, até 900 KB. A leitura é local (sem consulta à SEFAZ): chave de acesso com dígito verificador, emitente, itens, lote e validade."
+        />
+        <div className="p-4">
+          <ActionForm action={importNfeAction} className="flex flex-wrap items-end gap-3">
+            <Field label="Arquivo XML" required>
+              <Input name="xmlFile" type="file" accept=".xml,text/xml,application/xml" required />
+            </Field>
+            <SubmitButton>Importar NF-e</SubmitButton>
+          </ActionForm>
+          {pendingNfes.length ? (
+            <ul className="mt-4 space-y-1 text-sm">
+              {pendingNfes.map((n) => (
+                <li key={n.id} className="flex flex-wrap items-center gap-2">
+                  <StatusBadge kind="nfe" status={n.status} />
+                  <Link className="link" href={`/recebimentos/nfe/${n.id}`}>
+                    NF {n.number}/{n.series} — {n.emitter_name}
+                  </Link>
+                  <span className="text-xs text-muted">
+                    {fmtDateTime(n.created_at)}
+                    {n.pending_links ? ` · ${n.pending_links} item(ns) pendente(s) de vínculo` : ""}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          ) : null}
+        </div>
+      </Card>
       <Card>
-        <CardHeader title="Pedidos de compra (ERP)" description="Consulta direta ao ERP. A NF-e pode ser associada manualmente; a consulta automática à SEFAZ não está conectada nesta versão." />
+        <CardHeader title="Pedidos de compra (ERP)" description="Saldo pendente = pedido − aceito nas entregas conferidas − previsto nas entregas em andamento. Use “Entrega parcial” para informar quantidades por item." />
         {orders.length ? (
           <TableWrap>
             <table className="table-base">
@@ -57,6 +92,7 @@ export default async function NewReceiptPage() {
                   <th>Emissão / previsão</th>
                   <th className="num">Itens</th>
                   <th className="num">Quantidade</th>
+                  <th className="num">Saldo pendente</th>
                   <th>Situação</th>
                   <th className="min-w-[360px]">Importar</th>
                 </tr>
@@ -68,31 +104,33 @@ export default async function NewReceiptPage() {
                     <td>{po.supplier_name}</td>
                     <td>
                       {fmtDate(po.issue_date)}
-                      <span className="block text-xs text-slate-500">prev. {fmtDate(po.expected_date)}</span>
+                      <span className="block text-xs text-muted">prev. {fmtDate(po.expected_date)}</span>
                     </td>
                     <td className="num">{po.item_count}</td>
                     <td className="num">{fmtQty(po.total_qty)}</td>
+                    <td className="num">
+                      {fmtQty(po.pending_qty)}
+                      {po.in_transit_qty ? <span className="block text-xs text-muted">{fmtQty(po.in_transit_qty)} em andamento</span> : null}
+                    </td>
                     <td>
                       <Badge tone={po.status === "open" ? "info" : po.status === "received" ? "success" : "neutral"}>{PO_STATUS[po.status]}</Badge>
                     </td>
                     <td>
-                      {po.receipt_code ? (
-                        <span className="text-xs text-slate-500">
-                          Já importado:{" "}
-                          <Link className="link" href={`/recebimentos?q=${po.receipt_code}`}>
-                            {po.receipt_code}
-                          </Link>
-                        </span>
-                      ) : po.status === "open" || po.status === "partially_received" ? (
+                      {(po.status === "open" || po.status === "partially_received") && po.pending_qty > 0 ? (
                         <ActionForm action={createReceiptFromPoAction} className="flex flex-wrap items-end gap-2">
                           <input type="hidden" name="purchaseOrderId" value={po.id} />
                           <Select name="warehouseId" options={whOptions} className="w-auto" aria-label="Depósito de destino" />
-                          <Input name="invoiceNumber" defaultValue={po.invoice_number ?? ""} placeholder="Nº NF" className="w-28" aria-label="Número da NF" />
-                          <SubmitButton size="sm">Iniciar recebimento</SubmitButton>
+                          <Input name="invoiceNumber" defaultValue={po.deliveries ? "" : (po.invoice_number ?? "")} placeholder="Nº NF" className="w-28" aria-label="Número da NF" />
+                          <SubmitButton size="sm">Receber saldo</SubmitButton>
                         </ActionForm>
                       ) : (
-                        <span className="text-xs text-slate-400">Indisponível</span>
+                        <span className="text-xs text-muted">{po.pending_qty > 0 ? "Indisponível" : "Sem saldo pendente"}</span>
                       )}
+                      <span className="mt-1 block text-xs">
+                        <Link className="link" href={`/recebimentos/pedido/${po.id}`}>
+                          {po.deliveries ? `${po.deliveries} entrega(s) · ` : ""}Entrega parcial / histórico
+                        </Link>
+                      </span>
                     </td>
                   </tr>
                 ))}
@@ -129,7 +167,7 @@ export default async function NewReceiptPage() {
                 </Field>
               </div>
             ))}
-            <p className="text-xs text-slate-500 md:col-span-2">Linhas sem produto são ignoradas.</p>
+            <p className="text-xs text-muted md:col-span-2">Linhas sem produto são ignoradas.</p>
             <div className="md:col-span-2">
               <SubmitButton>Criar recebimento</SubmitButton>
             </div>

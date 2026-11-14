@@ -2,6 +2,7 @@ import "server-only";
 import { z } from "zod";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText } from "../validation";
 import { audit, runOperation, type OpOptions } from "./common";
@@ -24,6 +25,8 @@ export interface WarehouseSummary {
 }
 
 export async function listWarehouses(ctx: Ctx): Promise<WarehouseSummary[]> {
+  const params: unknown[] = [ctx.user.companyId];
+  const scope = warehouseScope(ctx, "w.id", params);
   return ctx.db.query<WarehouseSummary>(
     `select w.id, w.code, w.name, w.address, w.active,
             (select count(*) from wms.zones z where z.warehouse_id = w.id) as zone_count,
@@ -34,8 +37,8 @@ export async function listWarehouses(ctx: Ctx): Promise<WarehouseSummary[]> {
             coalesce((select sum(b.quantity) from wms.stock_balances b join wms.locations l on l.id = b.location_id
                       join wms.zones z on z.id = l.zone_id
                       where b.warehouse_id = w.id and z.zone_type in ('storage', 'picking')), 0) as occupied
-     from wms.warehouses w where w.company_id = $1 order by w.code`,
-    [ctx.user.companyId],
+     from wms.warehouses w where w.company_id = $1${scope} order by w.code`,
+    params,
   );
 }
 
@@ -104,7 +107,7 @@ export async function setWarehouseActive(ctx: Ctx, id: string, active: boolean) 
 // Zonas
 // -----------------------------------------------------------------------------
 
-export const ZONE_TYPES = ["receiving", "storage", "picking", "shipping", "quarantine"] as const;
+export const ZONE_TYPES = ["receiving", "storage", "picking", "shipping", "quarantine", "production"] as const;
 
 export interface ZoneRow {
   id: string;
@@ -144,6 +147,7 @@ export async function createZone(ctx: Ctx, input: unknown, opts?: OpOptions) {
   assertCan(ctx, "warehouse.manage");
   const data = parse(zoneSchema, input);
   return runOperation(ctx, "zone.create", opts, async (tx) => {
+    assertWarehouseAccess(ctx, data.warehouseId);
     const [wh] = await tx.query(`select id from wms.warehouses where id = $1 and company_id = $2`, [
       data.warehouseId,
       ctx.user.companyId,
@@ -485,6 +489,8 @@ export async function listLocations(ctx: Ctx, f: LocationFilters = {}) {
   if (f.status) add("l.status = ?", f.status);
   if (f.type) add("l.location_type = ?", f.type);
   if (f.q) add("(l.code ilike ? )", `%${f.q}%`);
+  const scope = warehouseScope(ctx, "l.warehouse_id", params);
+  if (scope) where.push(scope.replace(/^ and /, ""));
   const base = `
     from wms.locations l
     join wms.zones z on z.id = l.zone_id
@@ -522,11 +528,12 @@ export async function getLocation(ctx: Ctx, id: string) {
      where l.id = $1 and l.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  return loc ?? null;
+  return loc && hasWarehouseAccess(ctx, loc.warehouse_id) ? loc : null;
 }
 
 /** Visão hierárquica: depósito → zona → rua, com ocupação agregada. */
 export async function getStructureTree(ctx: Ctx, warehouseId: string) {
+  if (!hasWarehouseAccess(ctx, warehouseId)) return [];
   return ctx.db.query<{
     zone_id: string;
     zone_code: string;

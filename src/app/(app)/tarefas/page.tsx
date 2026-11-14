@@ -59,7 +59,7 @@ export default async function TasksPage({ searchParams }: { searchParams: Search
             href={`/tarefas${q.qs ? `?${q.qs}` : ""}`}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium",
-              currentQs === q.qs ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              currentQs === q.qs ? "border-accent bg-accent-soft text-link" : "border-line bg-surface text-fg-2 hover:bg-canvas",
             )}
           >
             {q.label}

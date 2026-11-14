@@ -18,12 +18,12 @@ export function PageHeader({
   return (
     <header className="mb-5">
       {breadcrumbs?.length ? (
-        <nav aria-label="Trilha" className="mb-1.5 flex flex-wrap items-center gap-1 text-xs text-slate-500">
+        <nav aria-label="Trilha" className="mb-1.5 flex flex-wrap items-center gap-1 text-xs text-muted">
           {breadcrumbs.map((b, i) => (
             <span key={i} className="flex items-center gap-1">
               {i > 0 ? <ChevronRight className="size-3" aria-hidden /> : null}
               {b.href ? (
-                <Link href={b.href} className="hover:text-slate-800 hover:underline">
+                <Link href={b.href} className="hover:text-fg hover:underline">
                   {b.label}
                 </Link>
               ) : (
@@ -36,10 +36,10 @@ export function PageHeader({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{title}</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-fg">{title}</h1>
             {badges}
           </div>
-          {description ? <p className="mt-1 max-w-3xl text-sm text-slate-500">{description}</p> : null}
+          {description ? <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p> : null}
         </div>
         {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
       </div>

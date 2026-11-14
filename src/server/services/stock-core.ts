@@ -61,17 +61,21 @@ export interface AddStockInput {
   quantity: number;
   /** Quantidade que já entra reservada (ex.: produto separado aguardando expedição). */
   reserved?: number;
+  /** Quantidade que já entra bloqueada (ex.: devolução avariada enviada à quarentena). */
+  blocked?: number;
 }
 
 export async function addStock(tx: Queryable, ctx: Ctx, input: AddStockInput): Promise<BalanceRow> {
   const reserved = input.reserved ?? 0;
+  const blocked = input.blocked ?? 0;
   const [row] = await tx.query<BalanceRow>(
     `insert into wms.stock_balances
-       (company_id, warehouse_id, location_id, product_id, lot_code, expiry_date, quantity, reserved_qty)
-     values ($1, $2, $3, $4, $5, $6, $7, $8)
+       (company_id, warehouse_id, location_id, product_id, lot_code, expiry_date, quantity, reserved_qty, blocked_qty)
+     values ($1, $2, $3, $4, $5, $6, $7, $8, $9)
      on conflict (location_id, product_id, lot_code) do update set
        quantity = wms.stock_balances.quantity + excluded.quantity,
        reserved_qty = wms.stock_balances.reserved_qty + excluded.reserved_qty,
+       blocked_qty = wms.stock_balances.blocked_qty + excluded.blocked_qty,
        expiry_date = coalesce(wms.stock_balances.expiry_date, excluded.expiry_date),
        version = wms.stock_balances.version + 1,
        updated_at = now()
@@ -85,6 +89,7 @@ export async function addStock(tx: Queryable, ctx: Ctx, input: AddStockInput): P
       input.expiryDate,
       input.quantity,
       reserved,
+      blocked,
     ],
   );
   return row;
@@ -141,7 +146,14 @@ export type MovementType =
   | "pick"
   | "shipment"
   | "block"
-  | "unblock";
+  | "unblock"
+  | "return_in"
+  | "discard"
+  | "replenishment"
+  | "return"
+  | "production_pick"
+  | "production_issue"
+  | "production_return";
 
 export interface MovementInput {
   warehouseId: string;
@@ -251,7 +263,7 @@ async function loadLocations(
                       join erp.products p on p.id = b.product_id where b.location_id = l.id), 0) as occupied_weight,
             coalesce((select sum(t.quantity) from wms.tasks t
                       where coalesce(t.to_location_id, t.suggested_location_id) = l.id
-                        and t.status in ('pending', 'in_progress') and t.task_type in ('putaway', 'transfer')
+                        and t.status in ('pending', 'in_progress') and t.task_type in ('putaway', 'transfer', 'replenishment', 'return')
                         and ($2::uuid is null or t.id <> $2::uuid)), 0) as incoming
      from wms.locations l join wms.zones z on z.id = l.zone_id
      where l.company_id = $1 and ${where}
@@ -400,4 +412,21 @@ export async function suggestLocations(
     }
   }
   return { best: null, candidates: [], reason };
+}
+
+/**
+ * Avalia (sem bloquear nem lançar erro) se um endereço pode receber `qty` do
+ * produto, com os mesmos critérios de validateDestination. Usado pelo coletor
+ * para explicar ao operador por que um endereço lido foi recusado.
+ */
+export async function evaluateDestination(
+  tx: Queryable,
+  ctx: Ctx,
+  args: { locationId: string; warehouseId: string; productId: string; quantity: number; excludeTaskId?: string | null },
+): Promise<Evaluation> {
+  const [loc] = await loadLocations(tx, ctx.user.companyId, "l.id = $3", [args.locationId], args.excludeTaskId ?? null);
+  if (!loc) throw new NotFoundError("Endereço");
+  const product = await getProductRules(tx, ctx.user.companyId, args.productId);
+  const productQty = await productQtyAt(tx, loc.id, args.productId);
+  return evaluate(loc, product, args.quantity, productQty, args.warehouseId);
 }

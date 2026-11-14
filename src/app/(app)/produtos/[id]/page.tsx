@@ -1,3 +1,4 @@
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
@@ -6,6 +7,7 @@ import { listZones, STORAGE_CLASSES } from "@/server/services/warehouse";
 import { listStock } from "@/server/services/stock";
 import { addPackagingAction, togglePackagingAction, updateProductSettingsAction } from "@/server/actions/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,6 +39,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         title={`${product.sku} — ${product.description}`}
         badges={product.status === "active" ? <Badge tone="success">Ativo</Badge> : <Badge>Inativo</Badge>}
         breadcrumbs={[{ label: "Armazém" }, { label: "Produtos", href: "/produtos" }, { label: product.sku }]}
+        actions={
+          <ButtonLink href={`/etiquetas/produtos/${product.id}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
@@ -145,7 +152,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <EmptyState title="Nenhuma unidade logística cadastrada" />
             )}
             {manage ? (
-              <CardBody className="border-t border-slate-100">
+              <CardBody className="border-t border-line">
                 <ActionForm action={addPackagingAction} resetOnSuccess className="grid grid-cols-2 gap-3 md:grid-cols-5">
                   <input type="hidden" name="_id" value={id} />
                   <Field label="Código" required>
@@ -176,7 +183,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
               <Checkbox name="lotControlled" label="Controla lote" defaultChecked={product.lot_controlled} disabled={!manage} />
               <Checkbox name="expiryControlled" label="Controla validade (FEFO)" defaultChecked={product.expiry_controlled} disabled={!manage} />
               <Checkbox name="serialControlled" label="Controla número de série" defaultChecked={product.serial_controlled} disabled={!manage} />
-              <p className="text-xs text-slate-500">O rastreio individual por número de série é registrado como parâmetro; a captura por unidade está planejada.</p>
+              <p className="text-xs text-muted">O rastreio individual por número de série é registrado como parâmetro; a captura por unidade está planejada.</p>
               <Field label="Classe de armazenagem">
                 <Select
                   name="storageClass"
@@ -197,7 +204,7 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
                   options={zones.filter((z) => ["storage", "picking"].includes(z.zone_type)).map((z) => ({ value: z.id, label: `${z.warehouse_code} · ${z.code} — ${z.name}` }))}
                 />
               </Field>
-              {manage ? <SubmitButton>Salvar parâmetros</SubmitButton> : <p className="text-xs text-slate-500">Somente administradores e supervisores alteram parâmetros.</p>}
+              {manage ? <SubmitButton>Salvar parâmetros</SubmitButton> : <p className="text-xs text-muted">Somente administradores e supervisores alteram parâmetros.</p>}
             </ActionForm>
           </CardBody>
         </Card>

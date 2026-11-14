@@ -3,11 +3,13 @@ import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
+import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalDate, qty, nonNegQty } from "../validation";
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { getProductRules, suggestLocations } from "./stock-core";
+import { assertCustomsCleared, recordLotOrigins } from "./comex";
 
 export const RECEIPT_STATUSES = ["expected", "checking", "checked", "released", "completed", "cancelled"] as const;
 export type ReceiptStatus = (typeof RECEIPT_STATUSES)[number];
@@ -29,6 +31,7 @@ async function lockReceipt(tx: Queryable, ctx: Ctx, id: string): Promise<Receipt
     [id, ctx.user.companyId],
   );
   if (!r) throw new NotFoundError("Recebimento");
+  assertWarehouseAccess(ctx, r.warehouse_id);
   return r;
 }
 
@@ -61,6 +64,8 @@ export interface ReceiptListRow {
 
 export async function listReceipts(ctx: Ctx, f: { status?: string | null; q?: string | null } = {}) {
   const statuses = f.status ? f.status.split(",") : null;
+  const params: unknown[] = [ctx.user.companyId, statuses, f.q || null];
+  const scope = warehouseScope(ctx, "r.warehouse_id", params);
   return ctx.db.query<ReceiptListRow>(
     `select r.id, r.code, r.status, s.name as supplier_name, po.number as po_number, r.invoice_number,
             w.code as warehouse_code, r.arrived_at::text as arrived_at, r.created_at::text as created_at, r.is_demo,
@@ -75,9 +80,9 @@ export async function listReceipts(ctx: Ctx, f: { status?: string | null; q?: st
      where r.company_id = $1
        and ($2::text[] is null or r.status = any($2::text[]))
        and ($3::text is null or r.code ilike '%' || $3 || '%' or s.name ilike '%' || $3 || '%'
-            or po.number ilike '%' || $3 || '%' or r.invoice_number ilike '%' || $3 || '%')
+            or po.number ilike '%' || $3 || '%' or r.invoice_number ilike '%' || $3 || '%')${scope}
      order by r.created_at desc`,
-    [ctx.user.companyId, statuses, f.q || null],
+    params,
   );
 }
 
@@ -126,8 +131,11 @@ export async function getReceipt(ctx: Ctx, id: string) {
     created_at: string;
     notes: string | null;
     is_demo: boolean;
+    appointment_id: string | null;
+    appointment_code: string | null;
+    nfe_import_id: string | null;
   }>(
-    `select r.id, r.code, r.status, r.warehouse_id, w.code as warehouse_code, w.name as warehouse_name, r.purchase_order_id,
+    `select r.appointment_id, ap.code as appointment_code, r.nfe_import_id, r.id, r.code, r.status, r.warehouse_id, w.code as warehouse_code, w.name as warehouse_name, r.purchase_order_id,
             po.number as po_number, s.name as supplier_name, s.document as supplier_document, r.invoice_number, r.invoice_key,
             r.arrived_at::text as arrived_at, r.check_started_at::text as check_started_at, r.checked_at::text as checked_at,
             r.released_at::text as released_at, r.completed_at::text as completed_at, cu.name as checker_name,
@@ -138,10 +146,11 @@ export async function getReceipt(ctx: Ctx, id: string) {
      join wms.users u on u.id = r.created_by
      left join wms.users cu on cu.id = r.checker_id
      left join erp.purchase_orders po on po.id = r.purchase_order_id
+     left join wms.dock_appointments ap on ap.id = r.appointment_id
      where r.id = $1 and r.company_id = $2`,
     [id, ctx.user.companyId],
   );
-  if (!header) return null;
+  if (!header || !hasWarehouseAccess(ctx, header.warehouse_id)) return null;
   const items = await ctx.db.query<ReceiptItemRow>(
     `select i.id, i.line_no, i.product_id, p.sku, p.description, p.uom,
             coalesce(s.lot_controlled, false) as lot_controlled, coalesce(s.expiry_controlled, false) as expiry_controlled,
@@ -172,50 +181,234 @@ const fromPoSchema = z.object({
     .transform((v) => (v ? v.replace(/\s/g, "") : null))
     .refine((v) => v === null || /^\d{44}$/.test(v), "Chave de acesso da NF-e deve ter 44 dígitos."),
   notes: optionalText,
+  appointmentId: z
+    .string()
+    .uuid("Agendamento inválido.")
+    .nullish()
+    .or(z.literal("").transform(() => null)),
+  /** Quantidades desta entrega por item do pedido. Sem a lista, recebe todo o saldo pendente. */
+  items: z
+    .array(z.object({ purchaseOrderItemId: uuid("Item do pedido"), quantity: z.union([z.literal("").transform(() => 0), nonNegQty("Quantidade da entrega")]) }))
+    .optional(),
 });
 
-/** Importa um pedido de compra do ERP como recebimento previsto. */
+export interface PoItemBalance {
+  purchase_order_item_id: string;
+  line_no: number;
+  product_id: string;
+  sku: string;
+  description: string;
+  uom: string;
+  ordered: number;
+  /** Aceito em entregas já conferidas (conferido − avariado, limitado ao previsto da entrega). */
+  received: number;
+  /** Previsto em entregas ainda não conferidas (previstas ou em conferência). */
+  in_transit: number;
+  pending: number;
+}
+
+/**
+ * Saldo do pedido de compra por item, considerando todas as entregas não canceladas.
+ * Sobras nunca reduzem o saldo de outros itens: o que passa do previsto vira divergência.
+ */
+export async function purchaseOrderBalance(q: Queryable, purchaseOrderId: string): Promise<PoItemBalance[]> {
+  return q.query<PoItemBalance>(
+    `select x.*, greatest(x.ordered - x.received - x.in_transit, 0) as pending from (
+       select i.id as purchase_order_item_id, i.line_no, i.product_id, p.sku, p.description, p.uom, i.quantity as ordered,
+              coalesce(sum(case when r.status in ('checked', 'released', 'completed')
+                                then greatest(least(coalesce(ri.counted_qty, 0) - ri.damaged_qty, ri.expected_qty), 0) end), 0) as received,
+              coalesce(sum(case when r.status in ('expected', 'checking') then ri.expected_qty end), 0) as in_transit
+       from erp.purchase_order_items i
+       join erp.products p on p.id = i.product_id
+       left join wms.receipt_items ri on ri.purchase_order_item_id = i.id
+       left join wms.receipts r on r.id = ri.receipt_id and r.status <> 'cancelled'
+       where i.purchase_order_id = $1
+       group by i.id, p.sku, p.description, p.uom
+     ) x order by x.line_no`,
+    [purchaseOrderId],
+  );
+}
+
+export interface PoDeliveryRow {
+  id: string;
+  code: string;
+  status: ReceiptStatus;
+  invoice_number: string | null;
+  arrived_at: string | null;
+  checked_at: string | null;
+  created_at: string;
+  expected_total: number;
+  counted_total: number | null;
+}
+
+/** Histórico de entregas (recebimentos) de um pedido de compra. */
+export async function listPurchaseOrderDeliveries(q: Queryable, companyId: string, purchaseOrderId: string) {
+  return q.query<PoDeliveryRow>(
+    `select r.id, r.code, r.status, r.invoice_number, r.arrived_at::text as arrived_at, r.checked_at::text as checked_at,
+            r.created_at::text as created_at,
+            coalesce((select sum(expected_qty) from wms.receipt_items i where i.receipt_id = r.id), 0) as expected_total,
+            (select sum(counted_qty) from wms.receipt_items i where i.receipt_id = r.id) as counted_total
+     from wms.receipts r where r.company_id = $1 and r.purchase_order_id = $2 order by r.created_at`,
+    [companyId, purchaseOrderId],
+  );
+}
+
+export interface PoReceiptLine {
+  purchaseOrderItemId: string | null;
+  productId: string;
+  quantity: number;
+  lotCode?: string;
+  expiryDate?: string | null;
+}
+
+/**
+ * Cria um recebimento (entrega) de pedido de compra dentro de uma transação já aberta.
+ * O pedido é bloqueado (FOR UPDATE) para que entregas simultâneas não ultrapassem o
+ * saldo pendente: a segunda transação espera a primeira e recalcula o saldo.
+ * Linhas sem item do pedido (purchaseOrderItemId null) entram com previsto 0: tudo o
+ * que for conferido nelas vira divergência de sobra.
+ */
+export async function createPoReceiptInTx(
+  tx: Queryable,
+  ctx: Ctx,
+  d: {
+    purchaseOrderId: string;
+    warehouseId: string;
+    invoiceNumber: string | null;
+    invoiceKey: string | null;
+    notes: string | null;
+    appointmentId?: string | null;
+    nfeImportId?: string | null;
+    /** null: recebe todo o saldo pendente. */
+    lines: PoReceiptLine[] | null;
+  },
+) {
+  const [locked] = await tx.query<{ id: string }>(`select id from erp.purchase_orders where id = $1 and company_id = $2 for update`, [
+    d.purchaseOrderId,
+    ctx.user.companyId,
+  ]);
+  if (!locked) throw new NotFoundError("Pedido de compra");
+  const po = await erp.getPurchaseOrder(tx, ctx.user.companyId, d.purchaseOrderId);
+  if (!po) throw new NotFoundError("Pedido de compra");
+  if (po.status === "cancelled" || po.status === "received") {
+    throw new DomainError(`O pedido ${po.number} está ${po.status === "cancelled" ? "cancelado" : "totalmente recebido"}.`);
+  }
+  await assertWarehouseActive(tx, ctx, d.warehouseId);
+  const balance = await purchaseOrderBalance(tx, po.id);
+  const byItem = new Map(balance.map((b) => [b.purchase_order_item_id, b]));
+  const lines: PoReceiptLine[] =
+    d.lines ?? balance.filter((b) => b.pending > 0).map((b) => ({ purchaseOrderItemId: b.purchase_order_item_id, productId: b.product_id, quantity: b.pending }));
+  // Valida o total por item do pedido contra o saldo pendente, sob o lock do pedido.
+  const requested = new Map<string, number>();
+  for (const l of lines) {
+    if (!l.purchaseOrderItemId) continue;
+    const b = byItem.get(l.purchaseOrderItemId);
+    if (!b) throw new DomainError("Item não pertence ao pedido de compra.", "VALIDATION");
+    if (b.product_id !== l.productId) throw new DomainError(`Produto da linha não confere com o item ${b.line_no} do pedido.`, "VALIDATION");
+    requested.set(b.purchase_order_item_id, round3((requested.get(b.purchase_order_item_id) ?? 0) + l.quantity));
+  }
+  for (const [itemId, q] of requested) {
+    const b = byItem.get(itemId)!;
+    if (q > b.pending) {
+      throw new DomainError(
+        `A entrega de ${b.sku} (${q}) ultrapassa o saldo pendente do pedido ${po.number} (${b.pending}). O excedente deve ser registrado como sobra na conferência.`,
+        "PO_BALANCE_EXCEEDED",
+      );
+    }
+  }
+  const effective = lines.filter((l) => l.quantity > 0 || !l.purchaseOrderItemId);
+  if (effective.length === 0) {
+    const open = receiptsInFlight(balance);
+    throw new DomainError(
+      `O pedido ${po.number} não possui saldo pendente para uma nova entrega${open ? " (há entregas em andamento aguardando conferência)" : ""}.`,
+      "NO_PENDING_BALANCE",
+    );
+  }
+
+  let arrivedAt: string | null = null;
+  if (d.appointmentId) {
+    const [a] = await tx.query<{ code: string; status: string; direction: string; purchase_order_id: string | null; warehouse_id: string; checked_in_at: string | null }>(
+      `select code, status, direction, purchase_order_id, warehouse_id, checked_in_at::text as checked_in_at
+       from wms.dock_appointments where id = $1 and company_id = $2 for update`,
+      [d.appointmentId, ctx.user.companyId],
+    );
+    if (!a) throw new NotFoundError("Agendamento");
+    if (a.direction !== "inbound") throw new DomainError("O agendamento não é de entrada.");
+    if (!["scheduled", "checked_in"].includes(a.status)) throw new DomainError(`O agendamento ${a.code} não está ativo.`, "INVALID_STATUS");
+    if (a.purchase_order_id && a.purchase_order_id !== po.id) throw new DomainError(`O agendamento ${a.code} é de outro pedido de compra.`);
+    if (a.warehouse_id !== d.warehouseId) throw new DomainError(`O agendamento ${a.code} é de outro depósito.`);
+    if (a.status === "scheduled") {
+      const [u] = await tx.query<{ t: string }>(
+        `update wms.dock_appointments set status = 'checked_in', checked_in_at = now(), purchase_order_id = coalesce(purchase_order_id, $2),
+                updated_at = now() where id = $1 returning checked_in_at::text as t`,
+        [d.appointmentId, po.id],
+      );
+      arrivedAt = u.t;
+    } else {
+      arrivedAt = a.checked_in_at;
+      await tx.query(`update wms.dock_appointments set purchase_order_id = coalesce(purchase_order_id, $2) where id = $1`, [d.appointmentId, po.id]);
+    }
+  }
+
+  const code = await nextCode(tx, ctx.user.companyId, "REC");
+  const [isDemo] = await tx.query<{ is_demo: boolean }>(`select is_demo from erp.companies where id = $1`, [ctx.user.companyId]);
+  const [r] = await tx.query<{ id: string }>(
+    `insert into wms.receipts (company_id, warehouse_id, code, purchase_order_id, supplier_id, invoice_number, invoice_key,
+                               notes, is_demo, created_by, appointment_id, nfe_import_id, arrived_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13) returning id`,
+    [
+      ctx.user.companyId,
+      d.warehouseId,
+      code,
+      po.id,
+      po.supplier_id,
+      d.invoiceNumber ?? po.invoice_number,
+      d.invoiceKey,
+      d.notes,
+      isDemo?.is_demo ?? false,
+      ctx.user.id,
+      d.appointmentId ?? null,
+      d.nfeImportId ?? null,
+      arrivedAt,
+    ],
+  );
+  let lineNo = 1;
+  for (const l of effective) {
+    await tx.query(
+      `insert into wms.receipt_items (receipt_id, line_no, product_id, purchase_order_item_id, expected_qty, lot_code, expiry_date)
+       values ($1,$2,$3,$4,$5,$6,$7)`,
+      [r.id, lineNo++, l.productId, l.purchaseOrderItemId, l.quantity, (l.lotCode ?? "").toUpperCase(), l.expiryDate ?? null],
+    );
+  }
+  const delivery = (await tx.query<{ n: number }>(`select count(*) as n from wms.receipts where purchase_order_id = $1 and status <> 'cancelled'`, [po.id]))[0].n;
+  await audit(tx, ctx, "receipt.created", "receipt", r.id, code, {
+    purchaseOrder: po.number,
+    delivery,
+    items: effective.map((l) => ({ purchaseOrderItemId: l.purchaseOrderItemId, quantity: l.quantity })),
+    appointmentId: d.appointmentId ?? null,
+    nfeImportId: d.nfeImportId ?? null,
+  });
+  return { id: r.id, code };
+}
+
+const receiptsInFlight = (balance: PoItemBalance[]) => balance.some((b) => b.in_transit > 0);
+
+/** Importa um pedido de compra do ERP como recebimento previsto (uma entrega). */
 export async function createReceiptFromPurchaseOrder(ctx: Ctx, input: unknown, opts?: OpOptions) {
   assertCan(ctx, "receipt.create");
   const d = parse(fromPoSchema, input);
   return runOperation(ctx, "receipt.create_from_po", opts, async (tx) => {
-    const po = await erp.getPurchaseOrder(tx, ctx.user.companyId, d.purchaseOrderId);
-    if (!po) throw new NotFoundError("Pedido de compra");
-    if (po.status === "cancelled" || po.status === "received") {
-      throw new DomainError(`O pedido ${po.number} está ${po.status === "cancelled" ? "cancelado" : "totalmente recebido"}.`);
+    let lines: PoReceiptLine[] | null = null;
+    if (d.items) {
+      const balance = await purchaseOrderBalance(tx, d.purchaseOrderId);
+      const byItem = new Map(balance.map((b) => [b.purchase_order_item_id, b]));
+      lines = d.items.map((i) => {
+        const b = byItem.get(i.purchaseOrderItemId);
+        if (!b) throw new DomainError("Item não pertence ao pedido de compra.", "VALIDATION");
+        return { purchaseOrderItemId: b.purchase_order_item_id, productId: b.product_id, quantity: i.quantity };
+      });
     }
-    if (po.receipt_code) {
-      throw new DomainError(`O pedido ${po.number} já possui o recebimento ${po.receipt_code}.`, "DUPLICATE");
-    }
-    await assertWarehouseActive(tx, ctx, d.warehouseId);
-    const code = await nextCode(tx, ctx.user.companyId, "REC");
-    const [isDemo] = await tx.query<{ is_demo: boolean }>(`select is_demo from erp.companies where id = $1`, [ctx.user.companyId]);
-    const [r] = await tx.query<{ id: string }>(
-      `insert into wms.receipts (company_id, warehouse_id, code, purchase_order_id, supplier_id, invoice_number, invoice_key,
-                                 notes, is_demo, created_by)
-       values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10) returning id`,
-      [
-        ctx.user.companyId,
-        d.warehouseId,
-        code,
-        po.id,
-        po.supplier_id,
-        d.invoiceNumber ?? po.invoice_number,
-        d.invoiceKey,
-        d.notes,
-        isDemo?.is_demo ?? false,
-        ctx.user.id,
-      ],
-    );
-    for (const item of po.items) {
-      await tx.query(
-        `insert into wms.receipt_items (receipt_id, line_no, product_id, purchase_order_item_id, expected_qty)
-         values ($1,$2,$3,$4,$5)`,
-        [r.id, item.line_no, item.product_id, item.id, item.quantity],
-      );
-    }
-    await audit(tx, ctx, "receipt.created", "receipt", r.id, code, { purchaseOrder: po.number, items: po.items.length });
-    return { id: r.id, code };
+    return createPoReceiptInTx(tx, ctx, { ...d, lines });
   });
 }
 
@@ -259,6 +452,7 @@ export async function createManualReceipt(ctx: Ctx, input: unknown, opts?: OpOpt
 }
 
 async function assertWarehouseActive(tx: Queryable, ctx: Ctx, warehouseId: string) {
+  assertWarehouseAccess(ctx, warehouseId);
   const [wh] = await tx.query<{ active: boolean }>(`select active from wms.warehouses where id = $1 and company_id = $2`, [
     warehouseId,
     ctx.user.companyId,
@@ -530,6 +724,8 @@ export async function releaseReceipt(ctx: Ctx, receiptId: string, opts?: OpOptio
   return runOperation(ctx, "receipt.release", opts, async (tx) => {
     const r = await lockReceipt(tx, ctx, receiptId);
     requireStatus(r, ["checked"], "liberar o recebimento");
+    await assertCustomsCleared(tx, receiptId);
+    await recordLotOrigins(tx, ctx, receiptId);
     const items = await tx.query<{
       id: string;
       product_id: string;
@@ -630,10 +826,8 @@ export async function refreshReceiptCompletion(tx: Queryable, ctx: Ctx, receiptI
 }
 
 async function onReceiptCompleted(tx: Queryable, ctx: Ctx, receiptId: string) {
-  const [r] = await tx.query<{ code: string; purchase_order_id: string | null; short: boolean }>(
-    `select r.code, r.purchase_order_id,
-            exists(select 1 from wms.receipt_items i where i.receipt_id = r.id and coalesce(i.counted_qty, 0) - i.damaged_qty < i.expected_qty) as short
-     from wms.receipts r where r.id = $1`,
+  const [r] = await tx.query<{ code: string; purchase_order_id: string | null; appointment_id: string | null }>(
+    `select r.code, r.purchase_order_id, r.appointment_id from wms.receipts r where r.id = $1`,
     [receiptId],
   );
   const items = await tx.query(
@@ -641,7 +835,46 @@ async function onReceiptCompleted(tx: Queryable, ctx: Ctx, receiptId: string) {
      from wms.receipt_items i join erp.products p on p.id = i.product_id where i.receipt_id = $1 order by i.line_no`,
     [receiptId],
   );
-  if (r.purchase_order_id) await erp.setPurchaseOrderStatus(tx, r.purchase_order_id, r.short ? "partially_received" : "received");
-  await enqueueIntegrationEvent(tx, ctx, "receipt.completed", "receipt", receiptId, { code: r.code, items });
+  let poStatus: string | null = null;
+  if (r.purchase_order_id) {
+    // Pedido fica "recebido parcial" até que todas as entregas somadas completem cada item.
+    const balance = await purchaseOrderBalance(tx, r.purchase_order_id);
+    poStatus = balance.every((b) => b.received >= b.ordered) ? "received" : "partially_received";
+    await erp.setPurchaseOrderStatus(tx, r.purchase_order_id, poStatus as "received" | "partially_received");
+  }
+  if (r.appointment_id) {
+    await tx.query(
+      `update wms.dock_appointments set status = 'completed', completed_at = now(), updated_at = now()
+       where id = $1 and status in ('scheduled', 'checked_in')`,
+      [r.appointment_id],
+    );
+  }
+  await enqueueIntegrationEvent(tx, ctx, "receipt.completed", "receipt", receiptId, { code: r.code, purchaseOrderStatus: poStatus, items });
   await audit(tx, ctx, "receipt.completed", "receipt", receiptId, r.code);
+}
+
+/** Pedidos de compra do ERP com saldo pendente e número de entregas (tela de novo recebimento). */
+export async function listPurchaseOrdersWithBalance(ctx: Ctx) {
+  const orders = await erp.listPurchaseOrders(ctx.db, ctx.user.companyId);
+  const stats = await ctx.db.query<{ id: string; pending: number; in_transit: number; deliveries: number }>(
+    `select po.id,
+            coalesce(sum(greatest(b.ordered - b.received - b.in_transit, 0)), 0) as pending,
+            coalesce(sum(b.in_transit), 0) as in_transit,
+            (select count(*) from wms.receipts r where r.purchase_order_id = po.id and r.status <> 'cancelled') as deliveries
+     from erp.purchase_orders po
+     left join lateral (
+       select i.quantity as ordered,
+              coalesce(sum(case when r.status in ('checked', 'released', 'completed')
+                                then greatest(least(coalesce(ri.counted_qty, 0) - ri.damaged_qty, ri.expected_qty), 0) end), 0) as received,
+              coalesce(sum(case when r.status in ('expected', 'checking') then ri.expected_qty end), 0) as in_transit
+       from erp.purchase_order_items i
+       left join wms.receipt_items ri on ri.purchase_order_item_id = i.id
+       left join wms.receipts r on r.id = ri.receipt_id and r.status <> 'cancelled'
+       where i.purchase_order_id = po.id group by i.id
+     ) b on true
+     where po.company_id = $1 group by po.id`,
+    [ctx.user.companyId],
+  );
+  const byId = new Map(stats.map((s) => [s.id, s]));
+  return orders.map((o) => ({ ...o, pending_qty: byId.get(o.id)?.pending ?? 0, in_transit_qty: byId.get(o.id)?.in_transit ?? 0, deliveries: byId.get(o.id)?.deliveries ?? 0 }));
 }

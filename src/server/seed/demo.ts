@@ -5,6 +5,7 @@ import { hashPassword } from "../auth/password";
 import { loadSessionUser } from "../auth/users";
 import { formatLocationCode } from "../services/warehouse";
 import { adjustStock } from "../services/stock";
+import { nextCode } from "../services/common";
 
 /**
  * DADOS DE DEMONSTRAÇÃO — empresa fictícia "MetalSupply Componentes".
@@ -38,6 +39,13 @@ export async function seedDemo(db: Db): Promise<void> {
   const ids = await db.transaction(async (tx) => {
     const company = await insert(tx, `insert into erp.companies (name, is_demo) values ('MetalSupply Componentes', true) returning id`, []);
     const c = company.id;
+    // Dados cadastrais fictícios (CNPJ de exemplo com dígitos válidos) para cabeçalho, CSV e etiquetas.
+    await tx.query(
+      `update erp.companies set legal_name = 'MetalSupply Componentes Industriais Ltda. (demo)', document = '11222333000181',
+         email = 'contato@metalsupply.demo', phone = '(11) 4000-0000', address = 'Av. das Indústrias, 1500 — Distrito Industrial',
+         city = 'São Paulo', state = 'SP', zip_code = '04000000' where id = $1`,
+      [c],
+    );
     const users: Record<string, string> = {};
     for (const u of DEMO_USERS) {
       const r = await insert(
@@ -174,6 +182,79 @@ export async function seedDemo(db: Db): Promise<void> {
     for (const bay of ["01", "02"]) await loc(zVol, "04", bay, "00", "00", "floor", "bulky", 80);
     await loc(zExp, "EX", "01", "00", "00", "dock", null, 5000);
     await loc(zQua, "QA", "01", "00", "00", "quarantine", null, 500);
+
+    // ---------------- Frente C: CNPJ dos fornecedores, docas e agenda ----------------
+    // CNPJs fictícios (dígitos verificadores válidos) usados pelo XML de exemplo em docs/exemplos.
+    await tx.query(`update erp.suppliers set cnpj = '11222333000181' where id = $1`, [supplier.id]);
+    await tx.query(`update erp.suppliers set cnpj = '44555666000181' where id = $1`, [supplier2.id]);
+    await tx.query(`update erp.companies set document = coalesce(document, '77888999000181') where id = $1`, [c]);
+    const dock = async (code: string, name: string, type: string) =>
+      (
+        await insert(
+          tx,
+          `insert into wms.docks (company_id, warehouse_id, code, name, dock_type, created_by) values ($1,$2,$3,$4,$5,$6) returning id`,
+          [c, wh.id, code, name, type, users.admin],
+        )
+      ).id;
+    const dock1 = await dock("DOC-01", "Doca 1 — recebimento", "inbound");
+    await dock("DOC-02", "Doca 2 — expedição", "outbound");
+    await dock("DOC-03", "Doca 3 — mista", "both");
+    const [po4587] = await tx.query<{ id: string }>(`select id from erp.purchase_orders where company_id = $1 and number = 'PC-4587'`, [c]);
+    await tx.query(
+      `insert into wms.dock_appointments (company_id, warehouse_id, dock_id, code, direction, starts_at, ends_at, carrier, vehicle_plate,
+                                          purchase_order_id, created_by)
+       values ($1,$2,$3,$4,'inbound',
+               (current_date + time '14:00') at time zone 'America/Sao_Paulo',
+               (current_date + time '15:00') at time zone 'America/Sao_Paulo',
+               'Transportes Rota Sul (demo)', 'ABC1D23', $5, $6)`,
+      [c, wh.id, dock1, await nextCode(tx, c, "AGD"), po4587.id, users.supervisor],
+    );
+    // Frente D — zona de picking (endereços de baixa altura perto da expedição) com mín./máx. de reposição
+    // e um produto com controle de número de série (sem saldo inicial, para não alterar os números do roteiro).
+    const zPck = await zone("PCK", "Picking (flow rack)", "picking");
+    for (const bay of ["01", "02", "03", "04"]) await loc(zPck, "PK", bay, "01", "00", "shelf", "general", 40);
+    const [pkLub] = await tx.query<{ id: string }>(`select id from wms.locations where code = $1`, [
+      formatLocationCode("DEP-01", { aisle: "PK", bay: "01", level: "01", position: "00" }),
+    ]);
+    await tx.query(
+      `insert into wms.replenishment_settings (company_id, warehouse_id, location_id, product_id, min_qty, max_qty, updated_by)
+       values ($1,$2,$3,$4,10,20,$5)`,
+      [c, wh.id, pkLub.id, pB, users.admin],
+    );
+    const pE = await product("SEN-005", "Sensor Indutivo E (com nº de série)", "7890000000055", "Componentes", 0.2, [6, 4, 4]);
+    await tx.query(
+      `insert into wms.product_settings (product_id, company_id, serial_controlled, storage_class) values ($1,$2,true,'general')`,
+      [pE, c],
+    );
+
+    // Frente F — NCM dos produtos (cadastro fiscal do ERP), linha de produção e uma ordem de produção
+    // do MRP (sem requisição nem reserva, para não alterar saldos e números do roteiro).
+    for (const [id, ncm] of [
+      [pA, "84879000"],
+      [pB, "27101932"],
+      [pC, "35069190"],
+      [pD, "72085200"],
+      [pE, "85365090"],
+    ] as const)
+      await tx.query(`update erp.products set ncm = $2 where id = $1`, [id, ncm]);
+    const zPrd = await zone("PRD", "Produção — linha de montagem", "production");
+    await loc(zPrd, "PR", "01", "00", "00", "staging", null, 1000);
+    const pF = await product("SUP-006", "Suporte Montado F (produto acabado)", "7890000000062", "Produto acabado", 13, [100, 50, 10]);
+    await tx.query(
+      `insert into wms.product_settings (product_id, company_id, lot_controlled, storage_class) values ($1,$2,true,'bulky')`,
+      [pF, c],
+    );
+    await tx.query(`update erp.products set ncm = '73269090' where id = $1`, [pF]);
+    const [op] = await tx.query<{ id: string }>(
+      `insert into erp.production_orders (company_id, number, product_id, quantity, due_date, output_lot_code)
+       values ($1, 'OP-2026-001', $2, 5, current_date + 2, 'OP2026001') returning id`,
+      [c, pF],
+    );
+    await tx.query(
+      `insert into erp.production_order_components (production_order_id, line_no, product_id, quantity)
+       values ($1, 1, $2, 5), ($1, 2, $3, 2)`,
+      [op.id, pD, pB],
+    );
 
     return { company: c, admin: users.admin, pB, pD, wh: wh.id };
   });

@@ -3,7 +3,7 @@ import { revalidatePath } from "next/cache";
 import { redirect, unstable_rethrow } from "next/navigation";
 import type { Ctx } from "../context";
 import { requireCtx } from "../auth/session";
-import { toUserMessage } from "../errors";
+import { DomainError, toUserMessage } from "../errors";
 import { formToObject, type ActionState } from "@/lib/action-state";
 
 export interface ActionInput {
@@ -25,6 +25,9 @@ export async function runAction(formData: FormData, fn: (input: ActionInput) => 
   let result: ActionState;
   try {
     const ctx = await requireCtx();
+    if (ctx.user.mustChangePassword) {
+      throw new DomainError("Defina uma nova senha antes de continuar (menu do usuário › Trocar senha).", "PASSWORD_CHANGE_REQUIRED");
+    }
     const data = formToObject(formData);
     const key = (formData.get("_key") as string | null) || undefined;
     const id = String(formData.get("_id") ?? "");

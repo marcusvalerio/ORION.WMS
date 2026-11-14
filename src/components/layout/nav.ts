@@ -28,6 +28,8 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Conferência", href: "/conferencia", icon: "ClipboardCheck" },
       { label: "Armazenagem", href: "/armazenagem", icon: "PackageCheck" },
       { label: "Divergências", href: "/divergencias", icon: "TriangleAlert" },
+      { label: "Agenda de docas", href: "/docas", icon: "CalendarClock" },
+      { label: "Devoluções", href: "/devolucoes", icon: "Undo2" },
     ],
   },
   {
@@ -37,6 +39,9 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Inventário", href: "/inventario", icon: "ClipboardList" },
       { label: "Separação", href: "/separacao", icon: "ScanLine" },
       { label: "Expedição", href: "/expedicao", icon: "Truck" },
+      { label: "Ondas", href: "/ondas", icon: "Waves" },
+      { label: "Reposição", href: "/reposicao", icon: "RefreshCw" },
+      { label: "Produção", href: "/producao", icon: "Factory" },
     ],
   },
   {
@@ -45,6 +50,13 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Relatórios", href: "/relatorios", icon: "FileChartColumn" },
       { label: "Indicadores", href: "/indicadores", icon: "Gauge" },
       { label: "Auditoria", href: "/auditoria", icon: "ShieldCheck", permission: "audit.view" },
+      { label: "Usuários", href: "/usuarios", icon: "Users", permission: "users.manage" },
+      { label: "Produtividade", href: "/produtividade", icon: "Activity", permission: "productivity.view" },
+      { label: "Configurações", href: "/configuracoes", icon: "Settings", permission: "settings.manage" },
+      { label: "Integração", href: "/integracao", icon: "RefreshCw", permission: "audit.view" },
+      { label: "Dados da empresa", href: "/empresa", icon: "Building2", permission: "company.manage" },
+      { label: "Saúde", href: "/saude", icon: "HeartPulse", permission: "system.health" },
+      { label: "Curva ABC", href: "/curva-abc", icon: "ChartColumnBig" },
     ],
   },
 ];

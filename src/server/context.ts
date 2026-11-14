@@ -11,6 +11,10 @@ export interface SessionUser {
   name: string;
   email: string;
   role: Role;
+  /** Depósitos permitidos; `null`/ausente = todos os depósitos da empresa. */
+  warehouseIds?: string[] | null;
+  /** Senha temporária: o usuário precisa definir uma nova antes de operar. */
+  mustChangePassword?: boolean;
 }
 
 /** Contexto de execução de todo serviço: conexão + usuário autenticado. */

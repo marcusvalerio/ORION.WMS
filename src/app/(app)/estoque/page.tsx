@@ -64,13 +64,13 @@ export default async function StockPage({ searchParams }: { searchParams: Search
       />
       <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
         {[
-          ["Estoque físico", total.quantity, "text-slate-900"],
-          ["Reservado", total.reserved, "text-sky-700"],
-          ["Bloqueado", total.blocked, "text-amber-700"],
-          ["Disponível", total.available, "text-emerald-700"],
+          ["Estoque físico", total.quantity, "text-fg"],
+          ["Reservado", total.reserved, "text-info-fg"],
+          ["Bloqueado", total.blocked, "text-warn-fg"],
+          ["Disponível", total.available, "text-ok-fg"],
         ].map(([label, value, color]) => (
-          <div key={label as string} className="rounded-lg border border-slate-200 bg-white px-4 py-3 shadow-xs">
-            <p className="text-xs text-slate-500">{label}</p>
+          <div key={label as string} className="rounded-lg border border-line bg-surface px-4 py-3 shadow-xs">
+            <p className="text-xs text-muted">{label}</p>
             <p className={`mt-0.5 text-xl font-semibold tabular-nums ${color}`}>{fmtQty(value as number)}</p>
           </div>
         ))}
@@ -125,24 +125,27 @@ export default async function StockPage({ searchParams }: { searchParams: Search
                       <Link href={`/estoque/saldo/${b.id}`} className="link font-mono text-xs">
                         {b.location_code}
                       </Link>
-                      <span className="block text-[11px] text-slate-500">
+                      <span className="block text-[11px] text-muted">
                         {ZONE_TYPE_LABELS[b.zone_type]}
                         {b.location_status === "blocked" ? " · endereço bloqueado" : ""}
                       </span>
                     </td>
                     <td>
-                      <span className="font-medium text-slate-800">{b.sku}</span>
-                      <span className="block text-xs text-slate-500">{b.description}</span>
+                      <span className="font-medium text-fg">{b.sku}</span>
+                      <span className="block text-xs text-muted">{b.description}</span>
                     </td>
-                    <td className="code">{b.lot_code || "—"}</td>
+                    <td className="code">
+                      {b.lot_code || "—"}
+                      {b.origin_country ? <span className="block text-xs text-muted">origem {b.origin_country}</span> : null}
+                    </td>
                     <td>
                       {fmtDate(b.expiry_date)}
                       {b.expiry_date && b.expiry_date < today ? <Badge tone="danger" className="ml-1">Vencido</Badge> : null}
                     </td>
                     <td className="num">{fmtQty(b.quantity)}</td>
-                    <td className="num text-sky-700">{fmtQty(b.reserved_qty)}</td>
-                    <td className="num text-amber-700">{fmtQty(b.blocked_qty)}</td>
-                    <td className="num font-semibold text-emerald-700">{fmtQty(b.available_qty)}</td>
+                    <td className="num text-info-fg">{fmtQty(b.reserved_qty)}</td>
+                    <td className="num text-warn-fg">{fmtQty(b.blocked_qty)}</td>
+                    <td className="num font-semibold text-ok-fg">{fmtQty(b.available_qty)}</td>
                   </tr>
                 ))}
               </tbody>

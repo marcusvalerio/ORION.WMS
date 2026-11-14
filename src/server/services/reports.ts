@@ -5,9 +5,13 @@ import { DomainError } from "../errors";
 import { listStock, listMovements } from "./stock";
 import { listReceipts } from "./receiving";
 import { listDivergences } from "./divergences";
-import { listTasks } from "./tasks";
+import { listTasks, TASK_TYPES } from "./tasks";
+import { ROLE_LABELS, type Role } from "@/lib/permissions";
 import { listInventories } from "./inventory";
 import { listOrders, listShipments } from "./outbound";
+import { productivityByUser } from "./productivity";
+import { listReturns } from "./returns";
+import { RETURN_REASON_LABELS } from "@/lib/labels";
 import { MOVEMENT_LABELS, statusLabel, TASK_TYPE_LABELS, DIVERGENCE_TYPE_LABELS } from "@/lib/labels";
 
 export const REPORTS = {
@@ -19,6 +23,8 @@ export const REPORTS = {
   inventarios: "Inventários",
   pedidos: "Pedidos de saída / separação",
   expedicoes: "Expedições",
+  produtividade: "Produtividade por operador",
+  devolucoes: "Devoluções de cliente",
 } as const;
 export type ReportKey = keyof typeof REPORTS;
 
@@ -33,6 +39,13 @@ export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams
   assertCan(ctx, "reports.export");
   const p = (k: string) => params.get(k) || null;
   switch (key as ReportKey) {
+    case "devolucoes": {
+      const rows = await listReturns(ctx, { status: p("status"), q: p("q") });
+      return {
+        headers: ["Código", "Status", "Pedido", "Cliente", "Motivo", "Devolvido", "Apto", "Avariado", "Descarte", "Registrada em", "Concluída em", "Usuário"],
+        rows: rows.map((r) => [r.code, statusLabel("customerReturn", r.status), r.order_code, r.customer_name, RETURN_REASON_LABELS[r.reason] ?? r.reason, r.quantity, r.approved, r.damaged, r.discarded, r.created_at, r.completed_at, r.created_by_name]),
+      };
+    }
     case "estoque": {
       const { rows } = await listStock(ctx, {
         q: p("q"),
@@ -96,6 +109,24 @@ export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams
         rows: rows.map((r) => [r.code, r.order_code, r.customer_name, r.carrier, r.vehicle_plate, r.document_ref, r.total, r.shipped_at, r.shipped_by_name]),
       };
     }
+    case "produtividade": {
+      const { period, rows } = await productivityByUser(ctx, { from: p("from"), to: p("to"), warehouseId: p("warehouseId"), userId: p("userId") });
+      return {
+        headers: [
+          "Período início", "Período fim", "Usuário", "Perfil", "Tarefas concluídas",
+          ...TASK_TYPES.map((t) => `Tarefas: ${TASK_TYPE_LABELS[t]}`),
+          "Tempo médio por tarefa (min)", "Unidades movimentadas", "Itens separados", "Separações", "Separações sem divergência",
+          "Acuracidade de separação (%)", "Linhas conferidas",
+        ],
+        rows: rows.map((r) => [
+          period.from, period.to, r.user_name, ROLE_LABELS[r.role as Role] ?? r.role, r.tasks_total,
+          ...TASK_TYPES.map((t) => r.tasks_by_type[t]),
+          r.avg_task_seconds === null ? null : Math.round((r.avg_task_seconds / 60) * 10) / 10,
+          r.units_moved, r.units_picked, r.picks_total, r.picks_accurate,
+          r.accuracy === null ? null : Math.round(r.accuracy * 1000) / 10, r.lines_checked,
+        ]),
+      };
+    }
     default:
       throw new DomainError("Relatório inexistente.", "NOT_FOUND");
   }
@@ -110,7 +141,8 @@ function csvCell(value: Cell): string {
 }
 
 /** CSV com separador ";" e BOM UTF-8 (compatível com Excel em pt-BR). */
-export function toCsv(table: Table): string {
-  const lines = [table.headers, ...table.rows].map((row) => row.map(csvCell).join(";"));
+/** CSV com `;` e BOM; `preamble` (opcional) são linhas de identificação antes do cabeçalho (ex.: empresa/CNPJ). */
+export function toCsv(table: Table, preamble: Cell[][] = []): string {
+  const lines = [...preamble, table.headers, ...table.rows].map((row) => row.map(csvCell).join(";"));
   return "﻿" + lines.join("\r\n") + "\r\n";
 }

@@ -110,3 +110,67 @@ export async function setSalesOrderStatus(
 ): Promise<void> {
   await db.query(`update erp.sales_orders set status = $2 where id = $1 and status <> 'cancelled'`, [id, status]);
 }
+
+// -----------------------------------------------------------------------------
+// Ordens de produção (MRP do ERP) — requisição de materiais para o WMS
+// -----------------------------------------------------------------------------
+
+export interface ErpProductionOrder {
+  id: string;
+  number: string;
+  status: string;
+  product_id: string;
+  sku: string;
+  description: string;
+  uom: string;
+  quantity: number;
+  due_date: string | null;
+  output_lot_code: string | null;
+  component_count: number;
+  requisition_id: string | null;
+  requisition_code: string | null;
+}
+
+export interface ErpProductionComponent {
+  id: string;
+  line_no: number;
+  product_id: string;
+  sku: string;
+  description: string;
+  uom: string;
+  quantity: number;
+}
+
+export async function listProductionOrders(db: Queryable, companyId: string): Promise<ErpProductionOrder[]> {
+  return db.query<ErpProductionOrder>(
+    `select o.id, o.number, o.status, o.product_id, p.sku, p.description, p.uom, o.quantity, o.due_date::text as due_date,
+            o.output_lot_code,
+            (select count(*) from erp.production_order_components c where c.production_order_id = o.id) as component_count,
+            r.id as requisition_id, r.code as requisition_code
+     from erp.production_orders o join erp.products p on p.id = o.product_id
+     left join wms.production_requisitions r on r.production_order_id = o.id and r.status <> 'cancelled'
+     where o.company_id = $1
+     order by o.due_date asc nulls last, o.number`,
+    [companyId],
+  );
+}
+
+export async function getProductionOrder(
+  db: Queryable,
+  companyId: string,
+  id: string,
+): Promise<(ErpProductionOrder & { components: ErpProductionComponent[] }) | null> {
+  const [order] = (await listProductionOrders(db, companyId)).filter((o) => o.id === id);
+  if (!order) return null;
+  const components = await db.query<ErpProductionComponent>(
+    `select c.id, c.line_no, c.product_id, p.sku, p.description, p.uom, c.quantity
+     from erp.production_order_components c join erp.products p on p.id = c.product_id
+     where c.production_order_id = $1 order by c.line_no`,
+    [id],
+  );
+  return { ...order, components };
+}
+
+export async function setProductionOrderStatus(db: Queryable, id: string, status: "open" | "in_progress" | "completed"): Promise<void> {
+  await db.query(`update erp.production_orders set status = $2 where id = $1 and status <> 'cancelled'`, [id, status]);
+}

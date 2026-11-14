@@ -23,10 +23,22 @@ import {
   Truck,
   Warehouse,
   X,
+  Users,
+  Activity,
+  Settings,
+  RefreshCw,
+  Building2,
+  HeartPulse,
+  CalendarClock,
+  Undo2,
+  Waves,
+  ChartColumnBig,
   type LucideIcon,
+  Factory,
 } from "lucide-react";
 import { NAV } from "./nav";
 import { cn } from "@/components/ui/cn";
+import { OrionMark } from "@/components/brand/orion-mark";
 
 const ICONS: Record<string, LucideIcon> = {
   ArrowLeftRight,
@@ -46,6 +58,17 @@ const ICONS: Record<string, LucideIcon> = {
   TriangleAlert,
   Truck,
   Warehouse,
+  Users,
+  Activity,
+  Settings,
+  RefreshCw,
+  Building2,
+  HeartPulse,
+  CalendarClock,
+  Undo2,
+  Waves,
+  ChartColumnBig,
+  Factory,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {
@@ -57,10 +80,12 @@ function isActive(pathname: string, href: string, match?: string[]) {
 function Brand() {
   return (
     <Link href="/" className="flex items-center gap-2 px-2">
-      <span className="flex size-8 items-center justify-center rounded-md bg-brand-600 text-sm font-bold text-white">O</span>
+      <span className="flex size-8 items-center justify-center rounded-md bg-ceu-400 text-noite-900">
+        <OrionMark size={26} />
+      </span>
       <span className="leading-tight">
-        <span className="block text-sm font-semibold tracking-tight text-slate-900">ORION WMS</span>
-        <span className="block text-[11px] text-slate-500">Gestão de armazéns</span>
+        <span className="block font-display text-lg font-semibold tracking-tight text-fg lowercase">orion</span>
+        <span className="block text-[11px] text-muted">Gestão de armazéns</span>
       </span>
     </Link>
   );
@@ -76,7 +101,7 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
         if (!items.length) return null;
         return (
           <div key={group.section}>
-            <p className="mb-1 px-2 text-[11px] font-semibold tracking-wider text-slate-400 uppercase">{group.section}</p>
+            <p className="mb-1 px-2 text-[11px] font-semibold tracking-wider text-muted uppercase">{group.section}</p>
             <ul className="space-y-0.5">
               {items.map((item) => {
                 const Icon = ICONS[item.icon];
@@ -89,10 +114,10 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
                       aria-current={active ? "page" : undefined}
                       className={cn(
                         "flex items-center gap-2.5 rounded-md px-2 py-1.5 text-sm transition-colors",
-                        active ? "bg-brand-50 font-medium text-brand-700" : "text-slate-600 hover:bg-slate-100 hover:text-slate-900",
+                        active ? "bg-accent-soft font-medium text-link" : "text-fg-2 hover:bg-subtle hover:text-fg",
                       )}
                     >
-                      <Icon className={cn("size-4", active ? "text-brand-600" : "text-slate-400")} aria-hidden />
+                      <Icon className={cn("size-4", active ? "text-link" : "text-muted")} aria-hidden />
                       {item.label}
                     </Link>
                   </li>
@@ -108,19 +133,19 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
   return (
     <>
       {/* Desktop */}
-      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-slate-200 bg-white lg:flex">
-        <div className="flex h-14 items-center border-b border-slate-100 px-3">
+      <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-line bg-surface lg:flex">
+        <div className="flex h-14 items-center border-b border-line px-3">
           <Brand />
         </div>
         {nav}
       </aside>
       {/* Mobile / tablet */}
-      <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-slate-200 bg-white px-4 lg:hidden">
+      <div className="sticky top-0 z-30 flex h-14 items-center justify-between border-b border-line bg-surface px-4 lg:hidden">
         <Brand />
         <button
           type="button"
           onClick={() => setOpen(true)}
-          className="rounded-md p-2 text-slate-600 hover:bg-slate-100"
+          className="rounded-md p-2 text-fg-2 hover:bg-subtle"
           aria-label="Abrir menu"
           aria-expanded={open}
         >
@@ -129,11 +154,11 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
       </div>
       {open ? (
         <div className="fixed inset-0 z-40 lg:hidden" role="dialog" aria-modal="true" aria-label="Menu">
-          <button type="button" className="absolute inset-0 bg-slate-900/40" aria-label="Fechar menu" onClick={() => setOpen(false)} />
-          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col bg-white shadow-xl">
-            <div className="flex h-14 items-center justify-between border-b border-slate-100 px-3">
+          <button type="button" className="absolute inset-0 bg-noite-900/40" aria-label="Fechar menu" onClick={() => setOpen(false)} />
+          <div className="absolute inset-y-0 left-0 flex w-72 max-w-[85%] flex-col bg-surface shadow-xl">
+            <div className="flex h-14 items-center justify-between border-b border-line px-3">
               <Brand />
-              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-2 text-slate-500 hover:bg-slate-100" aria-label="Fechar menu">
+              <button type="button" onClick={() => setOpen(false)} className="rounded-md p-2 text-muted hover:bg-subtle" aria-label="Fechar menu">
                 <X className="size-5" />
               </button>
             </div>

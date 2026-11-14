@@ -125,7 +125,7 @@ export default async function PickingPage({ searchParams }: { searchParams: Sear
         </FilterBar>
         <OrderTable rows={orders} empty="Nenhum pedido em andamento" />
       </Card>
-      <p className="mt-3 text-xs text-slate-500">
+      <p className="mt-3 text-xs text-muted">
         Pedidos expedidos ficam em <Link href="/expedicao" className="link">Expedição</Link>.
       </p>
     </>

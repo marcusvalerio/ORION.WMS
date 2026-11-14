@@ -23,12 +23,12 @@ export function HistoryList({ rows }: { rows: AuditRow[] }) {
         const extra = summary(h.details);
         return (
           <li key={h.id} className="relative pl-5">
-            <span className="absolute top-1.5 left-0 size-2 rounded-full bg-brand-500" aria-hidden />
-            <p className="text-sm font-medium text-slate-800">{AUDIT_ACTION_LABELS[h.action] ?? h.action}</p>
-            <p className="text-xs text-slate-500">
+            <span className="absolute top-1.5 left-0 size-2 rounded-full bg-action" aria-hidden />
+            <p className="text-sm font-medium text-fg">{AUDIT_ACTION_LABELS[h.action] ?? h.action}</p>
+            <p className="text-xs text-muted">
               {h.user_name ?? "Sistema"} · {fmtDateTime(h.created_at)}
             </p>
-            {extra ? <p className="mt-0.5 text-xs text-slate-600">{extra}</p> : null}
+            {extra ? <p className="mt-0.5 text-xs text-fg-2">{extra}</p> : null}
           </li>
         );
       })}

@@ -30,6 +30,7 @@ const ENTITY_LABELS: Record<string, string> = {
   divergence: "Divergência",
   task: "Tarefa",
   user: "Usuário",
+  company_settings: "Configurações",
 };
 
 const ENTITY_HREF: Record<string, string> = {
@@ -40,6 +41,7 @@ const ENTITY_HREF: Record<string, string> = {
   product: "/produtos/",
   task: "/tarefas/",
   stock_balance: "/estoque/saldo/",
+  user: "/usuarios/",
 };
 
 export default async function AuditPage({ searchParams }: { searchParams: SearchParams }) {
@@ -75,7 +77,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
             href={`?tab=${key}`}
             className={cn(
               "rounded-full border px-3 py-1 text-xs font-medium",
-              tab === key ? "border-brand-300 bg-brand-50 text-brand-700" : "border-slate-200 bg-white text-slate-600 hover:bg-slate-50",
+              tab === key ? "border-accent bg-accent-soft text-link" : "border-line bg-surface text-fg-2 hover:bg-canvas",
             )}
           >
             {label}
@@ -110,11 +112,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
                       <td className="whitespace-nowrap">{fmtDateTime(a.created_at)}</td>
                       <td>
                         {a.user_name ?? "Sistema"}
-                        {a.user_role ? <span className="block text-[11px] text-slate-500">{ROLE_LABELS[a.user_role as Role]}</span> : null}
+                        {a.user_role ? <span className="block text-[11px] text-muted">{ROLE_LABELS[a.user_role as Role]}</span> : null}
                       </td>
                       <td className="font-medium">{AUDIT_ACTION_LABELS[a.action] ?? a.action}</td>
                       <td>
-                        <span className="text-xs text-slate-500">{ENTITY_LABELS[a.entity_type] ?? a.entity_type}</span>
+                        <span className="text-xs text-muted">{ENTITY_LABELS[a.entity_type] ?? a.entity_type}</span>
                         <span className="block">
                           {a.entity_id && ENTITY_HREF[a.entity_type] ? (
                             <Link href={`${ENTITY_HREF[a.entity_type]}${a.entity_id}`} className="link">
@@ -126,7 +128,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
                         </span>
                       </td>
                       <td className="max-w-md">
-                        <code className="line-clamp-2 text-[11px] break-all text-slate-600" title={JSON.stringify(a.details)}>
+                        <code className="line-clamp-2 text-[11px] break-all text-fg-2" title={JSON.stringify(a.details)}>
                           {Object.keys(a.details).length ? JSON.stringify(a.details) : "—"}
                         </code>
                       </td>
@@ -144,8 +146,11 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
       {events ? (
         <Card>
           <Alert level="info" className="m-4">
-            Outbox de integração: cada evento é gravado na mesma transação da operação. O conector de envio para um ERP externo ainda não está configurado — os eventos
-            permanecem “Na fila” até que um processador seja implantado (ver README). O status de pedidos de compra e de venda no ERP local já é atualizado diretamente.
+            Outbox de integração: cada evento é gravado na mesma transação da operação. O envio ao ERP, as retentativas, o reenvio e o descarte ficam no{" "}
+            <Link href="/integracao" className="link">
+              painel de Integração
+            </Link>
+            .
           </Alert>
           {events.length ? (
             <TableWrap>
@@ -169,7 +174,7 @@ export default async function AuditPage({ searchParams }: { searchParams: Search
                         <StatusBadge kind="integration" status={e.status} />
                       </td>
                       <td className="max-w-lg">
-                        <code className="line-clamp-2 text-[11px] break-all text-slate-600">{JSON.stringify(e.payload)}</code>
+                        <code className="line-clamp-2 text-[11px] break-all text-fg-2">{JSON.stringify(e.payload)}</code>
                       </td>
                     </tr>
                   ))}

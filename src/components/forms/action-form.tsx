@@ -71,7 +71,7 @@ export function FormMessage({ state }: { state: ActionState }) {
       role={state.ok ? "status" : "alert"}
       className={cn(
         "mt-3 flex items-start gap-1.5 rounded-md px-2.5 py-2 text-sm",
-        state.ok ? "bg-emerald-50 text-emerald-800" : "bg-red-50 text-red-800",
+        state.ok ? "bg-ok-bg text-ok-fg" : "bg-crit-bg text-crit-fg",
       )}
     >
       <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />

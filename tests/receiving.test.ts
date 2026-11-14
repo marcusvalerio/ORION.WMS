@@ -32,7 +32,7 @@ describe("Recebimento com divergência", () => {
   it("bloqueia um segundo recebimento ativo para o mesmo pedido (nova requisição)", async () => {
     await expect(
       receiving.createReceiptFromPurchaseOrder(env.as("supervisor"), { purchaseOrderId: poId, warehouseId }, { idempotencyKey: key() }),
-    ).rejects.toThrow(/já possui o recebimento/);
+    ).rejects.toThrow(/não possui saldo pendente/);
   });
 
   it("não conclui a conferência sem quantidades, lote e validade obrigatórios", async () => {

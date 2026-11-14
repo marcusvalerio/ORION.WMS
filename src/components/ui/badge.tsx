@@ -3,12 +3,12 @@ import { STATUS, PRIORITY_LABELS, type Tone } from "@/lib/labels";
 import { cn } from "./cn";
 
 const tones: Record<Tone, string> = {
-  neutral: "bg-slate-100 text-slate-700 ring-slate-200",
-  info: "bg-sky-50 text-sky-700 ring-sky-200",
-  progress: "bg-brand-50 text-brand-700 ring-brand-200",
-  warning: "bg-amber-50 text-amber-800 ring-amber-200",
-  success: "bg-emerald-50 text-emerald-700 ring-emerald-200",
-  danger: "bg-red-50 text-red-700 ring-red-200",
+  neutral: "bg-neutral-bg text-neutral-fg ring-neutral-line",
+  info: "bg-info-bg text-info-fg ring-info-line",
+  progress: "bg-prog-bg text-prog-fg ring-prog-line",
+  warning: "bg-warn-bg text-warn-fg ring-warn-line",
+  success: "bg-ok-bg text-ok-fg ring-ok-line",
+  danger: "bg-crit-bg text-crit-fg ring-crit-line",
 };
 
 export function Badge({ tone = "neutral", children, className }: { tone?: Tone; children: ReactNode; className?: string }) {

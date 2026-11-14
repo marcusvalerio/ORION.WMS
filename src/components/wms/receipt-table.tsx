@@ -31,7 +31,7 @@ export function ReceiptTable({ rows, emptyText = "Nenhum recebimento encontrado"
                   {r.code}
                 </Link>
                 {r.is_demo ? <DemoBadge className="ml-2" /> : null}
-                <span className="block text-xs text-slate-500">{r.warehouse_code}</span>
+                <span className="block text-xs text-muted">{r.warehouse_code}</span>
               </td>
               <td>
                 <StatusBadge kind="receipt" status={r.status} />
@@ -39,13 +39,13 @@ export function ReceiptTable({ rows, emptyText = "Nenhum recebimento encontrado"
               <td>{r.supplier_name}</td>
               <td>
                 {r.po_number ?? "Sem pedido"}
-                <span className="block text-xs text-slate-500">{r.invoice_number ?? "—"}</span>
+                <span className="block text-xs text-muted">{r.invoice_number ?? "—"}</span>
               </td>
               <td className="whitespace-nowrap">{fmtDateTime(r.arrived_at)}</td>
               <td className="num">{fmtQty(r.expected_total)}</td>
               <td className="num">{fmtQty(r.counted_total)}</td>
               <td className="num">{r.pending_putaway ? fmtQty(r.pending_putaway) : "—"}</td>
-              <td>{r.open_divergences ? <Badge tone="danger">{r.open_divergences} em aberto</Badge> : <span className="text-xs text-slate-400">—</span>}</td>
+              <td>{r.open_divergences ? <Badge tone="danger">{r.open_divergences} em aberto</Badge> : <span className="text-xs text-muted">—</span>}</td>
             </tr>
           ))}
         </tbody>

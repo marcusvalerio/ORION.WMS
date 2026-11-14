@@ -64,7 +64,8 @@ describe("Inventário", () => {
       quantity: 5,
       reason: "Entrada durante a contagem",
     });
-    await expect(inventory.approveInventory(sup, inv.id, {})).rejects.toThrow(/mudou durante a contagem/);
+    // Quem contou não aprova (segregação de funções): a aprovação é do administrador.
+    await expect(inventory.approveInventory(env.as("admin"), inv.id, {})).rejects.toThrow(/mudou durante a contagem/);
     expect((await balanceOf(env, "LUB-002")).quantity).toBe(35);
     await inventory.rejectInventory(sup, inv.id, { notes: "Saldo alterado; recontar" });
     expect((await inventory.getInventory(sup, inv.id))!.status).toBe("counting");
@@ -76,7 +77,7 @@ describe("Inventário", () => {
     const inv = await inventory.createInventory(sup, { warehouseId, countType: "cyclic", locationId: loc });
     await inventory.addInventoryItem(sup, inv.id, { locationId: loc, productId: await env.product("CIA-001"), countedQty: 4 });
     await inventory.submitInventory(sup, inv.id);
-    await inventory.approveInventory(sup, inv.id, {});
+    await inventory.approveInventory(env.as("admin"), inv.id, {});
     expect((await balanceOf(env, "CIA-001")).quantity).toBe(4);
   });
 });

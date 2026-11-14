@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Printer } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { listLocations, listWarehouses, listZones, LOCATION_STATUSES, LOCATION_TYPES, STORAGE_CLASSES } from "@/server/services/warehouse";
 import { createLocationAction } from "@/server/actions/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { OccupancyBar } from "@/components/ui/occupancy";
@@ -44,10 +45,15 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
         title="Endereços"
         description="Posições físicas no formato DEPÓSITO/RUA/MÓDULO/NÍVEL/POSIÇÃO, com capacidade, compatibilidade e ocupação atual."
         breadcrumbs={[{ label: "Armazém" }, { label: "Endereços" }]}
+        actions={
+          <ButtonLink href={`/etiquetas/enderecos?${new URLSearchParams(Object.entries({ warehouseId: params.warehouseId ?? "", zoneId: params.zoneId ?? "", q: params.q ?? "" }).filter(([, v]) => v)).toString()}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       {manage ? (
         <div className="mb-4">
-          <Disclosure title="Cadastrar endereço" icon={<Plus className="size-4 text-slate-400" />}>
+          <Disclosure title="Cadastrar endereço" icon={<Plus className="size-4 text-muted" />}>
             <ActionForm action={createLocationAction} resetOnSuccess className="grid grid-cols-2 gap-3 md:grid-cols-4 xl:grid-cols-8">
               <Field label="Zona" required className="col-span-2">
                 <Select name="zoneId" required options={zones.map((z) => ({ value: z.id, label: `${z.warehouse_code} · ${z.code} — ${z.name}` }))} />
@@ -139,7 +145,7 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
                       </Link>
                     </td>
                     <td>
-                      <span className="code">{l.zone_code}</span> <span className="text-xs text-slate-500">{ZONE_TYPE_LABELS[l.zone_type]}</span>
+                      <span className="code">{l.zone_code}</span> <span className="text-xs text-muted">{ZONE_TYPE_LABELS[l.zone_type]}</span>
                     </td>
                     <td>{LOCATION_TYPE_LABELS[l.location_type]}</td>
                     <td>{l.storage_class ? STORAGE_CLASS_LABELS[l.storage_class] : "Geral"}</td>

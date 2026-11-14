@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<nfeProc xmlns="http://www.portalfiscal.inf.br/nfe" versao="4.00">
+  <NFe xmlns="http://www.portalfiscal.inf.br/nfe">
+    <infNFe Id="NFe35261144555666000181550010000123451481516238" versao="4.00">
+      <ide><cUF>35</cUF><cNF>48151623</cNF><natOp>VENDA DE MERCADORIA</natOp><mod>55</mod><serie>1</serie><nNF>12345</nNF><dhEmi>2026-11-10T09:30:00-03:00</dhEmi><tpNF>1</tpNF><tpEmis>1</tpEmis><cDV>8</cDV><tpAmb>2</tpAmb></ide>
+      <emit><CNPJ>44555666000181</CNPJ><xNome>QUIMICA DELTA INSUMOS LTDA (DEMO)</xNome><enderEmit><UF>SP</UF></enderEmit><IE>ISENTO</IE><CRT>3</CRT></emit>
+      <dest><CNPJ>77888999000181</CNPJ><xNome>METALSUPPLY COMPONENTES (DEMO) - NF-E EMITIDA EM AMBIENTE DE HOMOLOGACAO - SEM VALOR FISCAL</xNome></dest>
+      <det nItem="1">
+        <prod><cProd>QD-LUB-1L</cProd><cEAN>7890000000024</cEAN><xProd>LUBRIFICANTE INDUSTRIAL B 1L</xProd><NCM>27101932</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>30.0000</qCom><vUnCom>10.00</vUnCom><vProd>300.00</vProd><cEANTrib>7890000000024</cEANTrib><uTrib>UN</uTrib><qTrib>30.0000</qTrib><vUnTrib>10.00</vUnTrib><indTot>1</indTot><xPed>PC-4588</xPed>
+          <rastro><nLote>LB-2611</nLote><qLote>30.000</qLote><dFab>2026-10-01</dFab><dVal>2027-10-01</dVal></rastro>
+        </prod>
+      </det>
+      <det nItem="2">
+        <prod><cProd>QD-ADE-77</cProd><cEAN>SEM GTIN</cEAN><xProd>ADESIVO EPOXI C REFRIGERADO &amp; CATALISADOR</xProd><NCM>35069110</NCM><CFOP>5102</CFOP><uCom>UN</uCom><qCom>40.0000</qCom><vUnCom>10.00</vUnCom><vProd>400.00</vProd><cEANTrib>SEM GTIN</cEANTrib><uTrib>UN</uTrib><qTrib>40.0000</qTrib><vUnTrib>10.00</vUnTrib><indTot>1</indTot><xPed>PC-4588</xPed>
+          <rastro><nLote>AD-0901</nLote><qLote>25.000</qLote><dFab>2026-09-01</dFab><dVal>2027-03-01</dVal></rastro>
+          <rastro><nLote>AD-0902</nLote><qLote>15.000</qLote><dFab>2026-09-15</dFab><dVal>2027-04-01</dVal></rastro>
+        </prod>
+      </det>
+      <total><ICMSTot><vProd>700.00</vProd><vNF>700.00</vNF></ICMSTot></total>
+      <transp><modFrete>0</modFrete></transp>
+      <infAdic><infCpl>Exemplo ficticio para demonstracao do ORION WMS. Nao possui assinatura digital nem validade fiscal.</infCpl></infAdic>
+    </infNFe>
+  </NFe>
+</nfeProc>
