@@ -4,10 +4,13 @@ import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { assertCan } from "../context";
 import { DomainError, NotFoundError } from "../errors";
-import { parse, uuid, optionalText, qty, nonNegQty } from "../validation";
+import { parse, uuid, optionalText, optionalDate, optionalUuid, qty, nonNegQty } from "../validation";
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { availableOf, changeReserved, insertMovement, lockBalanceById, removeStock, type BalanceRow } from "./stock-core";
+import { isSerialControlled, parseSerials, shipSerials } from "./serials";
+import { checkReplenishmentTx } from "./replenishment";
+import { detachOrderFromWaveTx, refreshOrderPickStatus } from "./waves";
 
 export const OUTBOUND_STATUSES = ["open", "reserved", "picking", "picked", "checked", "shipped", "cancelled"] as const;
 export type OutboundStatus = (typeof OUTBOUND_STATUSES)[number];
@@ -103,8 +106,17 @@ export async function getOrder(ctx: Ctx, id: string) {
     checked_at: string | null;
     shipped_at: string | null;
     is_demo: boolean;
+    carrier: string | null;
+    planned_ship_date: string | null;
+    staging_location_id: string | null;
+    cancel_reason: string | null;
+    wave_id: string | null;
+    wave_code: string | null;
   }>(
     `select o.id, o.code, o.status, o.customer_name, o.source, o.sales_order_id, so.number as so_number, o.warehouse_id,
+            o.carrier, o.planned_ship_date::text as planned_ship_date, o.staging_location_id, o.cancel_reason,
+            (select wv.id from wms.wave_orders wo join wms.waves wv on wv.id = wo.wave_id where wo.order_id = o.id and wo.active) as wave_id,
+            (select wv.code from wms.wave_orders wo join wms.waves wv on wv.id = wo.wave_id where wo.order_id = o.id and wo.active) as wave_code,
             w.code as warehouse_code, w.name as warehouse_name, o.priority, sl.code as staging_code, o.notes,
             u.name as created_by_name, o.created_at::text as created_at, o.reserved_at::text as reserved_at,
             o.picked_at::text as picked_at, o.checked_at::text as checked_at, o.shipped_at::text as shipped_at, o.is_demo
@@ -127,9 +139,13 @@ export async function getOrder(ctx: Ctx, id: string) {
     checked_qty: number;
     shipped_qty: number;
     available_now: number;
+    cancelled_at: string | null;
+    cancel_reason: string | null;
+    serial_controlled: boolean;
   }>(
     `select l.id, l.line_no, l.product_id, p.sku, p.description, p.uom, l.requested_qty, l.reserved_qty, l.picked_qty,
-            l.checked_qty, l.shipped_qty,
+            l.checked_qty, l.shipped_qty, l.cancelled_at::text as cancelled_at, l.cancel_reason,
+            coalesce((select ps.serial_controlled from wms.product_settings ps where ps.product_id = l.product_id), false) as serial_controlled,
             coalesce((select sum(b.quantity - b.reserved_qty - b.blocked_qty) from wms.stock_balances b
                       join wms.locations bl on bl.id = b.location_id join wms.zones z on z.id = bl.zone_id
                       where b.product_id = l.product_id and b.warehouse_id = $2 and bl.status = 'active' and z.active
@@ -292,7 +308,7 @@ export async function reserveOrder(ctx: Ctx, orderId: string, opts?: OpOptions) 
     requireStatus(o, ["open"], "reservar");
     const lines = await tx.query<{ id: string; line_no: number; product_id: string; sku: string; requested_qty: number }>(
       `select l.id, l.line_no, l.product_id, p.sku, l.requested_qty from wms.outbound_order_lines l
-       join erp.products p on p.id = l.product_id where l.order_id = $1 order by l.line_no for update of l`,
+       join erp.products p on p.id = l.product_id where l.order_id = $1 and l.cancelled_at is null order by l.line_no for update of l`,
       [orderId],
     );
     const shortages: string[] = [];
@@ -306,7 +322,7 @@ export async function reserveOrder(ctx: Ctx, orderId: string, opts?: OpOptions) 
            and l.status = 'active' and z.active and z.zone_type in ('storage', 'picking')
            and (b.expiry_date is null or b.expiry_date >= current_date)
            and b.quantity - b.reserved_qty - b.blocked_qty > 0
-         order by b.expiry_date asc nulls last, b.quantity asc, l.code
+         order by b.expiry_date asc nulls last, (z.zone_type = 'picking') desc, b.quantity asc, l.code
          for update of b`,
         [ctx.user.companyId, o.warehouse_id, line.product_id],
       );
@@ -351,11 +367,17 @@ export async function releaseForPicking(ctx: Ctx, orderId: string, opts?: OpOpti
   return runOperation(ctx, "outbound.release_picking", opts, async (tx) => {
     const o = await lockOrder(tx, ctx, orderId);
     requireStatus(o, ["reserved"], "liberar para separação");
+    const [wave] = await tx.query<{ code: string }>(
+      `select wv.code from wms.wave_orders wo join wms.waves wv on wv.id = wo.wave_id where wo.order_id = $1 and wo.active`,
+      [orderId],
+    );
+    if (wave) throw new DomainError(`O pedido ${o.code} está na onda ${wave.code}: a separação é liberada pela onda.`, "IN_WAVE");
+    // Doca planejada no pedido (se ainda ativa) ou a primeira doca ativa do depósito.
     const [staging] = await tx.query<{ id: string; code: string }>(
       `select l.id, l.code from wms.locations l join wms.zones z on z.id = l.zone_id
        where l.warehouse_id = $1 and z.zone_type = 'shipping' and z.active and l.status = 'active'
-       order by l.code limit 1`,
-      [o.warehouse_id],
+       order by (l.id = $2::uuid) desc nulls last, l.code limit 1`,
+      [o.warehouse_id, o.staging_location_id],
     );
     if (!staging) {
       throw new DomainError("Cadastre um endereço ativo em uma zona de expedição (doca) para receber os itens separados.");
@@ -432,7 +454,7 @@ export async function checkOrder(ctx: Ctx, orderId: string, input: unknown, opts
     requireStatus(o, ["picked"], "conferir");
     const lines = await tx.query<{ id: string; product_id: string; sku: string; picked_qty: number }>(
       `select l.id, l.product_id, p.sku, l.picked_qty from wms.outbound_order_lines l join erp.products p on p.id = l.product_id
-       where l.order_id = $1 for update of l`,
+       where l.order_id = $1 and l.cancelled_at is null for update of l`,
       [orderId],
     );
     const byId = new Map(d.lines.map((l) => [l.lineId, l.checkedQty]));
@@ -485,6 +507,8 @@ const shipSchema = z.object({
     .transform((v) => (v ? v.toUpperCase() : null)),
   documentRef: optionalText,
   notes: optionalText,
+  /** Séries lidas na expedição, por linha: serials.<lineId>. */
+  serials: z.record(z.string(), z.unknown()).optional(),
 });
 
 /**
@@ -512,6 +536,7 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
     );
     const shipmentCode = await nextCode(tx, ctx.user.companyId, "EXP");
     const shippedByLine = new Map<string, number>();
+    const movementsByLine = new Map<string, string>();
     for (const r of reservations) {
       const [staging] = await tx.query<{ id: string }>(
         `select id from wms.stock_balances where location_id = $1 and product_id = $2 and lot_code = $3`,
@@ -523,7 +548,7 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
         throw new DomainError("Saldo na doca menor que o separado para o pedido. Verifique as movimentações.", "STAGING_MISMATCH");
       }
       await removeStock(tx, ctx, { balanceId: staging.id, quantity: r.picked_qty, consumeReserved: r.picked_qty });
-      await insertMovement(tx, ctx, {
+      const movementId = await insertMovement(tx, ctx, {
         warehouseId: o.warehouse_id,
         movementType: "shipment",
         productId: r.product_id,
@@ -538,6 +563,22 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
       });
       await tx.query(`update wms.stock_reservations set status = 'consumed', closed_at = now() where id = $1`, [r.id]);
       shippedByLine.set(r.order_line_id, round3((shippedByLine.get(r.order_line_id) ?? 0) + r.picked_qty));
+      if (!movementsByLine.has(r.order_line_id)) movementsByLine.set(r.order_line_id, movementId);
+    }
+    // Número de série: as séries lidas na expedição precisam ser exatamente as separadas.
+    for (const [lineId, shipped] of shippedByLine) {
+      const [line] = await tx.query<{ product_id: string; sku: string }>(
+        `select l.product_id, p.sku from wms.outbound_order_lines l join erp.products p on p.id = l.product_id where l.id = $1`,
+        [lineId],
+      );
+      if (!(await isSerialControlled(tx, line.product_id))) continue;
+      await shipSerials(tx, {
+        orderLineId: lineId,
+        sku: line.sku,
+        serials: parseSerials(d.serials?.[lineId]),
+        quantity: shipped,
+        movementId: movementsByLine.get(lineId)!,
+      });
     }
     let total = 0;
     for (const [lineId, shipped] of shippedByLine) {
@@ -566,32 +607,211 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
       shipment: shipmentCode,
       lines,
     });
-    await audit(tx, ctx, "outbound.shipped", "outbound_order", orderId, o.code, { shipment: shipmentCode, total, ...d });
+    const { serials: _serials, ...shipInfo } = d;
+    void _serials;
+    await audit(tx, ctx, "outbound.shipped", "outbound_order", orderId, o.code, { shipment: shipmentCode, total, ...shipInfo });
+    const products = await tx.query<{ product_id: string }>(`select distinct product_id from wms.outbound_order_lines where order_id = $1`, [orderId]);
+    await checkReplenishmentTx(tx, ctx, { warehouseId: o.warehouse_id, productIds: products.map((p) => p.product_id) });
     return { id: orderId, shipment: shipmentCode, total };
   });
 }
 
-/** Cancelamento permitido antes do início da separação; libera as reservas. */
-export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown) {
-  assertCan(ctx, "outbound.reserve");
-  const d = parse(z.object({ reason: z.string().trim().min(5, "Informe o motivo do cancelamento.") }), input);
-  return runOperation(ctx, "outbound.cancel", undefined, async (tx) => {
-    const o = await lockOrder(tx, ctx, orderId);
-    requireStatus(o, ["open", "reserved"], "cancelar");
-    const reservations = await tx.query<{ id: string; balance_id: string; quantity: number }>(
-      `select r.id, r.balance_id, r.quantity from wms.stock_reservations r join wms.outbound_order_lines l on l.id = r.order_line_id
-       where l.order_id = $1 and r.status = 'active' for update of r`,
-      [orderId],
-    );
-    for (const r of reservations) {
+// -----------------------------------------------------------------------------
+// Cancelamento (pedido ou linha), inclusive após o início da separação
+// -----------------------------------------------------------------------------
+
+const cancelSchema = z.object({ reason: z.string().trim().min(5, "Informe o motivo do cancelamento.").max(1000) });
+const CANCELLABLE: OutboundStatus[] = ["open", "reserved", "picking", "picked", "checked"];
+const AFTER_PICK_START: OutboundStatus[] = ["picking", "picked", "checked"];
+
+/**
+ * Desfaz a parte de saída de linhas (todas do pedido, ou uma linha):
+ *  - tarefas de separação abertas do pedido são canceladas e alocações em ondas removidas;
+ *  - reservas ativas (ainda no endereço) são liberadas;
+ *  - o que já foi separado (na doca, reservado ao pedido) gera tarefa de
+ *    devolução ao endereço de origem; a reserva fica "em devolução" até a
+ *    tarefa ser concluída (movimento próprio "return").
+ */
+async function unwindLines(tx: Queryable, ctx: Ctx, o: OrderHeader, lineId: string | null, reason: string) {
+  const openTasks = await tx.query<{ id: string; code: string; status: string }>(
+    `select id, code, status from wms.tasks where order_id = $1 and task_type = 'picking' and status in ('pending', 'in_progress')
+       and ($2::uuid is null or order_line_id = $2) for update`,
+    [o.id, lineId],
+  );
+  for (const t of openTasks) {
+    await tx.query(`update wms.tasks set status = 'cancelled', cancelled_at = now(), cancel_reason = $2, version = version + 1 where id = $1`, [
+      t.id,
+      `Pedido ${o.code} cancelado: ${reason}`,
+    ]);
+    await recordTaskEvent(tx, t.id, ctx.user.id, "cancelled", t.status, "cancelled", { reason });
+  }
+  await detachOrderFromWaveTx(tx, ctx, o.id, lineId);
+
+  const reservations = await tx.query<{
+    id: string;
+    balance_id: string;
+    quantity: number;
+    picked_qty: number;
+    status: string;
+    order_line_id: string;
+    location_id: string;
+    product_id: string;
+    lot_code: string;
+  }>(
+    `select r.id, r.balance_id, r.quantity, r.picked_qty, r.status, r.order_line_id, r.location_id, r.product_id, r.lot_code
+     from wms.stock_reservations r join wms.outbound_order_lines l on l.id = r.order_line_id
+     where l.order_id = $1 and ($2::uuid is null or l.id = $2) and r.status in ('active', 'picked') order by r.created_at for update of r`,
+    [o.id, lineId],
+  );
+  const returns: string[] = [];
+  for (const r of reservations) {
+    if (r.status === "active") {
       await lockBalanceById(tx, ctx.user.companyId, r.balance_id);
       await changeReserved(tx, r.balance_id, -r.quantity);
       await tx.query(`update wms.stock_reservations set status = 'released', closed_at = now() where id = $1`, [r.id]);
+      continue;
     }
-    await tx.query(`update wms.outbound_order_lines set reserved_qty = 0 where order_id = $1`, [orderId]);
-    await tx.query(`update wms.outbound_orders set status = 'cancelled', updated_at = now(), version = version + 1 where id = $1`, [orderId]);
+    if (r.picked_qty <= 0) continue;
+    if (!o.staging_location_id) throw new DomainError("Pedido sem doca de expedição registrada.", "STAGING_MISMATCH");
+    await tx.query(`update wms.stock_reservations set status = 'returning' where id = $1`, [r.id]);
+    const [b] = await tx.query<{ expiry_date: string | null }>(`select expiry_date::text as expiry_date from wms.stock_balances where id = $1`, [
+      r.balance_id,
+    ]);
+    const code = await nextCode(tx, ctx.user.companyId, "TAR");
+    const [t] = await tx.query<{ id: string }>(
+      `insert into wms.tasks (company_id, warehouse_id, code, task_type, priority, product_id, lot_code, expiry_date, quantity,
+                              from_location_id, to_location_id, order_id, order_line_id, reservation_id, notes, created_by)
+       values ($1,$2,$3,'return',1,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14) returning id`,
+      [
+        ctx.user.companyId,
+        o.warehouse_id,
+        code,
+        r.product_id,
+        r.lot_code,
+        b?.expiry_date ?? null,
+        r.picked_qty,
+        o.staging_location_id,
+        r.location_id,
+        o.id,
+        r.order_line_id,
+        r.id,
+        `Devolução ao endereço: pedido ${o.code} cancelado após a separação. Motivo: ${reason}`,
+        ctx.user.id,
+      ],
+    );
+    await recordTaskEvent(tx, t.id, ctx.user.id, "created", null, "pending", { order: o.code, quantity: r.picked_qty });
+    returns.push(code);
+  }
+  await tx.query(
+    `update wms.outbound_order_lines set reserved_qty = 0, checked_qty = 0, picked_qty = 0, cancelled_at = now(), cancel_reason = $3
+     where order_id = $1 and ($2::uuid is null or id = $2) and cancelled_at is null`,
+    [o.id, lineId, reason],
+  );
+  return returns;
+}
+
+/**
+ * Cancela o pedido. Antes da separação (aberto/reservado): libera reservas
+ * (permissão outbound.reserve). Depois do início da separação (em separação,
+ * separado ou conferido): exige outbound.cancel_picking e gera devoluções.
+ * Pedido expedido não pode ser cancelado. O ERP é atualizado e o evento
+ * outbound.cancelled vai para a outbox na mesma transação.
+ */
+export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions) {
+  assertCan(ctx, "outbound.reserve");
+  const d = parse(cancelSchema, input);
+  return runOperation(ctx, "outbound.cancel", opts, async (tx) => {
+    const o = await lockOrder(tx, ctx, orderId);
+    requireStatus(o, CANCELLABLE, "cancelar");
+    const afterPick = AFTER_PICK_START.includes(o.status);
+    if (afterPick) assertCan(ctx, "outbound.cancel_picking");
+    const returns = await unwindLines(tx, ctx, o, null, d.reason);
+    await tx.query(
+      `update wms.outbound_orders set status = 'cancelled', cancelled_at = now(), cancel_reason = $2, updated_at = now(), version = version + 1
+       where id = $1`,
+      [orderId, d.reason],
+    );
     if (o.sales_order_id) await erp.setSalesOrderStatus(tx, o.sales_order_id, "open");
-    await audit(tx, ctx, "outbound.cancelled", "outbound_order", orderId, o.code, d);
+    await enqueueIntegrationEvent(tx, ctx, "outbound.cancelled", "outbound_order", orderId, {
+      code: o.code,
+      previous_status: o.status,
+      reason: d.reason,
+      return_tasks: returns,
+    });
+    await audit(tx, ctx, "outbound.cancelled", "outbound_order", orderId, o.code, { ...d, previousStatus: o.status, returns });
+    return { id: orderId, returns };
+  });
+}
+
+/** Cancela uma linha do pedido (mesmas regras); se não restar linha, cancela o pedido. */
+export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions) {
+  assertCan(ctx, "outbound.cancel_picking");
+  const d = parse(cancelSchema.extend({ lineId: uuid("Linha") }), input);
+  return runOperation(ctx, "outbound.cancel_line", opts, async (tx) => {
+    const o = await lockOrder(tx, ctx, orderId);
+    requireStatus(o, CANCELLABLE, "cancelar linha");
+    const [line] = await tx.query<{ id: string; sku: string; cancelled_at: string | null }>(
+      `select l.id, p.sku, l.cancelled_at::text as cancelled_at from wms.outbound_order_lines l join erp.products p on p.id = l.product_id
+       where l.id = $1 and l.order_id = $2 for update of l`,
+      [d.lineId, orderId],
+    );
+    if (!line) throw new NotFoundError("Linha do pedido");
+    if (line.cancelled_at) throw new DomainError(`A linha ${line.sku} já está cancelada.`, "INVALID_STATUS");
+    const returns = await unwindLines(tx, ctx, o, line.id, d.reason);
+    const [left] = await tx.query<{ n: number }>(
+      `select count(*) as n from wms.outbound_order_lines where order_id = $1 and cancelled_at is null`,
+      [orderId],
+    );
+    if (left.n === 0) {
+      await tx.query(
+        `update wms.outbound_orders set status = 'cancelled', cancelled_at = now(), cancel_reason = $2, updated_at = now(), version = version + 1
+         where id = $1`,
+        [orderId, `Todas as linhas canceladas: ${d.reason}`],
+      );
+      await detachOrderFromWaveTx(tx, ctx, orderId, null);
+      if (o.sales_order_id) await erp.setSalesOrderStatus(tx, o.sales_order_id, "open");
+    } else if (o.status === "picking") {
+      await refreshOrderPickStatus(tx, ctx, orderId);
+    }
+    await enqueueIntegrationEvent(tx, ctx, "outbound.line_cancelled", "outbound_order", orderId, {
+      code: o.code,
+      sku: line.sku,
+      reason: d.reason,
+      return_tasks: returns,
+      order_cancelled: left.n === 0,
+    });
+    await audit(tx, ctx, "outbound.line_cancelled", "outbound_order", orderId, o.code, { sku: line.sku, reason: d.reason, returns });
+    return { id: orderId, returns, orderCancelled: left.n === 0 };
+  });
+}
+
+const planningSchema = z.object({
+  carrier: optionalText,
+  plannedShipDate: optionalDate,
+  dockLocationId: optionalUuid,
+});
+
+/** Planejamento de saída (transportadora, data prevista e doca) — base do agrupamento em ondas. */
+export async function setOrderPlanning(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions) {
+  assertCan(ctx, "outbound.reserve");
+  const d = parse(planningSchema, input ?? {});
+  return runOperation(ctx, "outbound.planning", opts, async (tx) => {
+    const o = await lockOrder(tx, ctx, orderId);
+    requireStatus(o, ["open", "reserved"], "alterar o planejamento");
+    if (d.dockLocationId) {
+      const [dock] = await tx.query(
+        `select 1 from wms.locations l join wms.zones z on z.id = l.zone_id
+         where l.id = $1 and l.warehouse_id = $2 and z.zone_type = 'shipping' and l.status = 'active' and z.active`,
+        [d.dockLocationId, o.warehouse_id],
+      );
+      if (!dock) throw new DomainError("A doca precisa ser um endereço ativo de zona de expedição do mesmo depósito.", "VALIDATION", "dockLocationId");
+    }
+    await tx.query(
+      `update wms.outbound_orders set carrier = $2, planned_ship_date = $3, staging_location_id = $4, updated_at = now(), version = version + 1
+       where id = $1`,
+      [orderId, d.carrier, d.plannedShipDate, d.dockLocationId ?? null],
+    );
+    await audit(tx, ctx, "outbound.planning_updated", "outbound_order", orderId, o.code, d);
     return { id: orderId };
   });
 }

@@ -17,8 +17,11 @@ import {
   validateDestination,
 } from "./stock-core";
 import { refreshReceiptCompletion } from "./receiving";
+import { afterPickTx, completeWavePickTx, refreshWaveStatus } from "./waves";
+import { completeReplenishmentTx, emergencyReplenishmentTx } from "./replenishment";
+import { isSerialControlled, parseSerials, pickSerials, returnSerials } from "./serials";
 
-export const TASK_TYPES = ["putaway", "transfer", "inventory", "picking", "replenishment"] as const;
+export const TASK_TYPES = ["putaway", "transfer", "inventory", "picking", "replenishment", "return"] as const;
 export const TASK_STATUSES = ["pending", "in_progress", "completed", "cancelled"] as const;
 export type TaskType = (typeof TASK_TYPES)[number];
 export type TaskStatus = (typeof TASK_STATUSES)[number];
@@ -60,6 +63,10 @@ export interface TaskRow {
   started_at: string | null;
   completed_at: string | null;
   cancel_reason: string | null;
+  wave_id: string | null;
+  wave_code: string | null;
+  pick_sequence: number | null;
+  emergency: boolean;
 }
 
 const TASK_SELECT = `
@@ -69,8 +76,10 @@ const TASK_SELECT = `
          t.to_location_id, lt.code as to_code, t.receipt_id, r.code as receipt_code, t.order_id, o.code as order_code,
          t.inventory_id, ic.code as inventory_code, t.reservation_id,
          t.assigned_to, ua.name as assigned_name, uc.name as completed_by_name, t.notes,
-         t.created_at::text as created_at, t.started_at::text as started_at, t.completed_at::text as completed_at, t.cancel_reason
+         t.created_at::text as created_at, t.started_at::text as started_at, t.completed_at::text as completed_at, t.cancel_reason,
+         t.wave_id, wv.code as wave_code, t.pick_sequence, t.emergency
   from wms.tasks t
+  left join wms.waves wv on wv.id = t.wave_id
   join wms.warehouses w on w.id = t.warehouse_id
   left join erp.products p on p.id = t.product_id
   left join wms.locations lf on lf.id = t.from_location_id
@@ -108,7 +117,7 @@ export async function listTasks(ctx: Ctx, f: TaskFilters = {}) {
   const where = `where t.company_id = $1 and ($2::text is null or t.task_type = $2)
     and ($3::text[] is null or t.status = any($3::text[])) and ($4::int is null or t.priority = $4)
     and ($5::text is null or t.code ilike '%' || $5 || '%' or p.sku ilike '%' || $5 || '%' or p.description ilike '%' || $5 || '%'
-         or r.code ilike '%' || $5 || '%' or o.code ilike '%' || $5 || '%')
+         or r.code ilike '%' || $5 || '%' or o.code ilike '%' || $5 || '%' or wv.code ilike '%' || $5 || '%')
     ${f.assigned === "me" ? "and t.assigned_to = $6" : f.assigned === "none" ? "and t.assigned_to is null and $6::uuid is not null" : "and $6::uuid is not null"}`;
   const [count] = await ctx.db.query<{ total: number }>(
     `select count(*) as total from (${TASK_SELECT} ${where}) x`,
@@ -177,13 +186,14 @@ interface LockedTask {
   reservation_id: string | null;
   inventory_id: string | null;
   assigned_to: string | null;
+  wave_id: string | null;
 }
 
 async function lockTask(tx: Queryable, ctx: Ctx, id: string): Promise<LockedTask> {
   const [t] = await tx.query<LockedTask>(
     `select id, code, task_type, status, warehouse_id, product_id, lot_code, expiry_date::text as expiry_date, quantity,
             from_location_id, suggested_location_id, to_location_id, receipt_id, receipt_item_id, order_id, order_line_id,
-            reservation_id, inventory_id, assigned_to
+            reservation_id, inventory_id, assigned_to, wave_id
      from wms.tasks where id = $1 and company_id = $2 for update`,
     [id, ctx.user.companyId],
   );
@@ -215,6 +225,7 @@ export async function startTask(ctx: Ctx, taskId: string, opts?: OpOptions) {
       [taskId, ctx.user.id],
     );
     await recordTaskEvent(tx, taskId, ctx.user.id, "started", t.status, "in_progress");
+    if (t.wave_id) await refreshWaveStatus(tx, ctx, t.wave_id);
     return { id: taskId };
   });
 }
@@ -250,6 +261,9 @@ export async function cancelTask(ctx: Ctx, taskId: string, input: unknown) {
   return runOperation(ctx, "task.cancel", undefined, async (tx) => {
     const t = await lockTask(tx, ctx, taskId);
     assertOpen(t);
+    if (t.task_type === "return") {
+      throw new DomainError("Tarefas de devolução não podem ser canceladas: o volume separado ficaria sem destino na doca.");
+    }
     if (t.task_type === "putaway" || t.task_type === "picking") {
       throw new DomainError(
         "Tarefas de armazenagem e separação não podem ser canceladas isoladamente: o volume ficaria sem destino. Conclua-a ou trate pelo documento de origem.",
@@ -269,6 +283,8 @@ const completeSchema = z.object({
   locationId: optionalUuid,
   quantity: z.union([z.literal("").transform(() => null), nonNegQty()]).nullish(),
   notes: optionalText,
+  /** Números de série (produtos com controle de série), um por linha ou separados por vírgula. */
+  serials: z.unknown().optional(),
 });
 
 /**
@@ -291,8 +307,30 @@ export async function completeTask(ctx: Ctx, taskId: string, input: unknown, opt
       case "transfer":
         ({ confirmed, destination } = await completeTransfer(tx, ctx, t, d.locationId ?? null));
         break;
-      case "picking":
-        ({ confirmed, destination } = await completePicking(tx, ctx, t, d.quantity ?? null, d.locationId ?? null, d.notes ?? null));
+      case "picking": {
+        const serials = parseSerials(d.serials);
+        let orders: string[];
+        if (t.wave_id && !t.reservation_id) {
+          ({ confirmed, destination, orders } = await completeWavePickTx(tx, ctx, t, {
+            picked: d.quantity ?? null,
+            confirmLocationId: d.locationId ?? null,
+            notes: d.notes ?? null,
+            serials,
+          }));
+        } else {
+          ({ confirmed, destination } = await completePicking(tx, ctx, t, d.quantity ?? null, d.locationId ?? null, d.notes ?? null, serials));
+          orders = [t.order_id!];
+        }
+        // A tarefa precisa constar como concluída antes de recalcular onda/pedido.
+        await tx.query(`update wms.tasks set status = 'completed', completed_at = now() where id = $1`, [taskId]);
+        await afterPickTx(tx, ctx, { waveId: t.wave_id, orderIds: orders, warehouseId: t.warehouse_id, productId: t.product_id! });
+        break;
+      }
+      case "replenishment":
+        ({ confirmed, destination } = await completeReplenishmentTx(tx, ctx, t, d.quantity ?? null));
+        break;
+      case "return":
+        ({ confirmed, destination } = await completeReturn(tx, ctx, t, d.locationId ?? null));
         break;
       case "inventory":
         throw new DomainError("Tarefas de inventário são concluídas ao submeter a contagem na tela de inventário.");
@@ -303,7 +341,7 @@ export async function completeTask(ctx: Ctx, taskId: string, input: unknown, opt
       `update wms.tasks set status = 'completed', completed_at = now(), completed_by = $2, confirmed_qty = $3,
               to_location_id = coalesce($4, to_location_id), started_at = coalesce(started_at, now()),
               assigned_to = coalesce(assigned_to, $2), notes = coalesce($5, notes), version = version + 1
-       where id = $1 and status in ('pending', 'in_progress')`,
+       where id = $1 and (status in ('pending', 'in_progress') or (status = 'completed' and completed_by is null))`,
       [taskId, ctx.user.id, confirmed, destination, d.notes ?? null],
     );
     await recordTaskEvent(tx, taskId, ctx.user.id, "completed", t.status, "completed", {
@@ -408,6 +446,7 @@ async function completePicking(
   pickedInput: number | null,
   confirmLocationId: string | null,
   notes: string | null,
+  serials: string[] = [],
 ) {
   if (confirmLocationId && confirmLocationId !== t.from_location_id) {
     throw new DomainError("O endereço confirmado não corresponde ao endereço de origem da separação.", "LOCATION_MISMATCH");
@@ -440,7 +479,7 @@ async function completePicking(
       quantity: picked,
       reserved: picked,
     });
-    await insertMovement(tx, ctx, {
+    const movementId = await insertMovement(tx, ctx, {
       warehouseId: t.warehouse_id,
       movementType: "pick",
       productId: t.product_id!,
@@ -455,6 +494,20 @@ async function completePicking(
       referenceCode: order.code,
       taskId: t.id,
     });
+    if (await isSerialControlled(tx, t.product_id!)) {
+      const [p] = await tx.query<{ sku: string }>(`select sku from erp.products where id = $1`, [t.product_id]);
+      await pickSerials(tx, ctx, {
+        productId: t.product_id!,
+        sku: p.sku,
+        serials,
+        quantity: picked,
+        fromLocationId: t.from_location_id!,
+        dockLocationId: order.staging_location_id,
+        orderId: order.id,
+        orderLineId: res.order_line_id,
+        movementId,
+      });
+    }
   }
   await tx.query(
     `update wms.stock_reservations set status = 'picked', picked_qty = $2, closed_at = now() where id = $1`,
@@ -481,19 +534,66 @@ async function completePicking(
       ],
     );
   }
-  const [pending] = await tx.query<{ n: number }>(
-    `select count(*) as n from wms.tasks where order_id = $1 and task_type = 'picking' and status in ('pending', 'in_progress') and id <> $2`,
-    [order.id, t.id],
-  );
-  if (pending.n === 0) {
-    await tx.query(
-      `update wms.outbound_orders set status = 'picked', picked_at = now(), updated_at = now(), version = version + 1
-       where id = $1 and status = 'picking'`,
-      [order.id],
-    );
-    await audit(tx, ctx, "outbound.picked", "outbound_order", order.id, order.code);
-  }
+  // Reposição de emergência: falta encontrada em endereço de picking com saldo no pulmão.
+  if (shortfall > 0) await emergencyReplenishmentTx(tx, ctx, t.from_location_id!, t.product_id!);
   return { confirmed: picked, destination: order.staging_location_id };
+}
+
+/**
+ * Devolução ao endereço (pedido cancelado após a separação): retira da doca o
+ * saldo reservado ao pedido, devolve ao endereço de origem (ou outro elegível
+ * informado), grava a movimentação "return", devolve as séries ao estoque e
+ * encerra a reserva.
+ */
+async function completeReturn(tx: Queryable, ctx: Ctx, t: LockedTask, locationId: string | null) {
+  const target = locationId ?? t.to_location_id;
+  if (!target) throw new DomainError("Informe o endereço de destino da devolução.", "VALIDATION", "locationId");
+  if (target === t.from_location_id) throw new DomainError("A devolução precisa sair da doca para um endereço de estoque.");
+  const [res] = await tx.query<{ id: string; status: string; picked_qty: number; order_line_id: string }>(
+    `select id, status, picked_qty, order_line_id from wms.stock_reservations where id = $1 for update`,
+    [t.reservation_id],
+  );
+  if (!res || res.status !== "returning") throw new DomainError("A reserva desta devolução não está pendente.", "RESERVATION_MISMATCH");
+  const q = t.quantity!;
+  const dock = await lockBalance(tx, ctx.user.companyId, t.from_location_id!, t.product_id!, t.lot_code);
+  if (!dock || dock.reserved_qty < q || dock.quantity < q) {
+    throw new DomainError("Saldo na doca menor que o volume a devolver. Verifique as movimentações.", "STAGING_MISMATCH");
+  }
+  await validateDestination(tx, ctx, {
+    locationId: target,
+    warehouseId: t.warehouse_id,
+    productId: t.product_id!,
+    quantity: q,
+    excludeTaskId: t.id,
+  });
+  await removeStock(tx, ctx, { balanceId: dock.id, quantity: q, consumeReserved: q });
+  await addStock(tx, ctx, {
+    warehouseId: t.warehouse_id,
+    locationId: target,
+    productId: t.product_id!,
+    lotCode: t.lot_code,
+    expiryDate: dock.expiry_date,
+    quantity: q,
+  });
+  const [order] = await tx.query<{ code: string }>(`select code from wms.outbound_orders where id = $1`, [t.order_id]);
+  const movementId = await insertMovement(tx, ctx, {
+    warehouseId: t.warehouse_id,
+    movementType: "return",
+    productId: t.product_id!,
+    lotCode: t.lot_code,
+    expiryDate: dock.expiry_date,
+    quantity: q,
+    fromLocationId: t.from_location_id,
+    toLocationId: target,
+    reason: "Devolução ao estoque após cancelamento",
+    referenceType: "outbound_order",
+    referenceId: t.order_id,
+    referenceCode: order?.code ?? null,
+    taskId: t.id,
+  });
+  await returnSerials(tx, { orderLineId: res.order_line_id, toLocationId: target, quantity: q, movementId });
+  await tx.query(`update wms.stock_reservations set status = 'released', closed_at = now() where id = $1`, [res.id]);
+  return { confirmed: q, destination: target };
 }
 
 // -----------------------------------------------------------------------------

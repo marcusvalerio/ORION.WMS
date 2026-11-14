@@ -141,7 +141,9 @@ export type MovementType =
   | "pick"
   | "shipment"
   | "block"
-  | "unblock";
+  | "unblock"
+  | "replenishment"
+  | "return";
 
 export interface MovementInput {
   warehouseId: string;
@@ -251,7 +253,7 @@ async function loadLocations(
                       join erp.products p on p.id = b.product_id where b.location_id = l.id), 0) as occupied_weight,
             coalesce((select sum(t.quantity) from wms.tasks t
                       where coalesce(t.to_location_id, t.suggested_location_id) = l.id
-                        and t.status in ('pending', 'in_progress') and t.task_type in ('putaway', 'transfer')
+                        and t.status in ('pending', 'in_progress') and t.task_type in ('putaway', 'transfer', 'replenishment', 'return')
                         and ($2::uuid is null or t.id <> $2::uuid)), 0) as incoming
      from wms.locations l join wms.zones z on z.id = l.zone_id
      where l.company_id = $1 and ${where}
