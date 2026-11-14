@@ -38,6 +38,10 @@ export const PERMISSIONS = {
   "outbound.ship": ALL_OPERATIONAL,
   "reports.export": ["admin", "supervisor", "auditor"],
   "audit.view": ["admin", "supervisor", "auditor"],
+  "company.manage": ["admin"],
+  "integration.process": MANAGERS,
+  "integration.manage": ["admin"],
+  "system.health": ["admin"],
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

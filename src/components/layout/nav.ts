@@ -45,6 +45,9 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Relatórios", href: "/relatorios", icon: "FileChartColumn" },
       { label: "Indicadores", href: "/indicadores", icon: "Gauge" },
       { label: "Auditoria", href: "/auditoria", icon: "ShieldCheck", permission: "audit.view" },
+      { label: "Integração", href: "/integracao", icon: "RefreshCw", permission: "audit.view" },
+      { label: "Dados da empresa", href: "/empresa", icon: "Building2", permission: "company.manage" },
+      { label: "Saúde", href: "/saude", icon: "HeartPulse", permission: "system.health" },
     ],
   },
 ];
