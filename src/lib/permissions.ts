@@ -49,6 +49,10 @@ export const PERMISSIONS = {
   "dock.schedule": ALL_OPERATIONAL,
   "return.create": ALL_OPERATIONAL,
   "return.inspect": MANAGERS,
+  "wave.manage": MANAGERS,
+  "replenishment.manage": MANAGERS,
+  "outbound.cancel_picking": MANAGERS,
+  "slotting.manage": MANAGERS,
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

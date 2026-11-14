@@ -209,6 +209,23 @@ export async function seedDemo(db: Db): Promise<void> {
                'Transportes Rota Sul (demo)', 'ABC1D23', $5, $6)`,
       [c, wh.id, dock1, await nextCode(tx, c, "AGD"), po4587.id, users.supervisor],
     );
+    // Frente D — zona de picking (endereços de baixa altura perto da expedição) com mín./máx. de reposição
+    // e um produto com controle de número de série (sem saldo inicial, para não alterar os números do roteiro).
+    const zPck = await zone("PCK", "Picking (flow rack)", "picking");
+    for (const bay of ["01", "02", "03", "04"]) await loc(zPck, "PK", bay, "01", "00", "shelf", "general", 40);
+    const [pkLub] = await tx.query<{ id: string }>(`select id from wms.locations where code = $1`, [
+      formatLocationCode("DEP-01", { aisle: "PK", bay: "01", level: "01", position: "00" }),
+    ]);
+    await tx.query(
+      `insert into wms.replenishment_settings (company_id, warehouse_id, location_id, product_id, min_qty, max_qty, updated_by)
+       values ($1,$2,$3,$4,10,20,$5)`,
+      [c, wh.id, pkLub.id, pB, users.admin],
+    );
+    const pE = await product("SEN-005", "Sensor Indutivo E (com nº de série)", "7890000000055", "Componentes", 0.2, [6, 4, 4]);
+    await tx.query(
+      `insert into wms.product_settings (product_id, company_id, serial_controlled, storage_class) values ($1,$2,true,'general')`,
+      [pE, c],
+    );
 
     return { company: c, admin: users.admin, pB, pD, wh: wh.id };
   });

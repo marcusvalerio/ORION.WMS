@@ -3,7 +3,7 @@ export type Tone = "neutral" | "info" | "warning" | "success" | "danger" | "prog
 type StatusMap = Record<string, { label: string; tone: Tone }>;
 
 export const STATUS: Record<
-  "receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration" | "appointment" | "customerReturn" | "nfe",
+  "receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration" | "appointment" | "customerReturn" | "nfe" | "wave",
   StatusMap
 > = {
   receipt: {
@@ -49,6 +49,7 @@ export const STATUS: Record<
     picked: { label: "Separada", tone: "warning" },
     released: { label: "Liberada", tone: "neutral" },
     consumed: { label: "Expedida", tone: "success" },
+    returning: { label: "Em devolução", tone: "warning" },
   },
   integration: {
     pending: { label: "Na fila", tone: "warning" },
@@ -74,6 +75,14 @@ export const STATUS: Record<
     received: { label: "Recebida", tone: "success" },
     discarded: { label: "Descartada", tone: "neutral" },
   },
+  wave: {
+    draft: { label: "Planejada", tone: "neutral" },
+    released: { label: "Liberada", tone: "info" },
+    picking: { label: "Em separação", tone: "progress" },
+    picked: { label: "Separada (distribuir)", tone: "warning" },
+    completed: { label: "Distribuída", tone: "success" },
+    cancelled: { label: "Cancelada", tone: "danger" },
+  },
 };
 
 export function statusLabel(kind: keyof typeof STATUS, status: string): string {
@@ -86,6 +95,7 @@ export const TASK_TYPE_LABELS: Record<string, string> = {
   inventory: "Inventário",
   picking: "Separação",
   replenishment: "Reposição",
+  return: "Devolução ao endereço",
 };
 
 export const MOVEMENT_LABELS: Record<string, string> = {
@@ -99,6 +109,8 @@ export const MOVEMENT_LABELS: Record<string, string> = {
   unblock: "Desbloqueio",
   return_in: "Entrada por devolução",
   discard: "Descarte",
+  replenishment: "Reposição de picking",
+  return: "Devolução ao estoque",
 };
 
 export const ZONE_TYPE_LABELS: Record<string, string> = {
@@ -244,4 +256,27 @@ export const RETURN_REASON_LABELS: Record<string, string> = {
   regret: "Desistência do cliente",
   excess: "Envio em excesso",
   other: "Outro",
+  "wave.created": "Onda criada",
+  "wave.order_added": "Pedido incluído na onda",
+  "wave.order_removed": "Pedido retirado da onda",
+  "wave.released": "Onda liberada",
+  "wave.picked": "Separação da onda concluída",
+  "wave.order_distributed": "Pedido distribuído na doca",
+  "wave.completed": "Onda distribuída",
+  "wave.cancelled": "Onda cancelada",
+  "replenishment.setting_saved": "Mínimo/máximo de picking salvo",
+  "replenishment.created": "Reposição gerada",
+  "replenishment.emergency": "Reposição de emergência gerada",
+  "replenishment.checked": "Verificação de reposição",
+  "outbound.line_cancelled": "Linha do pedido cancelada",
+  "outbound.planning_updated": "Planejamento de saída alterado",
+  "slotting.settings_updated": "Parâmetros da curva ABC alterados",
+  "slotting.transfer_created": "Transferência de slotting gerada",
+};
+
+export const WAVE_GROUPING_LABELS: Record<string, string> = {
+  dock: "Doca",
+  carrier: "Transportadora",
+  date: "Data prevista",
+  manual: "Seleção manual",
 };

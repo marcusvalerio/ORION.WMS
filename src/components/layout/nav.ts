@@ -39,6 +39,8 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Inventário", href: "/inventario", icon: "ClipboardList" },
       { label: "Separação", href: "/separacao", icon: "ScanLine" },
       { label: "Expedição", href: "/expedicao", icon: "Truck" },
+      { label: "Ondas", href: "/ondas", icon: "Waves" },
+      { label: "Reposição", href: "/reposicao", icon: "RefreshCw" },
     ],
   },
   {
@@ -53,6 +55,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Integração", href: "/integracao", icon: "RefreshCw", permission: "audit.view" },
       { label: "Dados da empresa", href: "/empresa", icon: "Building2", permission: "company.manage" },
       { label: "Saúde", href: "/saude", icon: "HeartPulse", permission: "system.health" },
+      { label: "Curva ABC", href: "/curva-abc", icon: "ChartColumnBig" },
     ],
   },
 ];

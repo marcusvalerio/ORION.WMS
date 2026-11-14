@@ -16,6 +16,9 @@ import { STATUS, TASK_TYPE_LABELS } from "@/lib/labels";
 import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
+import { Textarea } from "@/components/ui/fields";
+import { taskAllocations } from "@/server/services/waves";
+import { isSerialControlled } from "@/server/services/serials";
 
 export const metadata = { title: "Tarefa" };
 
@@ -30,12 +33,14 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
   const open = task.status === "pending" || task.status === "in_progress";
   const role = ctx.user.role;
   const canExecute = can(role, "task.execute") && (!task.assigned_to || task.assigned_to === ctx.user.id || role !== "operator");
-  const [suggestion, destinations, users] = await Promise.all([
+  const [suggestion, destinations, users, allocations, serialControlled] = await Promise.all([
     open && task.task_type === "putaway" ? suggestForTask(ctx, task) : Promise.resolve(null),
-    open && (task.task_type === "putaway" || task.task_type === "transfer")
+    open && (task.task_type === "putaway" || task.task_type === "transfer" || task.task_type === "return")
       ? listLocations(ctx, { warehouseId: task.warehouse_id, status: "active", pageSize: 1000 })
       : Promise.resolve(null),
     can(role, "task.manage") && open ? listAssignableUsers(ctx) : Promise.resolve([]),
+    task.wave_id ? taskAllocations(ctx, task.id) : Promise.resolve([]),
+    task.task_type === "picking" && task.product_id ? isSerialControlled(ctx.db, task.product_id) : Promise.resolve(false),
   ]);
   const doc = taskDocument(task);
   const eligibleIds = new Set(suggestion?.candidates.map((c) => c.location.id) ?? []);
@@ -69,6 +74,36 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                   ["Confirmado", task.confirmed_qty !== null ? `${fmtQty(task.confirmed_qty)} por ${task.completed_by_name}` : "—"],
                 ]}
               />
+              {task.wave_id ? (
+                <p className="mt-4 text-sm text-slate-600">
+                  Onda{" "}
+                  <Link href={`/ondas/${task.wave_id}`} className="link">
+                    {task.wave_code}
+                  </Link>
+                  {task.pick_sequence ? ` · parada ${task.pick_sequence} do roteiro` : ""}
+                </p>
+              ) : null}
+              {task.emergency ? (
+                <Alert level="danger" title="Reposição de emergência" className="mt-4">
+                  Gerada por falta encontrada na separação. Execute antes das demais.
+                </Alert>
+              ) : null}
+              {allocations.length ? (
+                <div className="mt-4">
+                  <p className="mb-1 text-xs font-semibold text-slate-600 uppercase">Distribuição por pedido</p>
+                  <ul className="space-y-0.5 text-sm">
+                    {allocations.map((a) => (
+                      <li key={a.order_id} className={a.status === "cancelled" ? "text-slate-400 line-through" : undefined}>
+                        <Link href={`/separacao/${a.order_id}`} className="link">
+                          {a.order_code}
+                        </Link>{" "}
+                        · {a.customer_name}: {fmtQty(a.picked_qty ?? a.quantity)}
+                        {a.picked_qty !== null && a.picked_qty < a.quantity ? ` de ${fmtQty(a.quantity)}` : ""}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+              ) : null}
               {task.notes ? <p className="mt-4 rounded bg-slate-50 px-3 py-2 text-sm text-slate-600">{task.notes}</p> : null}
             </CardBody>
           </Card>
@@ -127,7 +162,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
 
                 <ActionForm action={completeTaskAction} confirm="Confirmar a execução física desta tarefa?" className="grid gap-3 sm:grid-cols-2">
                   <input type="hidden" name="_id" value={task.id} />
-                  {task.task_type === "putaway" || task.task_type === "transfer" ? (
+                  {task.task_type === "putaway" || task.task_type === "transfer" || task.task_type === "return" ? (
                     <Field label="Endereço de destino confirmado" required className="sm:col-span-2">
                       <Select
                         name="locationId"
@@ -154,7 +189,17 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                       <Field label="Observação (obrigatória em caso de falta)" className="sm:col-span-2">
                         <Input name="notes" maxLength={500} />
                       </Field>
+                      {serialControlled ? (
+                        <Field label="Números de série separados" hint="Um por linha, um para cada unidade separada." required className="sm:col-span-2">
+                          <Textarea name="serials" required />
+                        </Field>
+                      ) : null}
                     </>
+                  ) : null}
+                  {task.task_type === "replenishment" ? (
+                    <Field label={`Quantidade reposta (planejado ${fmtQty(task.quantity)})`} hint="Menor que o planejado se o pulmão não tiver o saldo todo." required>
+                      <Input name="quantity" type="number" min={0} max={task.quantity ?? undefined} step="any" defaultValue={task.quantity ?? ""} required />
+                    </Field>
                   ) : null}
                   <div className="sm:col-span-2">
                     <SubmitButton variant="success">Confirmar e concluir</SubmitButton>

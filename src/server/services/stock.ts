@@ -6,6 +6,7 @@ import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../ac
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalDate, qty } from "../validation";
 import { audit, runOperation, type OpOptions } from "./common";
+import { checkReplenishmentTx } from "./replenishment";
 import { addStock, availableOf, insertMovement, lockBalance, lockBalanceById, removeStock, validateDestination } from "./stock-core";
 
 export interface BalanceListRow {
@@ -267,6 +268,8 @@ export async function adjustStock(ctx: Ctx, input: unknown, opts?: OpOptions) {
       referenceType: "manual_adjustment",
     });
     await audit(tx, ctx, "stock.adjusted", "stock_movement", movementId, loc.code, d);
+    // Gatilho de reposição: o ajuste pode ter derrubado o saldo de um endereço de picking.
+    await checkReplenishmentTx(tx, ctx, { warehouseId: loc.warehouse_id, productIds: [d.productId] });
     return { id: movementId };
   });
 }

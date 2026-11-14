@@ -31,6 +31,8 @@ import {
   HeartPulse,
   CalendarClock,
   Undo2,
+  Waves,
+  ChartColumnBig,
   type LucideIcon,
 } from "lucide-react";
 import { NAV } from "./nav";
@@ -62,6 +64,8 @@ const ICONS: Record<string, LucideIcon> = {
   HeartPulse,
   CalendarClock,
   Undo2,
+  Waves,
+  ChartColumnBig,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {
