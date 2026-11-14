@@ -401,3 +401,20 @@ export async function suggestLocations(
   }
   return { best: null, candidates: [], reason };
 }
+
+/**
+ * Avalia (sem bloquear nem lançar erro) se um endereço pode receber `qty` do
+ * produto, com os mesmos critérios de validateDestination. Usado pelo coletor
+ * para explicar ao operador por que um endereço lido foi recusado.
+ */
+export async function evaluateDestination(
+  tx: Queryable,
+  ctx: Ctx,
+  args: { locationId: string; warehouseId: string; productId: string; quantity: number; excludeTaskId?: string | null },
+): Promise<Evaluation> {
+  const [loc] = await loadLocations(tx, ctx.user.companyId, "l.id = $3", [args.locationId], args.excludeTaskId ?? null);
+  if (!loc) throw new NotFoundError("Endereço");
+  const product = await getProductRules(tx, ctx.user.companyId, args.productId);
+  const productQty = await productQtyAt(tx, loc.id, args.productId);
+  return evaluate(loc, product, args.quantity, productQty, args.warehouseId);
+}
