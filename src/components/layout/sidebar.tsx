@@ -22,6 +22,7 @@ import {
   TriangleAlert,
   Truck,
   Warehouse,
+  Smartphone,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -46,6 +47,7 @@ const ICONS: Record<string, LucideIcon> = {
   TriangleAlert,
   Truck,
   Warehouse,
+  Smartphone,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {

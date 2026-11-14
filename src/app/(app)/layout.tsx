@@ -1,4 +1,5 @@
-import { LogOut } from "lucide-react";
+import Link from "next/link";
+import { LogOut, Smartphone } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -20,14 +21,20 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="font-medium text-slate-800">{user.companyName}</span>
             {user.companyIsDemo ? <DemoBadge /> : null}
           </div>
-          <UserMenu name={user.name} role={ROLE_LABELS[user.role]} />
+          <div className="flex items-center gap-3">
+            {user.role === "operator" ? <CollectorLink /> : null}
+            <UserMenu name={user.name} role={ROLE_LABELS[user.role]} />
+          </div>
         </header>
         <div className="flex items-center justify-between gap-2 border-b border-slate-200 bg-white px-4 py-2 text-xs lg:hidden">
           <span className="flex items-center gap-2 truncate">
             <span className="truncate font-medium text-slate-700">{user.companyName}</span>
             {user.companyIsDemo ? <DemoBadge /> : null}
           </span>
-          <UserMenu name={user.name} role={ROLE_LABELS[user.role]} compact />
+          <span className="flex items-center gap-2">
+            {user.role === "operator" ? <CollectorLink /> : null}
+            <UserMenu name={user.name} role={ROLE_LABELS[user.role]} compact />
+          </span>
         </div>
         <main className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:py-6">{children}</main>
       </div>
@@ -49,5 +56,18 @@ function UserMenu({ name, role, compact }: { name: string; role: string; compact
         </button>
       </form>
     </div>
+  );
+}
+
+/** Atalho para o modo coletor, exibido no topo para o perfil operador. */
+function CollectorLink() {
+  return (
+    <Link
+      href="/coletor"
+      className="inline-flex h-9 items-center gap-1.5 rounded-md bg-slate-900 px-3 text-sm font-semibold text-white hover:bg-slate-700"
+    >
+      <Smartphone className="size-4" aria-hidden />
+      Coletor
+    </Link>
   );
 }
