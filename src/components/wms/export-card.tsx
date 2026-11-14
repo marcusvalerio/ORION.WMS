@@ -68,7 +68,7 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
             ]}
           />
         ) : (
-          <p className="text-sm text-slate-500">Pedido nacional. Marque como exportação para montar volumes e emitir o packing list.</p>
+          <p className="text-sm text-muted">Pedido nacional. Marque como exportação para montar volumes e emitir o packing list.</p>
         )}
 
         {canEdit ? (
@@ -184,7 +184,7 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
                       <tr key={`${p.order_line_id}${p.lot_code}`}>
                         <td>{p.line_no}</td>
                         <td>
-                          {p.sku} {p.lot_code ? <span className="text-xs text-slate-500">lote {p.lot_code}</span> : null}
+                          {p.sku} {p.lot_code ? <span className="text-xs text-muted">lote {p.lot_code}</span> : null}
                         </td>
                         <td className="num">{fmtQty(p.pending)}</td>
                         <td>

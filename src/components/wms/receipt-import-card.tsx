@@ -117,7 +117,7 @@ export async function ReceiptImportCard({ ctx, receiptId, receiptStatus }: { ctx
                         <td>{i.line_no}</td>
                         <td>
                           <span className="font-medium">{i.sku}</span>
-                          <span className="block text-xs text-slate-500">{i.description}</span>
+                          <span className="block text-xs text-muted">{i.description}</span>
                         </td>
                         <td>
                           <input type="hidden" name={`items.${idx}.id`} value={i.id} />

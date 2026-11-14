@@ -136,7 +136,7 @@ export default async function StockPage({ searchParams }: { searchParams: Search
                     </td>
                     <td className="code">
                       {b.lot_code || "—"}
-                      {b.origin_country ? <span className="block text-xs text-slate-500">origem {b.origin_country}</span> : null}
+                      {b.origin_country ? <span className="block text-xs text-muted">origem {b.origin_country}</span> : null}
                     </td>
                     <td>
                       {fmtDate(b.expiry_date)}

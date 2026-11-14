@@ -61,7 +61,7 @@ export default async function ProductionPage() {
                     <td>{r.order_number}</td>
                     <td>
                       <span className="font-medium">{r.sku}</span>
-                      <span className="block text-xs text-slate-500">lote {r.output_lot_code}</span>
+                      <span className="block text-xs text-muted">lote {r.output_lot_code}</span>
                     </td>
                     <td className="font-mono text-[11px]">{r.line_code}</td>
                     <td className="num">{fmtQty(r.required)}</td>
@@ -105,7 +105,7 @@ export default async function ProductionPage() {
                     <td className="font-mono">{o.number}</td>
                     <td>
                       <span className="font-medium">{o.sku}</span>
-                      <span className="block text-xs text-slate-500">{o.description}</span>
+                      <span className="block text-xs text-muted">{o.description}</span>
                     </td>
                     <td className="num">{fmtQty(o.quantity)}</td>
                     <td>{fmtDate(o.due_date)}</td>
@@ -131,7 +131,7 @@ export default async function ProductionPage() {
           <EmptyState title="Nenhuma ordem de produção" />
         )}
         {manage && pending.length ? (
-          <CardBody className="border-t border-slate-100">
+          <CardBody className="border-t border-subtle">
             {lines.length ? (
               <ActionForm action={createRequisitionAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Field label="Ordem de produção" required>
@@ -148,7 +148,7 @@ export default async function ProductionPage() {
                 </div>
               </ActionForm>
             ) : (
-              <p className="text-sm text-slate-500">
+              <p className="text-sm text-muted">
                 Cadastre uma zona do tipo Produção com um endereço de linha em{" "}
                 <Link href="/armazem/estrutura" className="link">
                   Estrutura física

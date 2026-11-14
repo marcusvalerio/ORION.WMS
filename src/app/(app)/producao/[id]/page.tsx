@@ -104,7 +104,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ id
                       <td>{l.line_no}</td>
                       <td>
                         <span className="font-medium">{l.sku}</span>
-                        <span className="block text-xs text-slate-500">{l.description}</span>
+                        <span className="block text-xs text-muted">{l.description}</span>
                       </td>
                       <td className="num">{fmtQty(l.required_qty)}</td>
                       <td className="num">{fmtQty(l.reserved_qty)}</td>
@@ -141,7 +141,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ id
                         <td className="font-mono text-[11px]">{v.location_code}</td>
                         <td className="code">
                           {v.lot_code || "—"}
-                          {v.origin_country ? <span className="block text-xs text-slate-500">origem {v.origin_country}</span> : null}
+                          {v.origin_country ? <span className="block text-xs text-muted">origem {v.origin_country}</span> : null}
                         </td>
                         <td>{fmtDate(v.expiry_date)}</td>
                         <td className="num">{fmtQty(v.quantity)}</td>
@@ -184,7 +184,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ id
                         </td>
                         <td>{TASK_TYPE_LABELS[t.task_type] ?? t.task_type}</td>
                         <td>
-                          {t.sku} {t.lot_code ? <span className="text-xs text-slate-500">lote {t.lot_code}</span> : null}
+                          {t.sku} {t.lot_code ? <span className="text-xs text-muted">lote {t.lot_code}</span> : null}
                         </td>
                         <td className="font-mono text-[11px]">
                           {t.from_code ?? "—"} → {t.to_code ?? t.suggested_code ?? "—"}
@@ -218,7 +218,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ id
                   {m.lot_code ? ` (${m.lot_code})` : ""} {fmtQty(m.quantity)} → <span className="font-mono text-[11px]">{m.to_code}</span> ({m.user_name})
                 </p>
               ))}
-              {deliveries.length + returns.length === 0 ? <p className="text-slate-500">Nenhuma entrega registrada.</p> : null}
+              {deliveries.length + returns.length === 0 ? <p className="text-muted">Nenhuma entrega registrada.</p> : null}
             </CardBody>
           </Card>
         </div>
@@ -289,7 +289,7 @@ export default async function RequisitionPage({ params }: { params: Promise<{ id
                 </ActionForm>
               ) : null}
               {["completed", "cancelled"].includes(r.status) ? (
-                <p className="text-sm text-slate-500">Requisição {STATUS.productionRequisition[r.status].label.toLowerCase()}.</p>
+                <p className="text-sm text-muted">Requisição {STATUS.productionRequisition[r.status].label.toLowerCase()}.</p>
               ) : null}
             </CardBody>
           </Card>
