@@ -37,7 +37,6 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Inventário", href: "/inventario", icon: "ClipboardList" },
       { label: "Separação", href: "/separacao", icon: "ScanLine" },
       { label: "Expedição", href: "/expedicao", icon: "Truck" },
-      { label: "Coletor", href: "/coletor", icon: "Smartphone" },
     ],
   },
   {

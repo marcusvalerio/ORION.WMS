@@ -3,6 +3,7 @@ import { LogOut, Smartphone } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { logoutAction } from "@/server/actions/auth";
 import { Sidebar } from "@/components/layout/sidebar";
+import { TopSearch } from "@/components/layout/top-search";
 import { Toaster } from "@/components/forms/toaster";
 import { DemoBadge } from "@/components/ui/badge";
 import { PERMISSIONS, ROLE_LABELS, can, type Permission } from "@/lib/permissions";
@@ -21,7 +22,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <span className="font-medium text-slate-800">{user.companyName}</span>
             {user.companyIsDemo ? <DemoBadge /> : null}
           </div>
-          <div className="flex items-center gap-3">
+          <TopSearch className="mx-6 w-full max-w-md" />
+          <div className="flex shrink-0 items-center gap-3">
             {user.role === "operator" ? <CollectorLink /> : null}
             <UserMenu name={user.name} role={ROLE_LABELS[user.role]} />
           </div>
@@ -36,6 +38,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
             <UserMenu name={user.name} role={ROLE_LABELS[user.role]} compact />
           </span>
         </div>
+        <TopSearch className="border-b border-slate-200 bg-white px-4 py-2 lg:hidden" />
         <main className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:py-6">{children}</main>
       </div>
       <Toaster />
