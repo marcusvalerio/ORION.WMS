@@ -1,3 +1,4 @@
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
@@ -7,6 +8,7 @@ import { listDivergences } from "@/server/services/divergences";
 import { entityHistory } from "@/server/services/audit";
 import { cancelOrderAction, checkOrderAction, releasePickingAction, reserveOrderAction, shipOrderAction } from "@/server/actions/outbound";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { DemoBadge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
@@ -54,6 +56,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         }
         description={`${o.customer_name} · ${o.source === "erp" ? `Pedido ERP ${o.so_number}` : "Pedido manual"}`}
         breadcrumbs={[{ label: "Operações" }, { label: "Separação", href: "/separacao" }, { label: o.code }]}
+        actions={
+          <ButtonLink href={`/etiquetas/pedidos/${o.id}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       <Card className="mb-5">
         <CardBody className="space-y-4">

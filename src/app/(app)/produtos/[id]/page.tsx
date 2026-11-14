@@ -1,3 +1,4 @@
+import { Printer } from "lucide-react";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
@@ -6,6 +7,7 @@ import { listZones, STORAGE_CLASSES } from "@/server/services/warehouse";
 import { listStock } from "@/server/services/stock";
 import { addPackagingAction, togglePackagingAction, updateProductSettingsAction } from "@/server/actions/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -37,6 +39,11 @@ export default async function ProductPage({ params }: { params: Promise<{ id: st
         title={`${product.sku} — ${product.description}`}
         badges={product.status === "active" ? <Badge tone="success">Ativo</Badge> : <Badge>Inativo</Badge>}
         breadcrumbs={[{ label: "Armazém" }, { label: "Produtos", href: "/produtos" }, { label: product.sku }]}
+        actions={
+          <ButtonLink href={`/etiquetas/produtos/${product.id}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       <div className="grid gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">

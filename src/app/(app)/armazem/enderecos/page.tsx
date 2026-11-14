@@ -1,9 +1,10 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Printer } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { listLocations, listWarehouses, listZones, LOCATION_STATUSES, LOCATION_TYPES, STORAGE_CLASSES } from "@/server/services/warehouse";
 import { createLocationAction } from "@/server/actions/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
+import { ButtonLink } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/badge";
 import { OccupancyBar } from "@/components/ui/occupancy";
@@ -44,6 +45,11 @@ export default async function LocationsPage({ searchParams }: { searchParams: Se
         title="Endereços"
         description="Posições físicas no formato DEPÓSITO/RUA/MÓDULO/NÍVEL/POSIÇÃO, com capacidade, compatibilidade e ocupação atual."
         breadcrumbs={[{ label: "Armazém" }, { label: "Endereços" }]}
+        actions={
+          <ButtonLink href={`/etiquetas/enderecos?${new URLSearchParams(Object.entries({ warehouseId: params.warehouseId ?? "", zoneId: params.zoneId ?? "", q: params.q ?? "" }).filter(([, v]) => v)).toString()}`}>
+            <Printer className="size-4" aria-hidden /> Imprimir etiquetas
+          </ButtonLink>
+        }
       />
       {manage ? (
         <div className="mb-4">
