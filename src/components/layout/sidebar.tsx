@@ -23,6 +23,8 @@ import {
   Truck,
   Warehouse,
   X,
+  CalendarClock,
+  Undo2,
   type LucideIcon,
 } from "lucide-react";
 import { NAV } from "./nav";
@@ -46,6 +48,8 @@ const ICONS: Record<string, LucideIcon> = {
   TriangleAlert,
   Truck,
   Warehouse,
+  CalendarClock,
+  Undo2,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {

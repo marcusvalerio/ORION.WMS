@@ -28,6 +28,8 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Conferência", href: "/conferencia", icon: "ClipboardCheck" },
       { label: "Armazenagem", href: "/armazenagem", icon: "PackageCheck" },
       { label: "Divergências", href: "/divergencias", icon: "TriangleAlert" },
+      { label: "Agenda de docas", href: "/docas", icon: "CalendarClock" },
+      { label: "Devoluções", href: "/devolucoes", icon: "Undo2" },
     ],
   },
   {

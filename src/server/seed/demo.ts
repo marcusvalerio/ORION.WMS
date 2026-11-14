@@ -5,6 +5,7 @@ import { hashPassword } from "../auth/password";
 import { loadSessionUser } from "../auth/users";
 import { formatLocationCode } from "../services/warehouse";
 import { adjustStock } from "../services/stock";
+import { nextCode } from "../services/common";
 
 /**
  * DADOS DE DEMONSTRAÇÃO — empresa fictícia "MetalSupply Componentes".
@@ -174,6 +175,33 @@ export async function seedDemo(db: Db): Promise<void> {
     for (const bay of ["01", "02"]) await loc(zVol, "04", bay, "00", "00", "floor", "bulky", 80);
     await loc(zExp, "EX", "01", "00", "00", "dock", null, 5000);
     await loc(zQua, "QA", "01", "00", "00", "quarantine", null, 500);
+
+    // ---------------- Frente C: CNPJ dos fornecedores, docas e agenda ----------------
+    // CNPJs fictícios (dígitos verificadores válidos) usados pelo XML de exemplo em docs/exemplos.
+    await tx.query(`update erp.suppliers set cnpj = '11222333000181' where id = $1`, [supplier.id]);
+    await tx.query(`update erp.suppliers set cnpj = '44555666000181' where id = $1`, [supplier2.id]);
+    await tx.query(`update erp.companies set document = coalesce(document, '77888999000181') where id = $1`, [c]);
+    const dock = async (code: string, name: string, type: string) =>
+      (
+        await insert(
+          tx,
+          `insert into wms.docks (company_id, warehouse_id, code, name, dock_type, created_by) values ($1,$2,$3,$4,$5,$6) returning id`,
+          [c, wh.id, code, name, type, users.admin],
+        )
+      ).id;
+    const dock1 = await dock("DOC-01", "Doca 1 — recebimento", "inbound");
+    await dock("DOC-02", "Doca 2 — expedição", "outbound");
+    await dock("DOC-03", "Doca 3 — mista", "both");
+    const [po4587] = await tx.query<{ id: string }>(`select id from erp.purchase_orders where company_id = $1 and number = 'PC-4587'`, [c]);
+    await tx.query(
+      `insert into wms.dock_appointments (company_id, warehouse_id, dock_id, code, direction, starts_at, ends_at, carrier, vehicle_plate,
+                                          purchase_order_id, created_by)
+       values ($1,$2,$3,$4,'inbound',
+               (current_date + time '14:00') at time zone 'America/Sao_Paulo',
+               (current_date + time '15:00') at time zone 'America/Sao_Paulo',
+               'Transportes Rota Sul (demo)', 'ABC1D23', $5, $6)`,
+      [c, wh.id, dock1, await nextCode(tx, c, "AGD"), po4587.id, users.supervisor],
+    );
 
     return { company: c, admin: users.admin, pB, pD, wh: wh.id };
   });

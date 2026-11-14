@@ -177,13 +177,14 @@ interface LockedTask {
   reservation_id: string | null;
   inventory_id: string | null;
   assigned_to: string | null;
+  customer_return_id: string | null;
 }
 
 async function lockTask(tx: Queryable, ctx: Ctx, id: string): Promise<LockedTask> {
   const [t] = await tx.query<LockedTask>(
     `select id, code, task_type, status, warehouse_id, product_id, lot_code, expiry_date::text as expiry_date, quantity,
             from_location_id, suggested_location_id, to_location_id, receipt_id, receipt_item_id, order_id, order_line_id,
-            reservation_id, inventory_id, assigned_to
+            reservation_id, inventory_id, assigned_to, customer_return_id
      from wms.tasks where id = $1 and company_id = $2 for update`,
     [id, ctx.user.companyId],
   );
@@ -334,6 +335,10 @@ async function completePutaway(tx: Queryable, ctx: Ctx, t: LockedTask, locationI
     quantity: qtyToStore,
   });
   const [receipt] = await tx.query<{ code: string }>(`select code from wms.receipts where id = $1`, [t.receipt_id]);
+  // Armazenagem de devolução de cliente (Frente C) referencia a devolução em vez do recebimento.
+  const [ret] = t.customer_return_id
+    ? await tx.query<{ code: string }>(`select code from wms.customer_returns where id = $1`, [t.customer_return_id])
+    : [];
   await insertMovement(tx, ctx, {
     warehouseId: t.warehouse_id,
     movementType: "putaway",
@@ -342,10 +347,10 @@ async function completePutaway(tx: Queryable, ctx: Ctx, t: LockedTask, locationI
     expiryDate: t.expiry_date,
     quantity: qtyToStore,
     toLocationId: target,
-    reason: "Armazenagem de recebimento",
-    referenceType: "receipt",
-    referenceId: t.receipt_id,
-    referenceCode: receipt?.code ?? null,
+    reason: ret ? "Armazenagem de devolução de cliente" : "Armazenagem de recebimento",
+    referenceType: ret ? "customer_return" : "receipt",
+    referenceId: ret ? t.customer_return_id : t.receipt_id,
+    referenceCode: ret?.code ?? receipt?.code ?? null,
     taskId: t.id,
   });
   if (t.receipt_item_id) {

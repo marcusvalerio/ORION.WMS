@@ -2,7 +2,10 @@ export type Tone = "neutral" | "info" | "warning" | "success" | "danger" | "prog
 
 type StatusMap = Record<string, { label: string; tone: Tone }>;
 
-export const STATUS: Record<"receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration", StatusMap> = {
+export const STATUS: Record<
+  "receipt" | "task" | "outbound" | "inventory" | "divergence" | "location" | "reservation" | "integration" | "appointment" | "customerReturn" | "nfe",
+  StatusMap
+> = {
   receipt: {
     expected: { label: "Previsto", tone: "neutral" },
     checking: { label: "Em conferência", tone: "progress" },
@@ -52,6 +55,23 @@ export const STATUS: Record<"receipt" | "task" | "outbound" | "inventory" | "div
     sent: { label: "Enviado", tone: "success" },
     failed: { label: "Falhou", tone: "danger" },
   },
+  appointment: {
+    scheduled: { label: "Agendado", tone: "info" },
+    checked_in: { label: "Na doca (check-in)", tone: "progress" },
+    no_show: { label: "Não compareceu", tone: "danger" },
+    completed: { label: "Concluído", tone: "success" },
+    cancelled: { label: "Cancelado", tone: "neutral" },
+  },
+  customerReturn: {
+    pending: { label: "Aguardando inspeção", tone: "warning" },
+    completed: { label: "Concluída", tone: "success" },
+    cancelled: { label: "Cancelada", tone: "danger" },
+  },
+  nfe: {
+    pending: { label: "Pendente", tone: "warning" },
+    received: { label: "Recebida", tone: "success" },
+    discarded: { label: "Descartada", tone: "neutral" },
+  },
 };
 
 export function statusLabel(kind: keyof typeof STATUS, status: string): string {
@@ -75,6 +95,8 @@ export const MOVEMENT_LABELS: Record<string, string> = {
   shipment: "Expedição",
   block: "Bloqueio",
   unblock: "Desbloqueio",
+  return_in: "Entrada por devolução",
+  discard: "Descarte",
 };
 
 export const ZONE_TYPE_LABELS: Record<string, string> = {
@@ -116,6 +138,7 @@ export const DIVERGENCE_SOURCE_LABELS: Record<string, string> = {
   picking: "Separação",
   outbound_check: "Conferência de saída",
   inventory: "Inventário",
+  customer_return: "Devolução de cliente",
 };
 
 export const PRIORITY_LABELS: Record<number, { label: string; tone: Tone }> = {
@@ -172,4 +195,36 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "product.packaging_deactivated": "Unidade logística desativada",
   "auth.login": "Login",
   "auth.logout": "Logout",
+  "nfe.imported": "XML de NF-e importado",
+  "nfe.supplier_linked": "Emitente da NF-e vinculado a fornecedor",
+  "nfe.item_linked": "Item da NF-e vinculado (de-para)",
+  "nfe.discarded": "NF-e descartada",
+  "nfe.received": "Recebimento criado a partir da NF-e",
+  "dock.created": "Doca cadastrada",
+  "dock.activated": "Doca ativada",
+  "dock.deactivated": "Doca desativada",
+  "appointment.created": "Agendamento de doca criado",
+  "appointment.check_in": "Check-in na doca",
+  "appointment.no_show": "Não comparecimento registrado",
+  "appointment.complete": "Agendamento concluído",
+  "appointment.cancel": "Agendamento cancelado",
+  "return.created": "Devolução registrada",
+  "return.item_inspected": "Item da devolução inspecionado",
+  "return.completed": "Devolução concluída",
+  "return.cancelled": "Devolução cancelada",
+};
+
+export const DOCK_TYPE_LABELS: Record<string, string> = {
+  inbound: "Entrada",
+  outbound: "Saída",
+  both: "Entrada e saída",
+};
+
+export const RETURN_REASON_LABELS: Record<string, string> = {
+  damaged_in_transit: "Avaria no transporte",
+  wrong_item: "Item errado",
+  quality: "Problema de qualidade",
+  regret: "Desistência do cliente",
+  excess: "Envio em excesso",
+  other: "Outro",
 };
