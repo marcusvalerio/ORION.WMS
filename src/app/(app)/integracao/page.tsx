@@ -11,6 +11,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { Notice } from "@/components/ui/states";
 import { FilterBar, FilterField } from "@/components/ui/filter-bar";
 import { Field, Input, Select } from "@/components/ui/fields";
 import { Pagination, TableWrap } from "@/components/ui/table";
@@ -70,6 +71,11 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
             {config.error}
           </Alert>
         )}
+        {(list.counts.failed ?? 0) > 0 ? (
+          <Notice tone="crit" action={<Link href="/integracao?status=failed">Ver eventos</Link>}>
+            {list.counts.failed} evento(s) não chegaram ao ATLAS depois de todas as tentativas. O armazém continua funcionando; reenvie quando o ERP voltar.
+          </Notice>
+        ) : null}
 
         <div className="flex flex-wrap gap-2">
           {INTEGRATION_STATUSES.map((s) => (

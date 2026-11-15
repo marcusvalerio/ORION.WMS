@@ -288,3 +288,56 @@
     @apply font-medium text-link hover:underline;
   }
 }
+
+/* -----------------------------------------------------------------------------
+ * Identidade em movimento: anel O, carregamento, novidades da versão, site.
+ * Tudo para com prefers-reduced-motion.
+ * -------------------------------------------------------------------------- */
+@keyframes orion-spin { to { transform: rotate(360deg); } }
+@keyframes orion-ring-wave { 0%, 62%, 100% { transform: scaleX(1); } 76% { transform: scaleX(0.18); } }
+@keyframes orion-load { 0%, 100% { transform: scaleY(0.35); } 50% { transform: scaleY(1); } }
+@keyframes orion-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+@keyframes orion-marquee { from { transform: translateX(0); } to { transform: translateX(-50%); } }
+
+.orion-ring-cw, .orion-ring-ccw { transform-box: view-box; transform-origin: 0 0; animation: orion-spin 240s linear infinite; }
+.orion-ring-ccw { animation-direction: reverse; }
+.orion-ring-wave { transform-box: fill-box; transform-origin: center; animation: orion-ring-wave 6s ease-in-out infinite; }
+.orion-spin { animation: orion-spin 120s linear infinite; }
+.orion-load-bar { transform-origin: bottom; animation: orion-load 1.1s ease-in-out infinite; }
+.orion-in { animation: orion-in 0.45s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
+.orion-marquee { animation: orion-marquee 40s linear infinite; }
+
+/* Demonstrações da janela de novidades (como GIFs, em CSS). */
+.nv-rack { position: absolute; left: 50%; top: 56%; width: min(380px, 86%); transform: translate(-50%, -50%); display: grid; grid-template-columns: repeat(6, 1fr); gap: 6px; padding: 8px; border-left: 5px solid #2D77CC; border-right: 5px solid #2D77CC; animation: nv-zoom 5s ease-in-out infinite; transform-origin: 62% 50%; }
+.nv-cell { height: 40px; border-radius: 4px; border: 1px solid #2D4A8A; position: relative; overflow: hidden; }
+.nv-cell::after { content: ""; position: absolute; left: 3px; right: 3px; bottom: 3px; height: var(--f); border-radius: 2px; background: var(--c); }
+.nv-cell.sel { animation: nv-pick 5s ease-in-out infinite; }
+.nv-cell.sel::after { background: #F8E2A6; animation: nv-fill 5s ease-in-out infinite; }
+.nv-cursor { position: absolute; width: 18px; height: 18px; border-radius: 999px; background: rgba(255, 248, 231, 0.9); box-shadow: 0 0 0 6px rgba(255, 248, 231, 0.18); animation: nv-cur 5s ease-in-out infinite; left: 20%; top: 80%; z-index: 2; }
+.nv-tag72 { position: absolute; right: 18px; bottom: 16px; font-family: var(--font-display); font-weight: 800; font-size: 34px; color: #F8E2A6; animation: nv-tag 5s ease-in-out infinite; }
+@keyframes nv-zoom { 0%, 35% { transform: translate(-50%, -50%) scale(1); } 55%, 85% { transform: translate(-50%, -50%) scale(1.55); } 100% { transform: translate(-50%, -50%) scale(1); } }
+@keyframes nv-cur { 0% { left: 18%; top: 85%; opacity: 0; } 10% { opacity: 1; } 30% { left: 61%; top: 58%; opacity: 1; } 40%, 100% { left: 61%; top: 58%; opacity: 0; } }
+@keyframes nv-pick { 0%, 30% { border-color: #2D4A8A; box-shadow: none; } 34%, 90% { border-color: #F8E2A6; box-shadow: 0 0 0 2px #F8E2A6; } 100% { border-color: #2D4A8A; } }
+@keyframes nv-fill { 0%, 50% { height: 0; } 75%, 92% { height: 72%; } 100% { height: 0; } }
+@keyframes nv-tag { 0%, 60% { opacity: 0; transform: translateY(8px); } 72%, 92% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+.nv-bar { width: var(--w); height: var(--h); border-radius: 2px; background: #D8CFB8; transform-origin: bottom; animation: nv-grow 4s cubic-bezier(0.2, 0.7, 0.2, 1) infinite; animation-delay: calc(var(--i) * 70ms); }
+.nv-bar.today { background: #2563EB; }
+@keyframes nv-grow { 0% { transform: scaleY(0); } 30%, 85% { transform: scaleY(1); } 100% { transform: scaleY(0); } }
+.nv-type { display: inline-block; overflow: hidden; vertical-align: bottom; white-space: nowrap; animation: nv-type 5s steps(12) infinite; }
+.nv-scan { animation: nv-press 5s ease-in-out infinite; }
+.nv-code { animation: nv-codein 5s ease-in-out infinite; }
+.nv-laser { position: absolute; left: 6px; right: 6px; height: 2px; background: #E03A45; animation: nv-laser 5s ease-in-out infinite; }
+.nv-res { animation: nv-res 5s ease-in-out infinite; }
+@keyframes nv-press { 0%, 8% { transform: scale(1); } 12% { transform: scale(0.88); } 18%, 100% { transform: scale(1); } }
+@keyframes nv-codein { 0%, 14% { opacity: 0; transform: translateY(6px); } 20%, 52% { opacity: 1; transform: none; } 60%, 100% { opacity: 0; } }
+@keyframes nv-laser { 0%, 20% { top: 6px; } 36% { top: 46px; } 48%, 100% { top: 6px; } }
+@keyframes nv-type { 0%, 48% { width: 0; } 62%, 94% { width: 12ch; } 100% { width: 0; } }
+@keyframes nv-res { 0%, 62% { opacity: 0; transform: translateY(8px); } 70%, 94% { opacity: 1; transform: none; } 100% { opacity: 0; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .orion-ring-cw, .orion-ring-ccw, .orion-ring-wave, .orion-spin, .orion-load-bar, .orion-in, .orion-marquee,
+  .nv-rack, .nv-cell, .nv-cursor, .nv-tag72, .nv-bar, .nv-type, .nv-scan, .nv-code, .nv-laser, .nv-res { animation: none !important; }
+  .nv-cell.sel::after { animation: none; height: 72%; }
+  .nv-cursor { display: none; }
+  .nv-type { width: 12ch; }
+}
