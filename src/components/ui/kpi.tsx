@@ -3,6 +3,7 @@ import { Info } from "lucide-react";
 import { fmtPct, fmtQty } from "@/lib/format";
 import type { Kpi } from "@/server/services/dashboard";
 import { cn } from "./cn";
+import { BarSpark } from "@/components/charts/bar-spark";
 
 const toneBar: Record<NonNullable<Kpi["tone"]>, string> = {
   default: "bg-accent",
@@ -27,6 +28,11 @@ export function KpiCard({ kpi }: { kpi: Kpi }) {
         {kpi.format === "qty" ? <span className="ml-1 text-sm font-normal text-muted">un</span> : null}
       </p>
       {kpi.hint ? <p className="mt-0.5 text-xs text-muted">{kpi.hint}</p> : null}
+      {kpi.series?.length ? (
+        <div className="mt-2 overflow-hidden" title={`${kpi.seriesLabel ?? kpi.label} — últimos ${kpi.series.length} dias (barra azul = hoje)`}>
+          <BarSpark data={kpi.series} label={kpi.seriesLabel ?? kpi.label} height={22} />
+        </div>
+      ) : null}
     </div>
   );
   return kpi.href ? (

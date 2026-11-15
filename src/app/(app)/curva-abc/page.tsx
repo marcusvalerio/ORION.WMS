@@ -9,12 +9,13 @@ import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { fmtQty } from "@/lib/format";
+import { BlockBar } from "@/components/charts/block-bar";
 import { can } from "@/lib/permissions";
 
 export const metadata = { title: "Curva ABC e slotting" };
 
 const TONE = { A: "success", B: "warning", C: "neutral" } as const;
-const BAR = { A: "bg-ok-solid", B: "bg-warn-solid", C: "bg-line-strong" } as const;
+const BAR = { A: "fill-ok-solid", B: "fill-warn-solid", C: "fill-neutral-solid" } as const;
 
 export default async function AbcPage() {
   const ctx = await requireCtx();
@@ -35,16 +36,14 @@ export default async function AbcPage() {
 
       <div className="grid gap-5 xl:grid-cols-3">
         <Card className="xl:col-span-2">
-          <CardHeader title="Distribuição do giro" description={`A: ${counts.A} · B: ${counts.B} · C: ${counts.C} produto(s)`} />
+          <CardHeader title="Distribuição do giro" description={`A: ${counts.A} · B: ${counts.B} · C: ${counts.C} produto(s). Blocos cheios = giro em relação ao produto de maior giro.`} />
           <CardBody>
             {rows.length ? (
               <ul className="space-y-2" aria-label="Gráfico de giro por produto">
                 {rows.map((r) => (
                   <li key={r.product_id} className="grid grid-cols-[88px_1fr_120px] items-center gap-2 text-xs">
                     <span className="truncate font-medium text-fg-2">{r.sku}</span>
-                    <span className="flex h-3 overflow-hidden rounded bg-subtle">
-                      <span className={BAR[r.abc]} style={{ width: `${max ? (r.metric / max) * 100 : 0}%` }} />
-                    </span>
+                    <BlockBar used={r.metric} capacity={max} label={`${r.sku} (classe ${r.abc}), giro relativo ao maior`} blocks={16} fillClass={BAR[r.abc]} showLabel={false} />
                     <span className="text-right text-muted tabular-nums">
                       {fmtQty(r.metric)} · {r.cumulative.toFixed(1)}% acum.
                     </span>

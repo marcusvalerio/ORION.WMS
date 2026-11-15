@@ -5,8 +5,11 @@ import { getAlerts, getFlowSeries, getKpis, getRecentActivity, getTaskDistributi
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { KpiCard } from "@/components/ui/kpi";
-import { FlowChart } from "@/components/charts/flow-chart";
-import { TaskDistribution } from "@/components/charts/task-distribution";
+import { SplitBars } from "@/components/charts/split-bars";
+import { StackedSplit } from "@/components/charts/stacked-split";
+import { GlyphGauge } from "@/components/charts/glyph-gauge";
+import { BlockBar } from "@/components/charts/block-bar";
+import { listZones } from "@/server/services/warehouse";
 import { EmptyState } from "@/components/ui/empty-state";
 import { ButtonLink } from "@/components/ui/button";
 import { DemoBadge } from "@/components/ui/badge";
@@ -22,13 +25,16 @@ const ALERT_STYLE = { danger: "text-crit-fg", warning: "text-warn-fg", info: "te
 
 export default async function DashboardPage() {
   const ctx = await requireCtx();
-  const [kpis, flow, distribution, alerts, activity] = await Promise.all([
+  const [kpis, flow, distribution, alerts, activity, zones] = await Promise.all([
     getKpis(ctx),
     getFlowSeries(ctx, 14),
     getTaskDistribution(ctx),
     getAlerts(ctx),
     getRecentActivity(ctx),
+    listZones(ctx),
   ]);
+  const occupancy = kpis.find((k) => k.key === "occupancy");
+  const storageZones = zones.filter((z) => z.active && (z.zone_type === "storage" || z.zone_type === "picking") && z.capacity > 0);
   const quick = [
     { label: "Novo recebimento", href: "/recebimentos/novo", icon: PackagePlus, show: can(ctx.user.role, "receipt.create") },
     { label: "Executar tarefas", href: "/tarefas?status=pending,in_progress", icon: ClipboardList, show: can(ctx.user.role, "task.execute") },
@@ -60,16 +66,45 @@ export default async function DashboardPage() {
         <Card className="xl:col-span-2">
           <CardHeader title="Recebimentos × expedições" description="Unidades armazenadas e expedidas por dia (últimos 14 dias), a partir das movimentações." />
           <CardBody>
-            <FlowChart data={flow} />
+            <SplitBars data={flow} />
           </CardBody>
         </Card>
         <Card>
-          <CardHeader title="Tarefas por status" description="Todas as tarefas registradas, por tipo." />
-          <CardBody>
-            <TaskDistribution data={distribution} />
+          <CardHeader
+            title="Ocupação do armazém"
+            description="O símbolo acende conforme a ocupação das zonas de armazenagem e picking."
+            actions={
+              <Link href="/armazem/estrutura" className="link text-xs">
+                Estrutura
+              </Link>
+            }
+          />
+          <CardBody className="space-y-4">
+            {occupancy ? <GlyphGauge value={occupancy.value} label="Ocupação total" detail={occupancy.hint} /> : null}
+            {storageZones.length ? (
+              <ul className="space-y-2.5" aria-label="Ocupação por zona">
+                {storageZones.map((z) => (
+                  <li key={z.id} className="grid grid-cols-[minmax(0,7rem)_1fr] items-center gap-3 text-xs">
+                    <span className="truncate text-fg-2">
+                      <span className="font-mono font-medium text-fg">{z.code}</span> {z.name}
+                    </span>
+                    <BlockBar used={z.occupied} capacity={z.capacity} label={`Zona ${z.code}`} />
+                  </li>
+                ))}
+              </ul>
+            ) : null}
           </CardBody>
         </Card>
       </div>
+
+      <Card className="mt-5">
+        <CardHeader title="Tarefas por tipo" description="Todas as tarefas registradas: concluídas na base, em execução no meio e pendentes no topo." />
+        <CardBody>
+          <div className="mx-auto max-w-3xl">
+            <StackedSplit data={distribution} />
+          </div>
+        </CardBody>
+      </Card>
 
       <div className="mt-5 grid gap-5 xl:grid-cols-3">
         <Card>

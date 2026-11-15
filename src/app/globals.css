@@ -111,6 +111,8 @@
   --color-neutral-line: var(--neutral-line);
   --color-neutral-solid: var(--neutral-solid);
   --color-series-1: var(--series-1);
+  /* trecho apagado dos gráficos no traço do símbolo (gelo-200 no claro, noite-600 no escuro) */
+  --color-chart-off: var(--chart-off);
 }
 
 :root,
@@ -138,6 +140,7 @@
   --prog-bg: #EFF4FF; --prog-fg: #1E40AF; --prog-line: #BFD3FE; --prog-solid: #2563EB;
   --neutral-bg: #EDF2F8; --neutral-fg: #2E3850; --neutral-line: #C7D3E2; --neutral-solid: #7E8BA2;
   --series-1: #060B2A;
+  --chart-off: #DCE8F3;
   color-scheme: light;
 }
 @media (prefers-color-scheme: dark) {
@@ -166,6 +169,7 @@
     --neutral-bg: #1A2238; --neutral-fg: #C7D3E2; --neutral-line: color-mix(in oklab, #A6B3C6 40%, #1A2238); --neutral-solid: #A6B3C6;
     color-scheme: dark;
     --series-1: #EEF1FA;
+    --chart-off: #22306F;
   }
 }
 :root[data-theme="dark"],
@@ -194,6 +198,7 @@
   --neutral-bg: #1A2238; --neutral-fg: #C7D3E2; --neutral-line: color-mix(in oklab, #A6B3C6 40%, #1A2238); --neutral-solid: #A6B3C6;
   color-scheme: dark;
   --series-1: #EEF1FA;
+  --chart-off: #22306F;
 }
 /* Modo inventário: telas de contagem, escuro de alto contraste com destaque creme. */
 [data-mode="inventory"] {
@@ -221,6 +226,7 @@
   --neutral-bg: #1A2238; --neutral-fg: #C7D3E2; --neutral-line: color-mix(in oklab, #A6B3C6 40%, #1A2238); --neutral-solid: #A6B3C6;
   color-scheme: dark;
   --series-1: #FFF8E7;
+  --chart-off: #22306F;
   background-color: var(--canvas);
   color: var(--fg);
 }
