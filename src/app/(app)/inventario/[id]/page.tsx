@@ -20,6 +20,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Disclosure } from "@/components/ui/disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SuccessHero } from "@/components/ui/states";
 import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
@@ -62,6 +63,13 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
         }
         breadcrumbs={[{ label: "Operações" }, { label: "Inventário", href: "/inventario" }, { label: inv.code }]}
       />
+      {inv.status === "approved" && kpis?.accuracy != null ? (
+        <SuccessHero
+          value={`${kpis.accuracy.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+          title="Inventário concluído"
+          detail={`${kpis.deltaPp != null ? `${kpis.deltaPp >= 0 ? "+" : ""}${kpis.deltaPp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp sobre o ciclo anterior · ` : ""}${kpis.locations.total} endereços · ${kpis.divergences ?? 0} ajustes`}
+        />
+      ) : null}
       {map ? (
         <CdMap
           map={map}

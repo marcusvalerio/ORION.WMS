@@ -159,8 +159,8 @@ export function Novidades({ view }: { view: NovidadesView }) {
                 spinSeconds={120}
                 className="absolute top-[-70px] left-[-190px] [--ring-size:740px] max-md:top-[-160px] max-md:right-[-160px] max-md:left-auto max-md:[--ring-size:420px]"
               />
-              <span className="relative font-mono text-xs tracking-[0.14em] text-ceu-400">VERSÃO {view.versao}</span>
-              <div className="relative flex flex-col gap-1 max-md:flex-row max-md:items-baseline max-md:gap-2">
+              <span className="relative self-start rounded-md bg-[#03061A]/85 px-2 py-1 font-mono text-xs tracking-[0.14em] text-ceu-400">VERSÃO {view.versao}</span>
+              <div className="relative flex flex-col gap-1 self-start rounded-xl bg-[#03061A]/85 px-3 py-2 max-md:flex-row max-md:items-baseline max-md:gap-2">
                 <b className="font-display text-[72px] leading-[0.9] font-extrabold tracking-[-0.04em] max-md:text-[40px]">{pad(Math.min(step + 1, total))}</b>
                 <span className="text-[13px] text-ceu-300">
                   de {total} {total === 1 ? "novidade" : "novidades"}

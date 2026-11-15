@@ -20,7 +20,9 @@ const sizes: Record<Size, string> = {
 };
 
 export function buttonClass(variant: Variant = "primary", size: Size = "md", className?: string) {
-  return cn(base, variants[variant], sizes[size], className);
+  // Um arredondamento passado em className substitui o padrão (sem tailwind-merge).
+  const b = className && /(^|\s)rounded-/.test(className) ? base.replace("rounded-md ", "") : base;
+  return cn(b, variants[variant], sizes[size], className);
 }
 
 export function Button({
