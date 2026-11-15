@@ -28,6 +28,7 @@ const PG_MESSAGES: Record<string, string> = {
   "23514": "A operação violaria uma regra de integridade do estoque (saldo negativo, reserva ou bloqueio acima do físico).",
   "23505": "Registro duplicado: já existe um registro com estes dados.",
   "23503": "Referência inválida: o registro relacionado não existe ou está em uso.",
+  "22P02": "Registro não encontrado: identificador inválido.",
   P0001: "Operação não permitida pelo banco de dados.",
 };
 

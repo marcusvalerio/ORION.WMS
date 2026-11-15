@@ -11,9 +11,9 @@
 import { readdirSync } from "node:fs";
 import path from "node:path";
 import { afterAll, beforeAll, describe, expect, it, vi } from "vitest";
-import { DomainError } from "@/server/errors";
+import { DomainError, toUserMessage } from "@/server/errors";
 import {
-  COMPANIES, LOC, crossTenantReferences, createMultiTenantEnv, snapshot, tenantIds,
+  COMPANIES, LOC, crossTenantReferences, createMultiTenantEnv, freshPostgres, snapshot, tenantIds,
   type MultiTenantEnv, type Tenant,
 } from "./fixtures/multi-tenant";
 
@@ -526,7 +526,9 @@ function leaks(value: unknown, y: Tenant): string[] {
 }
 
 beforeAll(async () => {
-  env = await createMultiTenantEnv();
+  // TEST_DATABASE_URL: roda a mesma bateria no PostgreSQL real (o banco é APAGADO).
+  const url = process.env.TEST_DATABASE_URL?.trim();
+  env = await createMultiTenantEnv(url ? await freshPostgres(url) : undefined);
   markers = new Map();
   for (const t of env.tenants) {
     const k = t.key.toLowerCase();
@@ -537,11 +539,12 @@ beforeAll(async () => {
   }
 }, 300_000);
 
-afterAll(() => {
+afterAll(async () => {
+  if (env.db.driver === "postgres") await env.db.close();
   console.log(
     `[multiempresa] empresas=${env.tenants.length} usuarios=${env.all.length} leituras=${stats.readChecks} ` +
       `buscas-por-id=${stats.byIdChecks} ataques-de-escrita=${stats.writeAttacks} snapshots=${stats.snapshotsCompared} ` +
-      `fks-verificadas=${stats.fkChecks} api=${stats.apiChecks} tempo=${((Date.now() - started) / 1000).toFixed(1)}s`,
+      `driver=${env.db.driver} fks-verificadas=${stats.fkChecks} api=${stats.apiChecks} tempo=${((Date.now() - started) / 1000).toFixed(1)}s`,
   );
 });
 
@@ -710,6 +713,14 @@ describe("Escritas: X não altera nada de Y", () => {
     const validation = [...messages.entries()].filter(([, m]) => m.startsWith("VALIDATION:") && /Invalid input|inválid|obrigatóri/i.test(m));
     console.log("[multiempresa] mensagens de recusa:\n" + [...messages.entries()].map(([k, m]) => `  ${k} => ${m}`).join("\n"));
     expect(validation).toEqual([]);
+  });
+});
+
+describe("Identificador malformado", () => {
+  it("ID que não é UUID (ex.: código TAR-000001 no lugar do ID) gera mensagem clara, não \"erro inesperado\"", async () => {
+    const x = env.tenants[0];
+    const error = await tasks.completeTask(op(x), "TAR-000001", {}).catch((e) => e);
+    expect(toUserMessage(error)).toBe("Registro não encontrado: identificador inválido.");
   });
 });
 

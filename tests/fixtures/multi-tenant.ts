@@ -13,7 +13,7 @@
 import type { Ctx } from "@/server/context";
 import type { Db } from "@/server/db/types";
 import type { Role } from "@/lib/permissions";
-import { createPgliteDb } from "@/server/db/drivers";
+import { createPgliteDb, createPostgresDb } from "@/server/db/drivers";
 import { runMigrations } from "@/server/db/migrate";
 import { hashPassword } from "@/server/auth/password";
 import { loadSessionUser } from "@/server/auth/users";
@@ -352,6 +352,18 @@ export async function createMultiTenantEnv(db?: Db): Promise<MultiTenantEnv> {
   const tenants: Tenant[] = [];
   for (const [i, spec] of COMPANIES.entries()) tenants.push(await buildTenant(database, spec, i, adminHash));
   return { db: database, tenants, all: tenants.flatMap((t) => t.staff) };
+}
+
+/**
+ * PostgreSQL real para os testes (TEST_DATABASE_URL). ATENÇÃO: APAGA os schemas
+ * erp/wms do banco indicado e reaplica as migrations. Use um banco só de teste.
+ */
+export async function freshPostgres(url: string, max = 25): Promise<Db> {
+  const db = await createPostgresDb(url, { max });
+  await db.exec(`drop schema if exists wms cascade; drop schema if exists erp cascade;
+                 drop table if exists public.orion_schema_migrations; drop table if exists public.site_leads cascade;`);
+  await runMigrations(db);
+  return db;
 }
 
 /** Todas as tabelas erp/wms com company_id (descobertas do catálogo, não de uma lista fixa). */
