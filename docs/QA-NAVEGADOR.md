@@ -28,8 +28,8 @@ Legenda: **ok** — funcionou sem defeito; **corrigido** — defeito encontrado 
 | NF-e XML (`docs/exemplos/nfe-pc-4588-entrega-1.xml`): importar → vincular produto (ADE-003) → aplicar PC-4588 → criar recebimento | ok (REC-000015; o excedente sobre o saldo do pedido virou linha separada) |
 | Registrar chegada → conferência **parcial** (“Salvar contagem” persiste após recarregar) → finalizar (falta de 5 un vira divergência) → liberar | ok |
 | Armazenagem: tarefa com endereço sugerido, iniciar, confirmar | ok (LUB-002) |
-| Armazenagem de produto refrigerado no CD-02 | ok como regra (recusa com motivo claro “Nenhum endereço ativo aceita a classe refrigerated”); ver pendência de dados |
-| Pedido de saída manual → reservar (FEFO) → onda (seleção manual) → liberar onda → separar → distribuir → conferência final → expedir | ok no DEP-01 (PS-000013, EXP-000012); no CD-02 a onda é recusada (pendência de dados) |
+| Armazenagem de produto refrigerado no CD-02 | **corrigido** — o CD-02 ganhou câmara refrigerada (zona FRI, rua 06); a NF-e de exemplo recebida no CD-02 chega à armazenagem (teste `cd02-operations`) |
+| Pedido de saída manual → reservar (FEFO) → onda (seleção manual) → liberar onda → separar → distribuir → conferência final → expedir | ok no DEP-01 (PS-000013, EXP-000012); **corrigido** no CD-02 — docas de recebimento/expedição criadas na vitrine; pedido + onda no CD-02 coberto por teste |
 | Histórico da onda mostrava códigos crus (`wave.created`, `wave.picked`…); também em Auditoria (`production.*`, `replenishment.checked`, `slotting.settings_updated`, `receipt.import_saved`…) | **corrigido** — 31 rótulos de auditoria tinham sido mesclados dentro de `RETURN_REASON_LABELS`; voltaram para `AUDIT_ACTION_LABELS`. |
 | Pedido em onda, status “Em separação”: o aviso levava a “Ver tarefas abertas” (lista vazia) | **corrigido** — com onda, o aviso aponta para a onda e explica a distribuição na doca. |
 | Cancelar pedido reservado | ok (reservas liberadas) |
@@ -59,7 +59,7 @@ Legenda: **ok** — funcionou sem defeito; **corrigido** — defeito encontrado 
 | Operador no inventário em curso: contagem cega (esperado “oculto”, ocupação arredondada, sem acuracidade) | ok |
 | Auditor: telas em consulta, sem botões de ação (só filtros) | ok |
 | Supervisor: ações gerenciais e aprovação do inventário | ok |
-| CSV de relatórios liberado a operador/auditor (200) | ok pela regra atual de permissão (`reports`); registrado só como observação |
+| CSV de relatórios liberado a operador/auditor (200) | **corrigido** — exportação (`reports.export`) restrita a administrador e supervisor: operador e auditor recebem 403 em `/api/relatorios/*` e não veem os botões “Exportar CSV”; o auditor mantém a pré-visualização em Relatórios (`reports.view`). Teste `report-export-permission` cobre os 4 perfis. |
 
 ### 4. Novidades da versão
 
@@ -83,15 +83,19 @@ Legenda: **ok** — funcionou sem defeito; **corrigido** — defeito encontrado 
 | Foco visível (anel 2px) e Tab dentro do modal de novidades | ok (modal nativo `showModal`, conteúdo de fora inerte) |
 | Mapa do inventário: foco por Tab, setas, Enter, Esc, região `aria-live` | ok |
 
+## Pendências resolvidas
+
+1. **Dados de demonstração do CD-02**: `seedCdOperations` (em `src/server/seed/showcase.ts`, pelos serviços reais e idempotente item a item, inclusive em bancos de demonstração já existentes) cria as zonas REC (doca de recebimento), EXP (doca de expedição) e FRI (2 endereços refrigerados), e as docas DOC-01/DOC-02 da agenda. O teste da vitrine deixou de fixar 144 células: confere 144 endereços de armazenagem/picking e uma célula por endereço ativo.
+2. **Docas no formulário de nova onda**: componente cliente `WaveFormFields` filtra as docas pelo depósito escolhido; sem doca ativa, mostra aviso e desabilita “Criar onda”. A validação no servidor continua.
+3. **Exportação CSV**: restrita à gestão (administrador e supervisor), ver seção 3.
+
 ## Pendências
 
-1. **Dados de demonstração do CD-02** (é o primeiro depósito nos formulários): não tem zona de expedição/doca nem endereço refrigerado. Consequência: onda/pedido de saída no CD-02 é recusado (“Selecione uma doca ativa…”) e a NF-e de exemplo (com ADE-003 refrigerado), se recebida no CD-02, deixa uma tarefa de armazenagem sem endereço elegível. As regras estão corretas; incluir uma doca no CD-02 muda o mapa 3D da vitrine (teste `inventory-showcase` espera 144 células) e ficou para uma decisão de seed.
-2. No formulário de nova onda, a lista de docas não é filtrada pelo depósito escolhido (mostra a doca do DEP-01 com o CD-02 selecionado); o servidor recusa com mensagem clara. Melhorar exige tornar o formulário dependente do depósito (cliente).
-3. Toast de novidade “leve” não exercitável pela UI na versão atual (ver item 4).
+1. Toast de novidade “leve” não exercitável pela UI na versão atual (ver item 4).
 
 ## Verificação
 
-- `npm run check`: lint e typecheck sem erros; 26 arquivos, 188 testes passando.
+- `npm run check`: lint e typecheck sem erros; 28 arquivos, 194 testes passando.
 - `WMS_DEMO_MODE=true npm run build`: concluído.
 - Recrawl final: 180 aberturas sem erro, sem rolagem horizontal; varredura de acessibilidade sem achados.
 

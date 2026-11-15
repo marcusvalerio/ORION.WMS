@@ -34,7 +34,7 @@ O repositório `ORION.WMS` continha apenas um `README.md` com o título do proje
 | G. Tarefas | Central com filtros rápidos (abertas, minhas, sem responsável), busca, tipo, status, prioridade, ordenação e paginação; iniciar, executar, concluir; atribuição e prioridade (supervisor); cancelamento de transferências; eventos imutáveis por tarefa; conclusão única garantida sob lock. |
 | H. Inventário | Geral e rotativo (zona, endereço ou produto), snapshot do saldo esperado, folha de contagem, inclusão de item encontrado, submissão (diferenças viram divergências), aprovação com permissão que gera ajustes e é recusada se o saldo mudou durante a contagem, devolução para recontagem e cancelamento. Contagem nunca altera saldo. |
 | I. Saída | Importação de pedido de venda do ERP ou pedido manual; disponibilidade por item; reserva FEFO tudo-ou-nada; tarefas de separação por reserva com origem e doca; confirmação de endereço e quantidade (a menor gera divergência e libera o restante da reserva); conferência final que bloqueia a expedição se divergir; expedição com transportadora, placa e documento; status distintos aberto/reservado/em separação/separado/conferido/expedido; atualização do ERP e evento de integração. |
-| J. Relatórios | 8 relatórios (estoque, movimentações, recebimentos, divergências, tarefas, inventários, pedidos, expedições) com pré-visualização e CSV (`;`, BOM UTF-8, proteção contra injeção de fórmulas) que respeita filtros e permissões. |
+| J. Relatórios | 8 relatórios (estoque, movimentações, recebimentos, divergências, tarefas, inventários, pedidos, expedições) com pré-visualização e CSV (exportação só para administrador e supervisor; `;`, BOM UTF-8, proteção contra injeção de fórmulas) que respeita filtros e permissões. |
 | Gestão | Indicadores de desempenho (dock-to-stock, ciclo do pedido, acuracidade de separação, recebimento e inventário); auditoria com busca e filtro; visão da outbox de integração. |
 
 ### Principais arquivos
@@ -85,7 +85,7 @@ Executado nesta entrega:
 | `npm run typecheck` (tsc strict) | sem erros |
 | `npm test` (Vitest) | **8 arquivos, 50 testes, todos aprovados** |
 | `npm run build` (Next.js 16, Turbopack) | concluído, 31 rotas, sem avisos |
-| E2E manual automatizado em Chromium (Playwright, fora do repositório) | cenário demonstrativo completo pela interface: físico final 80, reservado 0, expedido 20; cenário com divergência; reserva acima do disponível recusada; 22 telas × 4 perfis sem erro (servidor de produção); CSV 200 para supervisor/admin/auditor, 403 para operador e 401 sem sessão; sem estouro horizontal em 390 px |
+| E2E manual automatizado em Chromium (Playwright, fora do repositório) | cenário demonstrativo completo pela interface: físico final 80, reservado 0, expedido 20; cenário com divergência; reserva acima do disponível recusada; 22 telas × 4 perfis sem erro (servidor de produção); CSV 200 para supervisor/admin, 403 para operador e auditor (exportação restrita à gestão; o auditor só pré-visualiza) e 401 sem sessão; sem estouro horizontal em 390 px |
 
 Cobertura dos testes automatizados (`tests/`):
 

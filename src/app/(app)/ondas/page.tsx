@@ -8,9 +8,10 @@ import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { DemoBadge, PriorityBadge, StatusBadge } from "@/components/ui/badge";
 import { EmptyState } from "@/components/ui/empty-state";
 import { FilterBar, FilterField } from "@/components/ui/filter-bar";
-import { Field, Input, Select } from "@/components/ui/fields";
+import { Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
-import { ActionForm, SubmitButton } from "@/components/forms/action-form";
+import { ActionForm } from "@/components/forms/action-form";
+import { WaveFormFields } from "@/components/wms/wave-form-fields";
 import { Progress } from "@/components/wms/progress";
 import { STATUS, WAVE_GROUPING_LABELS } from "@/lib/labels";
 import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
@@ -46,69 +47,56 @@ export default async function WavesPage({ searchParams }: { searchParams: Search
           />
           <CardBody>
             <ActionForm action={createWaveAction} className="space-y-4">
-              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
-                <Field label="Depósito" required>
-                  <Select name="warehouseId" required options={warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
-                </Field>
-                <Field label="Agrupar por" required>
-                  <Select name="grouping" defaultValue="manual" options={Object.entries(WAVE_GROUPING_LABELS).map(([value, label]) => ({ value, label }))} />
-                </Field>
-                <Field label="Doca" hint="Destino dos volumes; também é o critério no agrupamento por doca.">
-                  <Select name="dockLocationId" placeholder="Primeira doca ativa" options={docks.map((d) => ({ value: d.id, label: d.code }))} />
-                </Field>
-                <Field label="Transportadora">
-                  <Input name="carrier" maxLength={120} />
-                </Field>
-                <Field label="Data prevista">
-                  <Input name="plannedDate" type="date" />
-                </Field>
-              </div>
-              {candidates.length ? (
-                <TableWrap>
-                  <table className="table-base">
-                    <thead>
-                      <tr>
-                        <th className="w-10">
-                          <span className="sr-only">Selecionar</span>
-                        </th>
-                        <th>Pedido</th>
-                        <th>Cliente</th>
-                        <th>Prioridade</th>
-                        <th>Transportadora</th>
-                        <th>Data prevista</th>
-                        <th>Doca</th>
-                        <th className="num">Quantidade</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {candidates.map((o, i) => (
-                        <tr key={o.id}>
-                          <td>
-                            <input type="checkbox" name={`orderIds.${i}`} value={o.id} aria-label={`Selecionar ${o.code}`} className="size-4" />
-                          </td>
-                          <td>
-                            <Link href={`/separacao/${o.id}`} className="link">
-                              {o.code}
-                            </Link>
-                          </td>
-                          <td>{o.customer_name}</td>
-                          <td>
-                            <PriorityBadge priority={o.priority} />
-                          </td>
-                          <td>{o.carrier ?? "—"}</td>
-                          <td>{fmtDate(o.planned_ship_date)}</td>
-                          <td className="font-mono text-[11px]">{o.staging_code ?? "—"}</td>
-                          <td className="num">{fmtQty(o.requested)}</td>
+              <WaveFormFields
+                warehouses={warehouses.filter((w) => w.active).map((w) => ({ id: w.id, label: `${w.code} — ${w.name}` }))}
+                docks={docks}
+              >
+                {candidates.length ? (
+                  <TableWrap>
+                    <table className="table-base">
+                      <thead>
+                        <tr>
+                          <th className="w-10">
+                            <span className="sr-only">Selecionar</span>
+                          </th>
+                          <th>Pedido</th>
+                          <th>Cliente</th>
+                          <th>Prioridade</th>
+                          <th>Transportadora</th>
+                          <th>Data prevista</th>
+                          <th>Doca</th>
+                          <th className="num">Quantidade</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </TableWrap>
-              ) : (
-                <p className="text-sm text-muted">Nenhum pedido reservado fora de onda. Reserve pedidos em Separação para montar ondas.</p>
-              )}
-              <p className="text-xs text-muted">Na seleção manual, marque os pedidos. Nos demais critérios, entram todos os pedidos reservados que atendem ao valor informado.</p>
-              <SubmitButton>Criar onda</SubmitButton>
+                      </thead>
+                      <tbody>
+                        {candidates.map((o, i) => (
+                          <tr key={o.id}>
+                            <td>
+                              <input type="checkbox" name={`orderIds.${i}`} value={o.id} aria-label={`Selecionar ${o.code}`} className="size-4" />
+                            </td>
+                            <td>
+                              <Link href={`/separacao/${o.id}`} className="link">
+                                {o.code}
+                              </Link>
+                            </td>
+                            <td>{o.customer_name}</td>
+                            <td>
+                              <PriorityBadge priority={o.priority} />
+                            </td>
+                            <td>{o.carrier ?? "—"}</td>
+                            <td>{fmtDate(o.planned_ship_date)}</td>
+                            <td className="font-mono text-[11px]">{o.staging_code ?? "—"}</td>
+                            <td className="num">{fmtQty(o.requested)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </TableWrap>
+                ) : (
+                  <p className="text-sm text-muted">Nenhum pedido reservado fora de onda. Reserve pedidos em Separação para montar ondas.</p>
+                )}
+                <p className="text-xs text-muted">Na seleção manual, marque os pedidos. Nos demais critérios, entram todos os pedidos reservados que atendem ao valor informado.</p>
+              </WaveFormFields>
             </ActionForm>
           </CardBody>
         </Card>

@@ -34,9 +34,18 @@ export interface Table {
   rows: Cell[][];
 }
 
-/** Gera os dados de um relatório respeitando filtros e permissões. */
-export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams): Promise<Table> {
+/**
+ * Exportação (download CSV): restrita à gestão (`reports.export` = administrador e supervisor).
+ * O auditor consulta a pré-visualização (`reports.view`), mas não baixa arquivos.
+ */
+export async function exportReport(ctx: Ctx, key: string, params: URLSearchParams): Promise<Table> {
   assertCan(ctx, "reports.export");
+  return buildReport(ctx, key, params);
+}
+
+/** Gera os dados de um relatório (pré-visualização) respeitando filtros e permissões. */
+export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams): Promise<Table> {
+  assertCan(ctx, "reports.view");
   const p = (k: string) => params.get(k) || null;
   switch (key as ReportKey) {
     case "devolucoes": {

@@ -10,7 +10,14 @@ describe("vitrine do inventário (seed de demonstração)", () => {
     await seedInventoryShowcase(env.db);
     const inv = await env.one<{ id: string }>(`select id from wms.inventory_counts where status = 'counting' and notes like 'Inventário geral%'`);
     const map = await getInventoryMap(env.as("supervisor"), inv.id);
-    expect(map!.cells.length).toBe(144);
+    // uma célula por endereço ativo do CD-02 (porta-paletes 4×8×4 + picking 8×2 + docas/câmara refrigerada)
+    const locs = await env.one<{ total: number; storage: number }>(
+      `select count(*)::int as total, count(*) filter (where z.code in ('A', 'B'))::int as storage
+       from wms.locations l join wms.zones z on z.id = l.zone_id join wms.warehouses w on w.id = l.warehouse_id
+       where w.code = 'CD-02' and l.status <> 'inactive'`,
+    );
+    expect(locs.storage).toBe(144);
+    expect(map!.cells.length).toBe(locs.total);
     expect(map!.counts.counted + map!.counts.divergent).toBeGreaterThan(50);
     const kpis = await getInventoryKpis(env.as("supervisor"), inv.id);
     expect(kpis!.cycles.length).toBe(6);
