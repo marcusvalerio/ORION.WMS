@@ -238,6 +238,10 @@ export async function runReplenishmentCheck(ctx: Ctx, input: unknown, opts?: OpO
   assertCan(ctx, "replenishment.manage");
   const d = parse(z.object({ warehouseId: z.string().uuid().nullish().or(z.literal("").transform(() => null)) }), input ?? {});
   return runOperation(ctx, "replenishment.check", opts, async (tx) => {
+    if (d.warehouseId) {
+      const [wh] = await tx.query(`select 1 from wms.warehouses where id = $1 and company_id = $2`, [d.warehouseId, ctx.user.companyId]);
+      if (!wh) throw new NotFoundError("Depósito");
+    }
     const tasks = await checkReplenishmentTx(tx, ctx, { warehouseId: d.warehouseId ?? null });
     await audit(tx, ctx, "replenishment.checked", "replenishment_setting", null, null, { tasks });
     return { tasks };

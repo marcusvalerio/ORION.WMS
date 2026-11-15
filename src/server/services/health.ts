@@ -45,7 +45,11 @@ async function availableMigrations(): Promise<string[]> {
  * Verificação de saúde. `db` nulo/erro de conexão → status "error".
  * Pendências de migration ou eventos que falharam → "degraded".
  */
-export async function collectHealth(getDb: () => Promise<Db>): Promise<DetailedHealth> {
+/**
+ * `companyId`: limita a fila (contagens e evento pendente mais antigo) a uma empresa.
+ * Sem ele (rota pública /api/health), a fila é agregada de todas as empresas, sem dados de nenhuma.
+ */
+export async function collectHealth(getDb: () => Promise<Db>, companyId: string | null = null): Promise<DetailedHealth> {
   const time = new Date().toISOString();
   const config = transportFromEnv();
   const base = {
@@ -82,8 +86,11 @@ export async function collectHealth(getDb: () => Promise<Db>): Promise<DetailedH
   const [applied, available, counts, [oldest]] = await Promise.all([
     db.query<{ version: string }>(`select version from public.orion_schema_migrations order by version`).catch(() => []),
     availableMigrations(),
-    queueCounts(db),
-    db.query<{ at: string | null }>(`select min(created_at)::text as at from wms.integration_events where status = 'pending'`),
+    queueCounts(db, companyId),
+    db.query<{ at: string | null }>(
+      `select min(created_at)::text as at from wms.integration_events where status = 'pending' and ($1::uuid is null or company_id = $1::uuid)`,
+      [companyId],
+    ),
   ]);
   const appliedSet = new Set(applied.map((a) => a.version));
   const pending = available.filter((v) => !appliedSet.has(v));
@@ -109,5 +116,6 @@ export function toPublicHealth(h: DetailedHealth): PublicHealth {
 
 export async function getSystemHealth(ctx: Ctx): Promise<DetailedHealth> {
   assertCan(ctx, "system.health");
-  return collectHealth(async () => ctx.db);
+  // Tela do administrador da empresa: a fila mostrada é só a da própria empresa.
+  return collectHealth(async () => ctx.db, ctx.user.companyId);
 }

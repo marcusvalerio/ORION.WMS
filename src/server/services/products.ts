@@ -102,6 +102,10 @@ export async function updateProductSettings(ctx: Ctx, productId: string, input: 
       ctx.user.companyId,
     ]);
     if (!p) throw new NotFoundError("Produto");
+    if (d.preferredZoneId) {
+      const [z] = await tx.query(`select 1 from wms.zones where id = $1 and company_id = $2`, [d.preferredZoneId, ctx.user.companyId]);
+      if (!z) throw new NotFoundError("Zona preferencial");
+    }
     await tx.query(
       `insert into wms.product_settings (product_id, company_id, lot_controlled, expiry_controlled, serial_controlled,
                                          storage_class, max_units_per_location, preferred_zone_id, updated_by, updated_at)

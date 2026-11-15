@@ -146,6 +146,27 @@ export async function createInventory(ctx: Ctx, input: unknown, opts?: OpOptions
   return runOperation(ctx, "inventory.create", opts, async (tx) => {
     const [wh] = await tx.query(`select id from wms.warehouses where id = $1 and company_id = $2`, [d.warehouseId, ctx.user.companyId]);
     if (!wh) throw new NotFoundError("Depósito");
+    // Filtros (zona, endereço, produto) precisam ser da mesma empresa e do depósito do inventário.
+    if (d.zoneId) {
+      const [z] = await tx.query(`select 1 from wms.zones where id = $1 and company_id = $2 and warehouse_id = $3`, [
+        d.zoneId,
+        ctx.user.companyId,
+        d.warehouseId,
+      ]);
+      if (!z) throw new NotFoundError("Zona");
+    }
+    if (d.locationId) {
+      const [l] = await tx.query(`select 1 from wms.locations where id = $1 and company_id = $2 and warehouse_id = $3`, [
+        d.locationId,
+        ctx.user.companyId,
+        d.warehouseId,
+      ]);
+      if (!l) throw new NotFoundError("Endereço");
+    }
+    if (d.productId) {
+      const [p] = await tx.query(`select 1 from erp.products where id = $1 and company_id = $2`, [d.productId, ctx.user.companyId]);
+      if (!p) throw new NotFoundError("Produto");
+    }
     const code = await nextCode(tx, ctx.user.companyId, "INV");
     const [c] = await tx.query<{ id: string }>(
       `insert into wms.inventory_counts (company_id, warehouse_id, code, count_type, zone_id, location_id, product_id, notes, created_by)
@@ -257,6 +278,8 @@ export async function addInventoryItem(ctx: Ctx, inventoryId: string, input: unk
       ctx.user.companyId,
     ]);
     if (!loc || loc.warehouse_id !== c.warehouse_id) throw new DomainError("Endereço não pertence ao depósito do inventário.");
+    const [product] = await tx.query(`select 1 from erp.products where id = $1 and company_id = $2`, [d.productId, ctx.user.companyId]);
+    if (!product) throw new NotFoundError("Produto");
     const balance = await lockBalance(tx, ctx.user.companyId, d.locationId, d.productId, d.lotCode);
     const [row] = await tx.query<{ id: string }>(
       `insert into wms.inventory_count_items (inventory_id, location_id, product_id, lot_code, expiry_date, expected_qty, counted_qty,
