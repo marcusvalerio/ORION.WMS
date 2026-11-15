@@ -130,13 +130,13 @@ export default async function DocksPage({ searchParams }: { searchParams: Search
         )}
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           {can(role, "dock.schedule") && activeDocks.length ? (
             <Card>
               <CardHeader title="Agendar janela" description="Vincule um pedido de compra (entrada) ou um pedido de saída. Doca de entrada não aceita pedido de saída e vice-versa." />
               <CardBody>
-                <ActionForm action={createAppointmentAction} resetOnSuccess className="grid gap-3 md:grid-cols-4">
+                <ActionForm action={createAppointmentAction} resetOnSuccess className="grid grid-cols-1 gap-3 md:grid-cols-4">
                   <Field label="Doca" required>
                     <Select name="dockId" required options={activeDocks.map((d) => ({ value: d.id, label: `${d.warehouse_code} · ${d.code} (${DOCK_TYPE_LABELS[d.dock_type]})` }))} />
                   </Field>

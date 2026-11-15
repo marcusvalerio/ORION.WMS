@@ -104,7 +104,7 @@ export default async function ReplenishmentPage() {
           <CardHeader title="Configurar mínimo/máximo" description="Salvar um endereço/produto já configurado atualiza os valores. Cada endereço abastece um único produto ativo." />
           <CardBody>
             {locations.length ? (
-              <ActionForm action={saveReplenishmentSettingAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-6">
+              <ActionForm action={saveReplenishmentSettingAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-6">
                 <Field label="Endereço de picking" required className="lg:col-span-2">
                   <Select name="locationId" required options={locations.map((l) => ({ value: l.id, label: `${l.code} (cap. ${fmtQty(l.capacity_units)})` }))} />
                 </Field>

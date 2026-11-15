@@ -73,7 +73,7 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
 
         {canEdit ? (
           <Disclosure title={order.is_export ? "Alterar dados de exportação" : "Marcar como exportação"}>
-            <ActionForm action={saveOrderExportAction} className="grid gap-3 sm:grid-cols-2">
+            <ActionForm action={saveOrderExportAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
               <input type="hidden" name="_id" value={orderId} />
               <div className="sm:col-span-2">
                 <Checkbox name="isExport" defaultChecked label="Pedido de exportação" />
@@ -149,7 +149,7 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
           <Disclosure title="Incluir volume" defaultOpen>
             <ActionForm action={addExportPackageAction} className="space-y-3" resetOnSuccess>
               <input type="hidden" name="_id" value={orderId} />
-              <div className="grid gap-3 sm:grid-cols-3 lg:grid-cols-6">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 lg:grid-cols-6">
                 <Field label="Tipo">
                   <Select name="packageType" defaultValue="box" options={Object.entries(PACKAGE_TYPE_LABELS).map(([value, label]) => ({ value, label }))} />
                 </Field>

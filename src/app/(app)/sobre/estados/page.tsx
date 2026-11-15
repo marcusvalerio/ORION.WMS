@@ -18,7 +18,7 @@ export default async function EstadosPage() {
         description="Vazio, carregando, erro, avisos, confirmação destrutiva e sucesso — os mesmos componentes usados nas telas."
         breadcrumbs={[{ label: "Sobre", href: "/sobre" }, { label: "Estados" }]}
       />
-      <div className="grid gap-5 lg:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
         <Card>
           <p className="px-5 pt-4 text-xs font-semibold text-muted">Vazio</p>
           <EmptyState

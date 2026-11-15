@@ -113,7 +113,7 @@ export default async function NewReturnPage({ searchParams }: { searchParams: Se
                 </tbody>
               </table>
             </TableWrap>
-            <CardBody className="grid gap-3 border-t border-line md:grid-cols-3 md:items-end">
+            <CardBody className="grid grid-cols-1 gap-3 border-t border-line md:grid-cols-3 md:items-end">
               <Field label="Motivo" required>
                 <Select name="reason" required options={RETURN_REASONS.map((r) => ({ value: r, label: RETURN_REASON_LABELS[r] }))} />
               </Field>

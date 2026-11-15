@@ -212,9 +212,12 @@ export function CdMap({
 
   const youPt = walk ? project(...walk.points[0], 0) : null;
   const selAnchor = selected && mode === "overview" ? cellBox(selected).anchor : null;
+  // desloca o balão do endereço selecionado para a esquerda quando passaria da borda do mapa
+  // (ou por baixo do seletor de nível, no canto superior direito)
+  const tipDx = selAnchor ? Math.min(0, vb.x + vb.w - vb.w * 0.09 - (selAnchor[0] + 228)) : 0;
 
   return (
-    <div className="grid overflow-hidden rounded-xl border border-line bg-[radial-gradient(ellipse_at_40%_45%,#0D163B_0%,#03061A_70%)] lg:grid-cols-[minmax(0,1fr)_380px]">
+    <div className="grid grid-cols-1 overflow-hidden rounded-xl border border-line bg-[radial-gradient(ellipse_at_40%_45%,#0D163B_0%,#03061A_70%)] lg:grid-cols-[minmax(0,1fr)_380px]">
       <section aria-label="Mapa do CD" className="flex min-w-0 flex-col border-b border-line lg:border-r lg:border-b-0">
         <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-4">
           {mode === "front" ? (
@@ -357,7 +360,14 @@ export function CdMap({
                 <polyline points={pts(walk.points.map(([x, y]) => project(x, y, 0)))} fill="none" stroke="#7DB7F0" strokeWidth={3} strokeDasharray="2 7" strokeLinecap="round" />
                 <circle cx={youPt[0]} cy={youPt[1]} r={24} fill="url(#cdmap-glow)" />
                 <circle cx={youPt[0]} cy={youPt[1]} r={6} fill="#7DB7F0" stroke="#03061A" strokeWidth={2} />
-                <text x={youPt[0] + 12} y={youPt[1] + 24} fill="#9DC7F4" className="text-[12px]">
+                {/* perto da borda direita, o rótulo vai para a esquerda do ponto para não ser cortado */}
+                <text
+                  x={youPt[0] > vb.x + vb.w * 0.6 ? youPt[0] - 12 : youPt[0] + 12}
+                  y={youPt[1] + 24}
+                  textAnchor={youPt[0] > vb.x + vb.w * 0.6 ? "end" : "start"}
+                  fill="#9DC7F4"
+                  className="text-[12px]"
+                >
                   Você · {walk.meters} m até {next ? next.code.split("/").slice(1).join("/") : "o próximo"}
                 </text>
               </g>
@@ -366,11 +376,11 @@ export function CdMap({
               <g aria-hidden className="pointer-events-none">
                 <line x1={selAnchor[0]} y1={selAnchor[1]} x2={selAnchor[0]} y2={selAnchor[1] - 40} stroke="#F8E2A6" strokeWidth={1.5} />
                 <circle cx={selAnchor[0]} cy={selAnchor[1]} r={4} fill="#F8E2A6" />
-                <rect x={selAnchor[0] - 8} y={selAnchor[1] - 84} width={236} height={46} rx={10} fill="#FFF8E7" />
-                <text x={selAnchor[0] + 4} y={selAnchor[1] - 64} fill="#060B2A" className="font-mono text-[13px] font-medium">
+                <rect x={selAnchor[0] - 8 + tipDx} y={selAnchor[1] - 84} width={236} height={46} rx={10} fill="#FFF8E7" />
+                <text x={selAnchor[0] + 4 + tipDx} y={selAnchor[1] - 64} fill="#060B2A" className="font-mono text-[13px] font-medium">
                   {selected.code.split("/").slice(1).join("/")}
                 </text>
-                <text x={selAnchor[0] + 4} y={selAnchor[1] - 47} fill="#060B2A" className="text-[11px]">
+                <text x={selAnchor[0] + 4 + tipDx} y={selAnchor[1] - 47} fill="#060B2A" className="text-[11px]">
                   Enter ou toque para ficar de frente
                 </text>
               </g>

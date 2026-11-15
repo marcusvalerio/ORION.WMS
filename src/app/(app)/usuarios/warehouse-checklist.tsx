@@ -9,7 +9,7 @@ export function WarehouseChecklist({
   selected: string[];
 }) {
   return (
-    <div className="mt-1 grid gap-2 sm:grid-cols-2">
+    <div className="mt-1 grid grid-cols-1 gap-2 sm:grid-cols-2">
       {warehouses.map((w, i) => (
         <Checkbox
           key={w.id}

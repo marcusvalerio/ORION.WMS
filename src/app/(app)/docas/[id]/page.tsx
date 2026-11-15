@@ -44,7 +44,7 @@ export default async function AppointmentPage({ params }: { params: Promise<{ id
         description={`Doca ${a.dock_code} · ${a.local_start}–${a.local_end} · ${a.direction === "inbound" ? "Entrada" : "Saída"}`}
         breadcrumbs={[{ label: "Entrada" }, { label: "Agenda de docas", href: `/docas?data=${day}` }, { label: a.code }]}
       />
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <Card>
             <CardBody>

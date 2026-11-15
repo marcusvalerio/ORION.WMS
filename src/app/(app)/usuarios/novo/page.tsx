@@ -30,7 +30,7 @@ export default async function NewUserPage() {
         <CardHeader title="Dados de acesso" description="A senha inicial é provisória: o usuário deverá trocá-la no primeiro acesso." />
         <CardBody>
           <ActionForm action={createUserAction} className="space-y-4">
-            <div className="grid gap-4 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <Field label="Nome" htmlFor="name" required>
                 <Input id="name" name="name" required minLength={3} maxLength={120} />
               </Field>

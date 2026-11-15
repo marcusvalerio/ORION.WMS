@@ -69,7 +69,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           </div>
         </CardBody>
       </Card>
-      <div className="grid gap-5 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
         <nav className="space-y-1.5" aria-label="Relatórios">
           {(Object.keys(REPORTS) as ReportKey[]).map((key) => (
             <Link

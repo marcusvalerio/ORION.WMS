@@ -31,7 +31,7 @@ export default async function NewOrderPage() {
       />
       <Card className="max-w-3xl">
         <CardBody>
-          <ActionForm action={createOutboundAction} className="grid gap-3 sm:grid-cols-2">
+          <ActionForm action={createOutboundAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Depósito" required>
               <Select name="warehouseId" required options={warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
             </Field>

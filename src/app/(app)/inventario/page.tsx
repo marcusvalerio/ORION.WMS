@@ -46,7 +46,7 @@ export default async function InventoryListPage() {
       {manage ? (
         <div className="mb-5">
           <Disclosure title="Abrir nova contagem">
-            <ActionForm action={createInventoryAction} className="grid gap-3 md:grid-cols-3">
+            <ActionForm action={createInventoryAction} className="grid grid-cols-1 gap-3 md:grid-cols-3">
               <Field label="Depósito" required>
                 <Select name="warehouseId" required options={warehouses.map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
               </Field>

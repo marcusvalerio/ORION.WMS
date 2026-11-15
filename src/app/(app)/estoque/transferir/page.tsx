@@ -78,7 +78,7 @@ export default async function TransferPage({ searchParams }: { searchParams: Sea
               {balance.available_qty <= 0 ? (
                 <Alert level="warning">Este saldo não possui quantidade disponível (está reservado ou bloqueado).</Alert>
               ) : (
-                <ActionForm action={createTransferAction} className="grid gap-3 sm:grid-cols-2">
+                <ActionForm action={createTransferAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input type="hidden" name="fromLocationId" value={balance.location_id} />
                   <input type="hidden" name="productId" value={balance.product_id} />
                   <input type="hidden" name="lotCode" value={balance.lot_code} />

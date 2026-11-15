@@ -46,7 +46,7 @@ export default async function WavesPage({ searchParams }: { searchParams: Search
           />
           <CardBody>
             <ActionForm action={createWaveAction} className="space-y-4">
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
+              <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-5">
                 <Field label="Depósito" required>
                   <Select name="warehouseId" required options={warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
                 </Field>

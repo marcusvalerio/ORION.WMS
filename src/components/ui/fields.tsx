@@ -16,13 +16,29 @@ export function Field({
   htmlFor?: string;
   required?: boolean;
 }) {
+  const text = (
+    <>
+      {label}
+      {required ? <span className="text-crit-fg"> *</span> : null}
+    </>
+  );
+  // Sem `htmlFor`, o rótulo envolve o controle: a associação fica implícita
+  // (leitores de tela anunciam o nome do campo e o clique no rótulo foca o campo).
   return (
     <div className={className}>
-      <label className="label" htmlFor={htmlFor}>
-        {label}
-        {required ? <span className="text-crit-fg"> *</span> : null}
-      </label>
-      {children}
+      {htmlFor ? (
+        <>
+          <label className="label" htmlFor={htmlFor}>
+            {text}
+          </label>
+          {children}
+        </>
+      ) : (
+        <label className="block">
+          <span className="label">{text}</span>
+          {children}
+        </label>
+      )}
       {hint ? <p className="mt-1 text-xs text-muted">{hint}</p> : null}
     </div>
   );

@@ -238,7 +238,7 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
           </Card>
         ) : null}
 
-        <div className="grid gap-5 lg:grid-cols-3">
+        <div className="grid grid-cols-1 gap-5 lg:grid-cols-3">
           <Card className="lg:col-span-2">
             <CardHeader
               title="Dados atuais"
@@ -288,7 +288,7 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
             }
           />
           <CardBody>
-            <ActionForm action={updateCompanyAction} className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            <ActionForm action={updateCompanyAction} className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               <Field label="Nome fantasia" required htmlFor="c-name">
                 <Input id="c-name" name="name" defaultValue={company.name} required minLength={2} maxLength={160} />
               </Field>

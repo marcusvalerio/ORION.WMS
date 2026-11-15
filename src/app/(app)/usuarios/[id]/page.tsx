@@ -56,7 +56,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
           novo usuário para testar essas funções.
         </Alert>
       ) : null}
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader title="Dados e perfil" />
           <CardBody>

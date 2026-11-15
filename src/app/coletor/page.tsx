@@ -21,6 +21,7 @@ export default async function CollectorHome() {
   ].filter(Boolean) as { href: string; label: string; detail: string; Icon: typeof ListTodo }[];
   return (
     <div className="space-y-3">
+      <h1 className="sr-only">Menu do coletor</h1>
       {items.map(({ href, label, detail, Icon }) => (
         <Link
           key={href}

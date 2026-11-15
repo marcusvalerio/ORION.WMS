@@ -27,7 +27,7 @@ export default async function IndicatorsPage() {
           <GlyphGauge value={occupancy.value} label={occupancy.label} detail={`${occupancy.hint} · ${occupancy.definition}`} size={96} />
         </div>
       ) : null}
-      <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {performance.map((p) => (
           <div key={p.label} className="rounded-lg border border-line bg-surface p-4 shadow-xs">
             <p className="text-xs font-medium text-muted">{p.label}</p>
@@ -38,7 +38,7 @@ export default async function IndicatorsPage() {
           </div>
         ))}
       </div>
-      <div className="mt-5 grid gap-5 xl:grid-cols-2">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader title="Ocupação por zona" />
           <TableWrap>
@@ -72,7 +72,7 @@ export default async function IndicatorsPage() {
           <CardHeader title="Definições dos indicadores do dashboard" />
           <dl className="divide-y divide-line">
             {kpis.map((k) => (
-              <div key={k.key} className="grid gap-1 px-4 py-2.5 sm:grid-cols-3">
+              <div key={k.key} className="grid grid-cols-1 gap-1 px-4 py-2.5 sm:grid-cols-3">
                 <dt className="text-sm font-medium text-fg">{k.label}</dt>
                 <dd className="text-xs text-fg-2 sm:col-span-2">{k.definition}</dd>
               </div>

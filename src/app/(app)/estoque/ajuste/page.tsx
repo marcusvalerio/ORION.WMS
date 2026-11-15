@@ -33,7 +33,7 @@ export default async function AdjustPage() {
       />
       <Card className="max-w-3xl">
         <CardBody>
-          <ActionForm action={adjustStockAction} resetOnSuccess confirm="Confirmar o ajuste de estoque? A operação será auditada." className="grid gap-3 sm:grid-cols-2">
+          <ActionForm action={adjustStockAction} resetOnSuccess confirm="Confirmar o ajuste de estoque? A operação será auditada." className="grid grid-cols-1 gap-3 sm:grid-cols-2">
             <Field label="Endereço" required className="sm:col-span-2">
               <Select name="locationId" required placeholder="Selecione…" options={locations.rows.map((l) => ({ value: l.id, label: l.code }))} />
             </Field>
