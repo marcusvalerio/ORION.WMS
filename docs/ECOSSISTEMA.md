@@ -1,4 +1,6 @@
-# Ecossistema ATLAS.ERP · ORION.WMS · TMS
+# Ecossistema ASTRAEUS — ATLAS.ERP · ORION.WMS · TMS
+
+**ASTRAEUS** é o nome do ecossistema que reúne os sistemas de gestão: **ATLAS** (ERP, MRP e MCN), **ORION** (WMS) e o **TMS** (em breve). O ERP planeja, o WMS guarda e separa, o TMS leva — um dado digitado uma vez vale para todos. No ORION, a marca aparece no login, no rodapé da área logada, na tela **Sobre** (`/sobre`), na página pública (`/site`) e no rodapé dos e-mails.
 
 Este documento descreve a divisão de responsabilidades entre os sistemas, as entidades de cada um e os eventos trocados. Cada item indica se **já existe** no código do ORION.WMS ou se é **proposto** (ainda não implementado).
 
