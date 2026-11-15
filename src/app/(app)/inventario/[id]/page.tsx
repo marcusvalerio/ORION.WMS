@@ -1,6 +1,8 @@
 import { notFound } from "next/navigation";
 import { requireCtx } from "@/server/auth/session";
-import { getInventory } from "@/server/services/inventory";
+import { getInventory, getInventoryKpis, getInventoryMap } from "@/server/services/inventory";
+import { CdMap } from "@/components/inventory/cd-map/cd-map";
+import { InventoryKpiPanel } from "@/components/inventory/inventory-kpi-panel";
 import { listLocations } from "@/server/services/warehouse";
 import { listProductOptions } from "@/server/services/products";
 import { entityHistory } from "@/server/services/audit";
@@ -18,6 +20,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Disclosure } from "@/components/ui/disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
+import { SuccessHero } from "@/components/ui/states";
 import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
@@ -38,10 +41,12 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
   if (!inv) notFound();
   const role = ctx.user.role;
   const counting = inv.status === "counting";
-  const [locations, products, history] = await Promise.all([
+  const [locations, products, history, map, kpis] = await Promise.all([
     counting && can(role, "inventory.count") ? listLocations(ctx, { warehouseId: inv.warehouse_id, pageSize: 2000 }) : Promise.resolve({ rows: [] }),
     counting && can(role, "inventory.count") ? listProductOptions(ctx) : Promise.resolve([]),
     entityHistory(ctx, "inventory", id),
+    getInventoryMap(ctx, id),
+    getInventoryKpis(ctx, id),
   ]);
   const counted = inv.items.filter((i) => i.counted_qty !== null).length;
   const diffs = inv.items.filter((i) => i.counted_qty !== null && i.counted_qty !== i.expected_qty);
@@ -58,6 +63,23 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
         }
         breadcrumbs={[{ label: "Operações" }, { label: "Inventário", href: "/inventario" }, { label: inv.code }]}
       />
+      {inv.status === "approved" && kpis?.accuracy != null ? (
+        <SuccessHero
+          value={`${kpis.accuracy.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
+          title="Inventário concluído"
+          detail={`${kpis.deltaPp != null ? `${kpis.deltaPp >= 0 ? "+" : ""}${kpis.deltaPp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp sobre o ciclo anterior · ` : ""}${kpis.locations.total} endereços · ${kpis.divergences ?? 0} ajustes`}
+        />
+      ) : null}
+      {map ? (
+        <CdMap
+          map={map}
+          inventoryId={id}
+          canCount={counting && can(role, "inventory.count")}
+          now={map.generatedAt}
+          kpiPanel={kpis ? <InventoryKpiPanel k={kpis} /> : null}
+        />
+      ) : null}
+
       <Card className="mb-5">
         <CardBody>
           <DefinitionList
@@ -76,7 +98,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
       </Card>
 
       <div className="grid gap-5 xl:grid-cols-3">
-        <div className="space-y-5 xl:col-span-2">
+        <div className="min-w-0 space-y-5 xl:col-span-2">
           <Card>
             <CardHeader
               title="Folha de contagem"
@@ -126,7 +148,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
           ) : null}
         </div>
 
-        <div className="space-y-5">
+        <div className="min-w-0 space-y-5">
           <Card>
             <CardHeader title="Fluxo de validação" />
             <CardBody className="space-y-4">

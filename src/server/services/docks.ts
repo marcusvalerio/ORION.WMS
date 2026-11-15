@@ -5,7 +5,7 @@ import type { Ctx } from "../context";
 import { assertCan } from "../context";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalUuid } from "../validation";
-import { audit, nextCode, runOperation, type OpOptions } from "./common";
+import { audit, enqueueIntegrationEvent, nextCode, runOperation, type OpOptions } from "./common";
 
 /** Fuso usado para interpretar data/hora digitadas na agenda (configurável). */
 export const WMS_TIMEZONE = process.env.WMS_TIMEZONE || "America/Sao_Paulo";
@@ -108,13 +108,18 @@ export async function createAppointment(ctx: Ctx, input: unknown, opts?: OpOptio
     if (dock.dock_type !== "both" && dock.dock_type !== direction) {
       throw new DomainError(`A doca ${dock.code} é exclusiva de ${dock.dock_type === "inbound" ? "entrada" : "saída"}.`, "VALIDATION");
     }
+    let reference: { code: string; supplier: string | null; volumes: string | null } | null = null;
     if (d.purchaseOrderId) {
-      const [po] = await tx.query<{ status: string; number: string }>(
-        `select status, number from erp.purchase_orders where id = $1 and company_id = $2`,
+      const [po] = await tx.query<{ status: string; number: string; supplier: string | null; items: number; units: number }>(
+        `select po.status, po.number, s.name as supplier,
+                (select count(*)::int from erp.purchase_order_items i where i.purchase_order_id = po.id) as items,
+                (select coalesce(sum(i.quantity), 0)::float8 from erp.purchase_order_items i where i.purchase_order_id = po.id) as units
+         from erp.purchase_orders po left join erp.suppliers s on s.id = po.supplier_id where po.id = $1 and po.company_id = $2`,
         [d.purchaseOrderId, ctx.user.companyId],
       );
       if (!po) throw new NotFoundError("Pedido de compra");
       if (!["open", "partially_received"].includes(po.status)) throw new DomainError(`O pedido ${po.number} não está aberto para recebimento.`);
+      reference = { code: po.number, supplier: po.supplier, volumes: `${po.items} item(ns) · ${po.units} un` };
     }
     if (d.outboundOrderId) {
       const [o] = await tx.query<{ status: string; code: string; warehouse_id: string }>(
@@ -124,6 +129,7 @@ export async function createAppointment(ctx: Ctx, input: unknown, opts?: OpOptio
       if (!o) throw new NotFoundError("Pedido de saída");
       if (["shipped", "cancelled"].includes(o.status)) throw new DomainError(`O pedido ${o.code} já foi encerrado.`);
       if (o.warehouse_id !== dock.warehouse_id) throw new DomainError("O pedido de saída é de outro depósito.");
+      reference = { code: o.code, supplier: null, volumes: null };
     }
     const [range] = await tx.query<{ starts_at: string; ends_at: string }>(
       `select (($1::date + $2::time) at time zone $4)::text as starts_at, (($1::date + $3::time) at time zone $4)::text as ends_at`,
@@ -157,6 +163,18 @@ export async function createAppointment(ctx: Ctx, input: unknown, opts?: OpOptio
       ],
     );
     await audit(tx, ctx, "appointment.created", "dock_appointment", row.id, code, { dock: dock.code, ...d });
+    // aviso (canal de e-mail da outbox): agendamento de doca criado
+    await enqueueIntegrationEvent(tx, ctx, "dock.appointment_created", "dock_appointment", row.id, {
+      code,
+      direction,
+      dock: dock.code,
+      reference: reference?.code ?? code,
+      supplier: reference?.supplier ?? null,
+      volumes: reference?.volumes ?? null,
+      carrier: d.carrier,
+      starts_at: new Date(range.starts_at).toISOString(),
+      ends_at: new Date(range.ends_at).toISOString(),
+    });
     return { id: row.id, code };
   });
 }

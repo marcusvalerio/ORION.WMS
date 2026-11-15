@@ -12,6 +12,11 @@ import { cookies } from "next/headers";
 import { THEME_COOKIE, parseTheme, type ThemePref } from "@/lib/theme";
 import { DemoBadge } from "@/components/ui/badge";
 import { PERMISSIONS, ROLE_LABELS, can, type Permission } from "@/lib/permissions";
+import { Novidades, NovidadesGift } from "@/components/novidades/novidades";
+import { RELEASES } from "@/content/novidades";
+import { NOVIDADES_COOKIE, novidadesDoUsuario, parseVistas } from "@/lib/novidades";
+import { versoesVistas } from "@/server/services/novidades";
+import { isDemoMode } from "@/server/demo-mode";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +25,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   if (user.mustChangePassword) redirect("/trocar-senha");
   const company = await getCompanyProfile(db, user.companyId);
   const companyTitle = [company.legal_name, company.document_formatted ? `CNPJ ${company.document_formatted}` : null].filter(Boolean).join(" — ");
-  const theme = parseTheme((await cookies()).get(THEME_COOKIE)?.value);
+  const cookieStore = await cookies();
+  const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
+  // Novidades: "visto" fica no banco por usuário; no modo demonstração, em cookie.
+  const vistas = isDemoMode() ? parseVistas(cookieStore.get(NOVIDADES_COOKIE)?.value) : await versoesVistas({ db, user });
+  const novidades = novidadesDoUsuario(RELEASES, user.role, vistas);
+  const gift = novidades ? <NovidadesGift pendente={novidades.pendente} total={novidades.itens.length} /> : null;
   const allowed = (Object.keys(PERMISSIONS) as Permission[]).filter((p) => can(user.role, p));
   return (
     <div className="min-h-dvh">
@@ -35,6 +45,7 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           <TopSearch className="mx-6 w-full max-w-md" />
           <div className="flex shrink-0 items-center gap-3">
             {user.role === "operator" ? <CollectorLink /> : null}
+            {gift}
             <UserMenu name={user.name} role={ROLE_LABELS[user.role]} theme={theme} />
           </div>
         </header>
@@ -45,13 +56,23 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </span>
           <span className="flex items-center gap-2">
             {user.role === "operator" ? <CollectorLink /> : null}
+            {gift}
             <UserMenu name={user.name} role={ROLE_LABELS[user.role]} theme={theme} compact />
           </span>
         </div>
         <TopSearch className="border-b border-line bg-surface px-4 py-2 lg:hidden" />
         <main className="mx-auto w-full max-w-[1400px] px-4 py-5 sm:px-6 lg:py-6">{children}</main>
+        <footer className="mx-auto flex w-full max-w-[1400px] flex-wrap items-center justify-between gap-2 border-t border-line px-4 py-4 text-xs text-muted sm:px-6">
+          <span>
+            <b className="font-display font-semibold text-fg-2">orion</b> wms · versão {RELEASES[0].versao}
+          </span>
+          <Link href="/sobre" className="hover:text-fg">
+            Ecossistema <b className="font-display font-semibold tracking-[0.14em] text-fg-2">ASTRAEUS</b>
+          </Link>
+        </footer>
       </div>
       <Toaster />
+      {novidades ? <Novidades view={novidades} /> : null}
     </div>
   );
 }

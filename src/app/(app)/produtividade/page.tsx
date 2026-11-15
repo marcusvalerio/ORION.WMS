@@ -4,7 +4,8 @@ import { fmtDuration, productivityByUser } from "@/server/services/productivity"
 import { listWarehouses } from "@/server/services/warehouse";
 import { TASK_TYPES } from "@/server/services/tasks";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card } from "@/components/ui/card";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { BlockBar } from "@/components/charts/block-bar";
 import { Alert } from "@/components/ui/alert";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -53,6 +54,29 @@ export default async function ProductivityPage({ searchParams }: { searchParams:
           </a>
         }
       />
+      {data && data.rows.length ? (
+        <Card className="mb-5">
+          <CardHeader title="Tarefas por operador" description="Blocos cheios = tarefas do operador em relação ao mais produtivo do período." />
+          <CardBody>
+            <ul className="space-y-2.5" aria-label="Tarefas por operador">
+              {(() => {
+                const max = Math.max(1, ...data.rows.map((r) => r.tasks_total));
+                return [...data.rows]
+                  .sort((a, b) => b.tasks_total - a.tasks_total)
+                  .map((r) => (
+                    <li key={r.user_id} className="grid grid-cols-[minmax(0,10rem)_1fr_5.5rem] items-center gap-3 text-xs">
+                      <span className="truncate font-medium text-fg">{r.user_name}</span>
+                      <BlockBar used={r.tasks_total} capacity={max} label={`${r.user_name}: ${r.tasks_total} tarefa(s)`} blocks={16} warnAt={101} showLabel={false} />
+                      <span className="text-right text-muted tabular-nums">
+                        {r.tasks_total} · {r.accuracy === null ? "—" : fmtPct(r.accuracy * 100)}
+                      </span>
+                    </li>
+                  ));
+              })()}
+            </ul>
+          </CardBody>
+        </Card>
+      ) : null}
       <Card>
         <FilterBar resetHref="/produtividade">
           <FilterField label="De" className="w-full sm:w-40">

@@ -3,7 +3,9 @@ import { Download, FileText } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { buildReport, REPORTS, type ReportKey } from "@/server/services/reports";
 import { PageHeader } from "@/components/ui/page-header";
-import { Card, CardHeader } from "@/components/ui/card";
+import { Card, CardBody, CardHeader } from "@/components/ui/card";
+import { SplitBars } from "@/components/charts/split-bars";
+import { getFlowSeries } from "@/server/services/dashboard";
 import { Alert } from "@/components/ui/alert";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
@@ -51,7 +53,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     );
   }
   const selected = (params.r && params.r in REPORTS ? params.r : "estoque") as ReportKey;
-  const preview = await buildReport(ctx, selected, new URLSearchParams());
+  const [preview, flow] = await Promise.all([buildReport(ctx, selected, new URLSearchParams()), getFlowSeries(ctx, 14)]);
   return (
     <>
       <PageHeader
@@ -59,6 +61,14 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
         description="Consultas consolidadas com exportação CSV (separador ponto e vírgula, compatível com Excel). Para filtrar, use a tela operacional correspondente e exporte por lá — o CSV respeita os filtros aplicados."
         breadcrumbs={[{ label: "Gestão" }, { label: "Relatórios" }]}
       />
+      <Card className="mb-5">
+        <CardHeader title="Movimento dos últimos 14 dias" description="Unidades armazenadas e expedidas por dia — base dos relatórios de movimentações e expedições." />
+        <CardBody>
+          <div className="mx-auto max-w-4xl">
+            <SplitBars data={flow} />
+          </div>
+        </CardBody>
+      </Card>
       <div className="grid gap-5 lg:grid-cols-4">
         <nav className="space-y-1.5" aria-label="Relatórios">
           {(Object.keys(REPORTS) as ReportKey[]).map((key) => (

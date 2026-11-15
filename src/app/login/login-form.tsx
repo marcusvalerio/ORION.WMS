@@ -4,10 +4,11 @@ import { useActionState, useState } from "react";
 import { LoaderCircle } from "lucide-react";
 import { loginAction } from "@/server/actions/auth";
 import { INITIAL_ACTION_STATE } from "@/lib/action-state";
-import { buttonClass } from "@/components/ui/button";
-import { FormMessage } from "@/components/forms/action-form";
 
 const DEMO_PASSWORD_HINT = "orion-demo";
+
+const INPUT =
+  "h-12 w-full rounded-xl border border-noite-600 bg-[#03061A] px-3.5 text-[15px] text-creme-100 placeholder:text-gelo-500 focus:border-ceu-400 focus:ring-2 focus:ring-ceu-400/30 focus:outline-none";
 
 export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: string; role: string; roleLabel: string }[] }) {
   const [state, action, pending] = useActionState(loginAction, INITIAL_ACTION_STATE);
@@ -15,38 +16,54 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
   const [password, setPassword] = useState("");
   return (
     <>
-      <form action={action} className="mt-5 space-y-4">
-        <div>
-          <label htmlFor="email" className="label">
-            E-mail
-          </label>
-          <input id="email" name="email" type="email" autoComplete="username" required className="input" value={email} onChange={(e) => setEmail(e.target.value)} />
-        </div>
-        <div>
-          <label htmlFor="password" className="label">
-            Senha
-          </label>
+      <form action={action} className="flex flex-col gap-[18px]" aria-label="Entrar">
+        <label className="flex flex-col gap-1.5 text-[13px] text-ceu-300">
+          E-mail
           <input
-            id="password"
+            name="email"
+            type="email"
+            autoComplete="username"
+            required
+            placeholder="voce@empresa.com.br"
+            className={INPUT}
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+          />
+        </label>
+        <label className="flex flex-col gap-1.5 text-[13px] text-ceu-300">
+          Senha
+          <input
             name="password"
             type="password"
             autoComplete="current-password"
             required
-            className="input"
+            placeholder="••••••••"
+            className={INPUT}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
           />
-        </div>
-        <button type="submit" disabled={pending} className={buttonClass("primary", "md", "w-full")}>
+        </label>
+        <p className="-mt-1 text-right text-[13px] text-ceu-300">Esqueceu a senha? Peça ao administrador.</p>
+        <button
+          type="submit"
+          disabled={pending}
+          className="inline-flex h-[54px] items-center justify-center gap-2 rounded-full bg-creme-100 text-[15px] font-semibold text-noite-900 hover:bg-white disabled:opacity-70"
+        >
           {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
           Entrar
         </button>
-        {state.message ? <FormMessage state={state} /> : null}
+        {state.message && !state.ok ? (
+          <p role="alert" className="rounded-xl bg-crit-solid/15 px-3 py-2 text-sm text-[#FFA3A9]">
+            {state.message}
+          </p>
+        ) : null}
       </form>
       {demoUsers.length ? (
-        <div className="mt-6 border-t border-line pt-4">
-          <p className="text-xs font-medium text-fg-2">Perfis de demonstração</p>
-          <p className="mt-0.5 text-xs text-muted">Clique para preencher. Senha de demonstração: <code className="code">{DEMO_PASSWORD_HINT}</code></p>
+        <div className="border-t border-noite-600 pt-4">
+          <p className="text-xs font-medium text-creme-100">Perfis de demonstração</p>
+          <p className="mt-0.5 text-xs text-ceu-300">
+            Clique para preencher. Senha: <code className="font-mono">{DEMO_PASSWORD_HINT}</code>
+          </p>
           <div className="mt-2 grid grid-cols-2 gap-2">
             {demoUsers.map((u) => (
               <button
@@ -56,10 +73,10 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
                   setEmail(u.email);
                   setPassword(DEMO_PASSWORD_HINT);
                 }}
-                className="rounded-md border border-line px-2.5 py-2 text-left hover:border-accent hover:bg-accent-soft"
+                className="rounded-xl border border-noite-600 px-2.5 py-2 text-left hover:border-ceu-400 hover:bg-noite-800"
               >
-                <span className="block text-xs font-medium text-fg">{u.roleLabel}</span>
-                <span className="block truncate text-[11px] text-muted">{u.name}</span>
+                <span className="block text-xs font-medium text-creme-100">{u.roleLabel}</span>
+                <span className="block truncate text-[11px] text-ceu-300">{u.name}</span>
               </button>
             ))}
           </div>

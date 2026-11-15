@@ -26,6 +26,9 @@ export async function seedDemoIfEmpty(db: Db): Promise<boolean> {
   const [row] = await db.query<{ n: number }>("select count(*) as n from erp.companies");
   if (row.n > 0) return false;
   await seedDemo(db);
+  // vitrine do mapa do CD e dos ciclos de inventário (fora de seedDemo para não mudar os números dos testes)
+  const { seedInventoryShowcase } = await import("./showcase");
+  await seedInventoryShowcase(db);
   return true;
 }
 

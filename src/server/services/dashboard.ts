@@ -1,6 +1,7 @@
 import "server-only";
 import type { Ctx } from "../context";
 import { can } from "@/lib/permissions";
+import { dailySeries, isoDay } from "@/lib/charts";
 
 /**
  * Indicadores do dashboard. Todos são calculados em tempo real a partir dos
@@ -15,6 +16,45 @@ export interface Kpi {
   definition: string;
   href?: string;
   tone?: "default" | "warning" | "danger" | "success";
+  /** Série diária dos últimos 14 dias (último ponto = hoje), quando o indicador tem histórico. */
+  series?: { day: string; value: number }[];
+  /** O que a série mede (rótulo acessível do minigráfico). */
+  seriesLabel?: string;
+}
+
+export const SERIES_DAYS = 14;
+
+/**
+ * Séries diárias (14 dias) dos indicadores que têm histórico, calculadas a partir de
+ * movimentações, recebimentos, tarefas, pedidos expedidos e divergências.
+ */
+export async function getKpiSeries(ctx: Ctx, days = SERIES_DAYS) {
+  const rows = await ctx.db.query<{ metric: string; day: string; n: number }>(
+    `select 'putaway' as metric, (created_at at time zone 'America/Sao_Paulo')::date::text as day, sum(quantity) as n
+       from wms.stock_movements where company_id = $1 and movement_type = 'putaway' and created_at >= now() - ($2::int * interval '1 day') group by 2
+     union all
+     select 'receipts', (created_at at time zone 'America/Sao_Paulo')::date::text, count(*)
+       from wms.receipts where company_id = $1 and created_at >= now() - ($2::int * interval '1 day') group by 2
+     union all
+     select 'tasks', (created_at at time zone 'America/Sao_Paulo')::date::text, count(*)
+       from wms.tasks where company_id = $1 and created_at >= now() - ($2::int * interval '1 day') group by 2
+     union all
+     select 'shipped', (shipped_at at time zone 'America/Sao_Paulo')::date::text, count(*)
+       from wms.outbound_orders where company_id = $1 and status = 'shipped' and shipped_at >= now() - ($2::int * interval '1 day') group by 2
+     union all
+     select 'divergences', (created_at at time zone 'America/Sao_Paulo')::date::text, count(*)
+       from wms.divergences where company_id = $1 and created_at >= now() - ($2::int * interval '1 day') group by 2`,
+    [ctx.user.companyId, days],
+  );
+  const today = isoDay(new Date());
+  const pick = (metric: string) => dailySeries(rows.filter((r) => r.metric === metric), days, today);
+  return {
+    putaway: pick("putaway"),
+    receipts: pick("receipts"),
+    tasks: pick("tasks"),
+    shipped: pick("shipped"),
+    divergences: pick("divergences"),
+  };
 }
 
 export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
@@ -59,6 +99,7 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       (select count(*) from wms.divergences where company_id = $1 and status = 'open') as open_divergences`,
     [ctx.user.companyId],
   );
+  const series = await getKpiSeries(ctx);
   const occupancy = r.capacity > 0 ? (r.occupied / r.capacity) * 100 : 0;
   return [
     {
@@ -93,6 +134,8 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       value: r.receipts_expected,
       definition: "Recebimentos com status 'previsto' (ainda sem início de conferência).",
       href: "/recebimentos?status=expected",
+      series: series.receipts,
+      seriesLabel: "Recebimentos criados por dia",
     },
     {
       key: "receipts_checking",
@@ -110,6 +153,8 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       definition: "Soma das quantidades em tarefas de armazenagem pendentes ou em execução (já liberadas, ainda fora do estoque).",
       href: "/armazenagem",
       tone: r.putaway_tasks > 0 ? "warning" : "default",
+      series: series.putaway,
+      seriesLabel: "Unidades armazenadas por dia",
     },
     {
       key: "open_tasks",
@@ -117,6 +162,8 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       value: r.open_tasks,
       definition: "Tarefas operacionais com status 'pendente' ou 'em execução', de todos os tipos.",
       href: "/tarefas?status=pending,in_progress",
+      series: series.tasks,
+      seriesLabel: "Tarefas criadas por dia",
     },
     {
       key: "blocked",
@@ -142,6 +189,8 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       definition: "Pedidos de saída com expedição confirmada (total histórico).",
       href: "/expedicao",
       tone: "success",
+      series: series.shipped,
+      seriesLabel: "Pedidos expedidos por dia",
     },
     {
       key: "divergences",
@@ -150,6 +199,8 @@ export async function getKpis(ctx: Ctx): Promise<Kpi[]> {
       definition: "Divergências de recebimento, separação, conferência ou inventário ainda não tratadas.",
       href: "/divergencias?status=open",
       tone: r.open_divergences > 0 ? "danger" : "default",
+      series: series.divergences,
+      seriesLabel: "Divergências registradas por dia",
     },
   ];
 }

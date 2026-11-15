@@ -19,6 +19,7 @@ import { Alert } from "@/components/ui/alert";
 import { Badge, DemoBadge } from "@/components/ui/badge";
 import { buttonClass } from "@/components/ui/button";
 import { EmptyState } from "@/components/ui/empty-state";
+import { ErrorState } from "@/components/ui/states";
 import { Field, Input } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
@@ -110,7 +111,20 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
             <pre className="mt-2 overflow-x-auto rounded bg-surface/70 p-2 text-[11px] leading-relaxed text-fg-2">{ATLAS_SQL}</pre>
           </Alert>
         ) : null}
-        {errors.length ? <Alert level="danger">{errors.join(" ")}</Alert> : null}
+        {errors.length ? (
+          <Card>
+            <ErrorState
+              title="Não conseguimos falar com o ATLAS"
+              description="Os dados da empresa podem estar desatualizados. O armazém continua funcionando normalmente."
+              detail={errors.join(" ")}
+              actions={
+                <Link href={params.sincronizar === "1" ? "/empresa?sincronizar=1" : "/empresa?buscar=1"} className={buttonClass("primary", "md", "rounded-full")}>
+                  Tentar de novo
+                </Link>
+              }
+            />
+          </Card>
+        ) : null}
 
         {options ? (
           <Card>

@@ -3,7 +3,8 @@ import { getKpis, getPerformance } from "@/server/services/dashboard";
 import { listZones } from "@/server/services/warehouse";
 import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardHeader } from "@/components/ui/card";
-import { OccupancyBar } from "@/components/ui/occupancy";
+import { BlockBar } from "@/components/charts/block-bar";
+import { GlyphGauge } from "@/components/charts/glyph-gauge";
 import { TableWrap } from "@/components/ui/table";
 import { ZONE_TYPE_LABELS } from "@/lib/labels";
 import { fmtPct, fmtQty } from "@/lib/format";
@@ -13,6 +14,7 @@ export const metadata = { title: "Indicadores" };
 export default async function IndicatorsPage() {
   const ctx = await requireCtx();
   const [performance, kpis, zones] = await Promise.all([getPerformance(ctx), getKpis(ctx), listZones(ctx)]);
+  const occupancy = kpis.find((k) => k.key === "occupancy");
   return (
     <>
       <PageHeader
@@ -20,6 +22,11 @@ export default async function IndicatorsPage() {
         description="Indicadores de desempenho calculados a partir dos registros. Quando ainda não há base de cálculo (ex.: nenhum pedido expedido), o valor aparece como “—”."
         breadcrumbs={[{ label: "Gestão" }, { label: "Indicadores" }]}
       />
+      {occupancy ? (
+        <div className="mb-3 rounded-lg border border-line bg-surface p-4 shadow-xs">
+          <GlyphGauge value={occupancy.value} label={occupancy.label} detail={`${occupancy.hint} · ${occupancy.definition}`} size={96} />
+        </div>
+      ) : null}
       <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {performance.map((p) => (
           <div key={p.label} className="rounded-lg border border-line bg-surface p-4 shadow-xs">
@@ -53,7 +60,7 @@ export default async function IndicatorsPage() {
                     <td>{ZONE_TYPE_LABELS[z.zone_type]}</td>
                     <td className="num">{z.location_count}</td>
                     <td>
-                      <OccupancyBar used={z.occupied} capacity={z.capacity} />
+                      <BlockBar used={z.occupied} capacity={z.capacity} label={`Zona ${z.code}`} />
                     </td>
                   </tr>
                 ))}

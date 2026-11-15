@@ -6,9 +6,12 @@ import { assertCan } from "../context";
 import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalUuid, nonNegQty } from "../validation";
-import { audit, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
+import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { addStock, insertMovement, lockBalance, removeStock } from "./stock-core";
 import { getSetting } from "./settings";
+import { can } from "@/lib/permissions";
+import { buildCdMap, type MapItemInput, type MapLocationInput } from "@/lib/cd-map";
+import { computeInventoryKpis, type CycleInput, type KpiItemInput } from "@/lib/inventory-kpis";
 
 export const INVENTORY_STATUSES = ["counting", "submitted", "approved", "cancelled"] as const;
 
@@ -284,8 +287,17 @@ export async function submitInventory(ctx: Ctx, inventoryId: string, opts?: OpOp
   return runOperation(ctx, "inventory.submit", opts, async (tx) => {
     const c = await lockCount(tx, ctx, inventoryId);
     if (c.status !== "counting") throw new DomainError(`O inventário ${c.code} não está em contagem.`, "INVALID_STATUS");
-    const items = await tx.query<{ id: string; product_id: string; sku: string; location_code: string; expected_qty: number; counted_qty: number | null }>(
-      `select i.id, i.product_id, p.sku, l.code as location_code, i.expected_qty, i.counted_qty
+    const items = await tx.query<{
+      id: string;
+      product_id: string;
+      sku: string;
+      description: string;
+      uom: string;
+      location_code: string;
+      expected_qty: number;
+      counted_qty: number | null;
+    }>(
+      `select i.id, i.product_id, p.sku, p.description, p.uom, l.code as location_code, i.expected_qty, i.counted_qty
        from wms.inventory_count_items i join erp.products p on p.id = i.product_id join wms.locations l on l.id = i.location_id
        where i.inventory_id = $1`,
       [inventoryId],
@@ -298,9 +310,9 @@ export async function submitInventory(ctx: Ctx, inventoryId: string, opts?: OpOp
       const diff = round3(i.counted_qty! - i.expected_qty);
       if (diff === 0) continue;
       differences++;
-      await tx.query(
+      const [div] = await tx.query<{ id: string }>(
         `insert into wms.divergences (company_id, source, divergence_type, product_id, quantity, description, inventory_id, created_by)
-         values ($1, 'inventory', 'count_difference', $2, $3, $4, $5, $6)`,
+         values ($1, 'inventory', 'count_difference', $2, $3, $4, $5, $6) returning id`,
         [
           ctx.user.companyId,
           i.product_id,
@@ -310,6 +322,18 @@ export async function submitInventory(ctx: Ctx, inventoryId: string, opts?: OpOp
           ctx.user.id,
         ],
       );
+      // aviso (canal de e-mail da outbox): divergência registrada na contagem
+      await enqueueIntegrationEvent(tx, ctx, "divergence.registered", "divergence", div.id, {
+        source: "inventory",
+        inventory_code: c.code,
+        location: i.location_code,
+        sku: i.sku,
+        product: `${i.sku} · ${i.description}`,
+        uom: i.uom,
+        expected: i.expected_qty,
+        counted: i.counted_qty,
+        recount: false,
+      });
     }
     await tx.query(`update wms.inventory_counts set status = 'submitted', submitted_by = $2, submitted_at = now() where id = $1`, [
       inventoryId,
@@ -433,6 +457,23 @@ export async function approveInventory(ctx: Ctx, inventoryId: string, input: unk
       [inventoryId, ctx.user.id, d.notes],
     );
     await audit(tx, ctx, "inventory.approved", "inventory", inventoryId, c.code, { adjustments, notes: d.notes });
+    const [stats] = await tx.query<{ items: number; accurate: number; locations: number; warehouse: string; approved_at: string }>(
+      `select count(i.id)::int as items, (count(i.id) filter (where i.counted_qty = i.expected_qty))::int as accurate,
+              count(distinct i.location_id)::int as locations, w.name as warehouse, now()::text as approved_at
+       from wms.inventory_counts c join wms.warehouses w on w.id = c.warehouse_id
+       left join wms.inventory_count_items i on i.inventory_id = c.id
+       where c.id = $1 group by w.name`,
+      [inventoryId],
+    );
+    await enqueueIntegrationEvent(tx, ctx, "inventory.approved", "inventory", inventoryId, {
+      code: c.code,
+      warehouse: stats.warehouse,
+      approved_at: new Date(stats.approved_at).toISOString(),
+      accuracy: stats.items ? Math.round((stats.accurate / stats.items) * 1000) / 10 : 0,
+      locations: stats.locations,
+      items: stats.items,
+      adjustments,
+    });
     return { id: inventoryId, adjustments };
   });
 }
@@ -484,4 +525,85 @@ export async function cancelInventory(ctx: Ctx, inventoryId: string, input: unkn
     await audit(tx, ctx, "inventory.cancelled", "inventory", inventoryId, c.code, d);
     return { id: inventoryId };
   });
+}
+
+/**
+ * Contagem cega na tela web: enquanto o inventário está em contagem, quem não pode aprovar
+ * (operador) não vê o saldo esperado nem a diferença — o mesmo que já vale no coletor.
+ */
+export function isBlindCount(ctx: Ctx, status: string) {
+  return status === "counting" && !can(ctx.user.role, "inventory.approve");
+}
+
+/**
+ * Dados do mapa do CD para a tela de contagem: todos os endereços não inativos do depósito
+ * do inventário com a situação de contagem de cada um (ver `buildCdMap` para a geometria).
+ */
+export async function getInventoryMap(ctx: Ctx, inventoryId: string) {
+  const [c] = await ctx.db.query<{ id: string; status: string; warehouse_id: string; rejected_at: number | null }>(
+    `select c.id, c.status, c.warehouse_id,
+            (select extract(epoch from max(a.created_at)) * 1000 from wms.audit_log a where a.entity_type = 'inventory' and a.entity_id = c.id
+              and a.action = 'inventory.rejected') as rejected_at
+     from wms.inventory_counts c where c.id = $1 and c.company_id = $2`,
+    [inventoryId, ctx.user.companyId],
+  );
+  if (!c || !hasWarehouseAccess(ctx, c.warehouse_id)) return null;
+  const [locations, items] = await Promise.all([
+    ctx.db.query<MapLocationInput>(
+      `select l.id, l.code, l.zone_id, z.code as zone_code, z.name as zone_name, z.zone_type, l.aisle, l.bay, l.level, l.position,
+              l.location_type, l.status, l.capacity_units, l.max_weight_kg,
+              (select coalesce(sum(b.quantity), 0) from wms.stock_balances b where b.location_id = l.id) as on_hand_units,
+              (select coalesce(sum(b.quantity * coalesce(p.weight_kg, 0)), 0) from wms.stock_balances b join erp.products p on p.id = b.product_id
+                where b.location_id = l.id) as on_hand_kg,
+              (select extract(epoch from max(i.counted_at)) * 1000 from wms.inventory_count_items i join wms.inventory_counts ic on ic.id = i.inventory_id
+                where i.location_id = l.id and ic.status <> 'cancelled' and ic.id <> $3) as last_counted_at
+       from wms.locations l join wms.zones z on z.id = l.zone_id
+       where l.company_id = $1 and l.warehouse_id = $2 and (l.status <> 'inactive'
+         or exists (select 1 from wms.inventory_count_items i where i.inventory_id = $3 and i.location_id = l.id))
+       order by z.code, l.code`,
+      [ctx.user.companyId, c.warehouse_id, inventoryId],
+    ),
+    ctx.db.query<MapItemInput>(
+      `select i.id, i.location_id, p.sku, p.barcode, p.description, p.uom, i.lot_code, i.expiry_date::text as expiry_date, i.expected_qty,
+              i.counted_qty, u.name as counted_by_name, extract(epoch from i.counted_at) * 1000 as counted_at, i.notes, i.adjusted
+       from wms.inventory_count_items i join erp.products p on p.id = i.product_id left join wms.users u on u.id = i.counted_by
+       where i.inventory_id = $1 order by p.sku, i.lot_code`,
+      [inventoryId],
+    ),
+  ]);
+  return buildCdMap({ locations, items, blind: isBlindCount(ctx, c.status), rejectedAt: c.status === "counting" ? c.rejected_at : null });
+}
+
+/**
+ * KPIs de acuracidade do inventário (ver `computeInventoryKpis`): itens do inventário com o
+ * último preço de compra do produto e os inventários aprovados do mesmo depósito (ciclos).
+ */
+export async function getInventoryKpis(ctx: Ctx, inventoryId: string) {
+  const [c] = await ctx.db.query<{ id: string; status: string; warehouse_id: string }>(
+    `select id, status, warehouse_id from wms.inventory_counts where id = $1 and company_id = $2`,
+    [inventoryId, ctx.user.companyId],
+  );
+  if (!c || !hasWarehouseAccess(ctx, c.warehouse_id)) return null;
+  const [items, history, target] = await Promise.all([
+    ctx.db.query<KpiItemInput>(
+      `select i.location_id, z.code as zone_code, z.name as zone_name, i.expected_qty, i.counted_qty,
+              extract(epoch from i.counted_at) * 1000 as counted_at,
+              (select poi.unit_price from erp.purchase_order_items poi join erp.purchase_orders po on po.id = poi.purchase_order_id
+                where poi.product_id = i.product_id and poi.unit_price is not null order by po.created_at desc, poi.line_no limit 1) as unit_price
+       from wms.inventory_count_items i join wms.locations l on l.id = i.location_id join wms.zones z on z.id = l.zone_id
+       where i.inventory_id = $1`,
+      [inventoryId],
+    ),
+    ctx.db.query<CycleInput>(
+      `select c.id, c.code, extract(epoch from c.approved_at) * 1000 as closed_at, count(i.id) as items,
+              count(i.id) filter (where i.counted_qty = i.expected_qty) as accurate,
+              count(i.id) filter (where i.counted_qty <> i.expected_qty) as divergences
+       from wms.inventory_counts c join wms.inventory_count_items i on i.inventory_id = c.id
+       where c.company_id = $1 and c.warehouse_id = $2 and c.status = 'approved'
+       group by c.id order by c.approved_at desc limit 12`,
+      [ctx.user.companyId, c.warehouse_id],
+    ),
+    getSetting(ctx.db, ctx.user.companyId, "inventory.accuracy_target"),
+  ]);
+  return computeInventoryKpis({ status: c.status, blind: isBlindCount(ctx, c.status), items, history, currentId: c.id, target });
 }

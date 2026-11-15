@@ -5,7 +5,7 @@ import { PageHeader } from "@/components/ui/page-header";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/fields";
+import { Checkbox, Input, Textarea } from "@/components/ui/fields";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { fmtDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
@@ -39,20 +39,57 @@ export default async function SettingsPage() {
             <CardBody className="space-y-4">
               {settings
                 .filter((s) => s.group === group)
-                .map((s) => (
-                  <div key={s.key}>
-                    <Checkbox name={s.key} defaultChecked={s.value} label={<span className="font-medium">{s.label}</span>} />
-                    <p className="mt-1 ml-6 text-xs text-muted">
-                      {s.description} Padrão: {s.default ? "ligado" : "desligado"}.
-                      {s.customized && s.updatedAt ? ` Alterado em ${fmtDateTime(s.updatedAt)} por ${s.updatedByName ?? "—"}.` : null}
-                    </p>
-                    {s.value !== s.default ? (
-                      <Badge tone="warning" className="mt-1 ml-6">
-                        Diferente do padrão
-                      </Badge>
-                    ) : null}
-                  </div>
-                ))}
+                .map((s) => {
+                  const defaultText =
+                    s.type === "boolean" ? (s.default ? "ligado" : "desligado") : s.type === "number" ? `${s.default}${s.unit ?? ""}` : "nenhum";
+                  return (
+                    <div key={s.key}>
+                      {s.type === "boolean" ? (
+                        <Checkbox name={s.key} defaultChecked={s.value as boolean} label={<span className="font-medium">{s.label}</span>} />
+                      ) : (
+                        <label className="block text-sm font-medium" htmlFor={`set-${s.key}`}>
+                          {s.label}
+                        </label>
+                      )}
+                      {s.type === "number" ? (
+                        <div className="mt-1.5 flex items-center gap-2">
+                          <Input
+                            id={`set-${s.key}`}
+                            name={s.key}
+                            type="number"
+                            min={s.min}
+                            max={s.max}
+                            step={s.step ?? 1}
+                            required
+                            inputMode="decimal"
+                            defaultValue={String(s.value)}
+                            className="w-28 font-mono"
+                          />
+                          {s.unit ? <span className="text-sm text-fg-2">{s.unit}</span> : null}
+                        </div>
+                      ) : null}
+                      {s.type === "emails" ? (
+                        <Textarea
+                          id={`set-${s.key}`}
+                          name={s.key}
+                          rows={3}
+                          defaultValue={(s.value as string[]).join("\n")}
+                          placeholder={"estoque@empresa.com.br\nsupervisao@empresa.com.br"}
+                          className="mt-1.5 font-mono text-sm"
+                        />
+                      ) : null}
+                      <p className={`mt-1 text-xs text-muted ${s.type === "boolean" ? "ml-6" : ""}`}>
+                        {s.description} Padrão: {defaultText}.
+                        {s.customized && s.updatedAt ? ` Alterado em ${fmtDateTime(s.updatedAt)} por ${s.updatedByName ?? "—"}.` : null}
+                      </p>
+                      {!s.isDefault ? (
+                        <Badge tone="warning" className={`mt-1 ${s.type === "boolean" ? "ml-6" : ""}`}>
+                          Diferente do padrão
+                        </Badge>
+                      ) : null}
+                    </div>
+                  );
+                })}
             </CardBody>
           </Card>
         ))}

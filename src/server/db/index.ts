@@ -19,7 +19,12 @@ async function init(): Promise<Db> {
   await runMigrations(db);
   if (process.env.WMS_AUTO_SEED !== "false") {
     const { seedDemoIfEmpty } = await import("../seed/demo");
-    await seedDemoIfEmpty(db);
+    const seeded = await seedDemoIfEmpty(db);
+    // banco de demonstração anterior à vitrine do inventário: completa (idempotente)
+    if (!seeded && isDemoMode()) {
+      const { seedInventoryShowcase } = await import("../seed/showcase");
+      await seedInventoryShowcase(db);
+    }
   }
   return db;
 }
