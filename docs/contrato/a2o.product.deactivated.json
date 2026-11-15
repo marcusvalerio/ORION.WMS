@@ -1,0 +1,18 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900008",
+  "type": "product.deactivated",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "product",
+    "id": "0a7a5000-0000-4000-8000-000000000202",
+    "sequence": 2
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "atlas_product_id": "0a7a5000-0000-4000-8000-000000000202",
+    "code": "PA-1002"
+  }
+}

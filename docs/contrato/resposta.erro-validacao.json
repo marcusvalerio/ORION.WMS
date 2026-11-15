@@ -1,0 +1,15 @@
+{
+  "status": "rejected",
+  "event_id": "0a7a5000-0000-4000-8000-000000900010",
+  "error": {
+    "code": "validation_failed",
+    "message": "payload.lines[0].atlas_product_id: produto não sincronizado no ORION",
+    "retryable": false,
+    "details": [
+      {
+        "path": "payload.lines[0].atlas_product_id",
+        "issue": "unknown_reference"
+      }
+    ]
+  }
+}

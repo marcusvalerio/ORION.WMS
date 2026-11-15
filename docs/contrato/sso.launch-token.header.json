@@ -1,0 +1,5 @@
+{
+  "alg": "ES256",
+  "typ": "JWT",
+  "kid": "atlas-sso-2026-11"
+}

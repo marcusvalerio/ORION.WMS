@@ -1,0 +1,33 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900113",
+  "type": "production.materials_delivered",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "production_requisition",
+    "id": "0410e000-0000-4000-8000-000000000701",
+    "sequence": 2
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "code": "REQ-000031",
+    "atlas_production_order_id": "0a7a5000-0000-4000-8000-000000000701",
+    "order": "OP-2026-00031",
+    "delivery": "ENT-000044",
+    "received_by": "Linha 2 - João",
+    "items": [
+      {
+        "atlas_material_id": "0a7a5000-0000-4000-8000-000000000711",
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "sku": "PA-1001",
+        "lot_code": "L2610-01",
+        "quantity": 1000
+      }
+    ]
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

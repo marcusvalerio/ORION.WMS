@@ -1,0 +1,19 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900005",
+  "type": "user_access.revoked",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "user_access",
+    "id": "0a7a5000-0000-4000-8000-000000000101",
+    "sequence": 4
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "atlas_user_id": "0a7a5000-0000-4000-8000-000000000101",
+    "access_version": 4,
+    "reason": "revoked_by_company_admin"
+  }
+}

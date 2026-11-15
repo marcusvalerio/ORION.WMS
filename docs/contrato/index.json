@@ -1,0 +1,251 @@
+{
+  "contract": "astraeus.atlas-orion",
+  "version": 1,
+  "files": [
+    {
+      "file": "a2o.company.deactivated.json",
+      "type": "company.deactivated",
+      "sha256": "448a811c9158d63d72a88326411bbbcd4a98bbce36ffaf7d165de4ba62e1de7c"
+    },
+    {
+      "file": "a2o.company.upserted.json",
+      "type": "company.upserted",
+      "sha256": "faafcaff2e39b5642079e23860c63461f9dc49eecffa1e8092f72497b77d1af8"
+    },
+    {
+      "file": "a2o.customer.upserted.json",
+      "type": "customer.upserted",
+      "sha256": "7a52c302294c1ede719830214dd9f2a274ed1420b30e1bd48bf2bb8e9e8de4cd"
+    },
+    {
+      "file": "a2o.integration.activated.json",
+      "type": "integration.activated",
+      "sha256": "5e6e88cb0ca925d0bf7bba6baac254d235c63c886d17108e45e148459f0d3b86"
+    },
+    {
+      "file": "a2o.product.deactivated.json",
+      "type": "product.deactivated",
+      "sha256": "9b6252c7f2988654c2462481327d5e812c36d16df7c0c6f2a843585a4cfa2fd2"
+    },
+    {
+      "file": "a2o.product.upserted.json",
+      "type": "product.upserted",
+      "sha256": "c4457ff180c9875afc119c824f767d83bf79e260e11fd0cc239c8a9254329dd8"
+    },
+    {
+      "file": "a2o.production_order.cancelled.json",
+      "type": "production_order.cancelled",
+      "sha256": "b090811a45d123618668859da3ac26db6b1fdb3022028e17b89d20fd155acba4"
+    },
+    {
+      "file": "a2o.production_order.released.json",
+      "type": "production_order.released",
+      "sha256": "805b5517059a887bb550a7012134a544ba313718e43787c36d8f9615af331c14"
+    },
+    {
+      "file": "a2o.purchase_order.cancelled.json",
+      "type": "purchase_order.cancelled",
+      "sha256": "cd8f2a6150f8992c5f2aac6fc6e4144acce90adc093ae345eef1370e1e829c1c"
+    },
+    {
+      "file": "a2o.purchase_order.released.json",
+      "type": "purchase_order.released",
+      "sha256": "aee680cf683785cccbe7f75ec6b137e553a2f6700082b551f382bbc0f987987d"
+    },
+    {
+      "file": "a2o.sales_invoice.authorized.json",
+      "type": "sales_invoice.authorized",
+      "sha256": "e5d042f86e15204620756c8cad0c360a82311ec93cc60317024be5540cc11e17"
+    },
+    {
+      "file": "a2o.sales_order.cancelled.json",
+      "type": "sales_order.cancelled",
+      "sha256": "0472c7c9a2150eccf586ae4efc54c4f15df7688fb493c9fb3c30ef11411b308d"
+    },
+    {
+      "file": "a2o.sales_order.line_cancelled.json",
+      "type": "sales_order.line_cancelled",
+      "sha256": "1f14d14349a5aa99f523d38b9f8ef67767134af1ecdc0a221eba158fb7969f6a"
+    },
+    {
+      "file": "a2o.sales_order.released.json",
+      "type": "sales_order.released",
+      "sha256": "8455eea9bfa098be2eb24ffbf2176f0e144f8dd043e9034432e486a9a078ae21"
+    },
+    {
+      "file": "a2o.sales_order.updated.json",
+      "type": "sales_order.updated",
+      "sha256": "8e76328c0f9325813194c300717baa207b7e49066450712a9c157f5ecc1e548e"
+    },
+    {
+      "file": "a2o.stock.initial_snapshot.json",
+      "type": "stock.initial_snapshot",
+      "sha256": "9847fd984fe05e7adb1442a48f19b548ac2367367fc4ea80f6f0ef09ed19608c"
+    },
+    {
+      "file": "a2o.supplier.upserted.json",
+      "type": "supplier.upserted",
+      "sha256": "6ebec53e9e212e0c1af30d1c35a726b833a91850da08d7fc8969faf694d413ae"
+    },
+    {
+      "file": "a2o.unit.upserted.json",
+      "type": "unit.upserted",
+      "sha256": "f2bb9619e4a99e509fe18c2182595c34efb34429c9d90d7bd9408c8e8ffceb00"
+    },
+    {
+      "file": "a2o.user_access.granted.json",
+      "type": "user_access.granted",
+      "sha256": "079eb6ae9e9a8c0111c1dcdd47d22bcb5ac2420f7d08c457c001ccb817d1ece2"
+    },
+    {
+      "file": "a2o.user_access.revoked.json",
+      "type": "user_access.revoked",
+      "sha256": "625d2c9157da974989d7e1ea2ef41d60a9b353ed465f85b1301043d391cef056"
+    },
+    {
+      "file": "o2a.customer_return.completed.json",
+      "type": "customer_return.completed",
+      "sha256": "4f3300ddb23e76d5f6306bc52469137c45553b168e1bd851dfe109c23c474779"
+    },
+    {
+      "file": "o2a.divergence.registered.json",
+      "type": "divergence.registered",
+      "sha256": "24b1bc25301f822716a55e7de71328373c9de26da10ecb4d56c38b0c03d00b85"
+    },
+    {
+      "file": "o2a.document.rejected.json",
+      "type": "document.rejected",
+      "sha256": "1b4cb6e90710280b13e20ae0a0b8be2dee078fd2182b49126f3924b8330d6b10"
+    },
+    {
+      "file": "o2a.export.packed.json",
+      "type": "export.packed",
+      "sha256": "a94d3a00dd7477f43f1ae714b62410812404efd2771247f5af7fc78dc17938e2"
+    },
+    {
+      "file": "o2a.import.cleared.json",
+      "type": "import.cleared",
+      "sha256": "30d1cdcae144faa20ebae4b7b40bdd028029c85533e5b918e73f928dffacccf4"
+    },
+    {
+      "file": "o2a.inventory.approved.json",
+      "type": "inventory.approved",
+      "sha256": "a0bfc1039e24645eac70736f293c540bc1d221cfdcefc4d2f709ec9ec935bb23"
+    },
+    {
+      "file": "o2a.outbound.accepted.json",
+      "type": "outbound.accepted",
+      "sha256": "aa91ced82460ac4da132dfcc61093566fcee929e4574ba658aa5351cb5528b3c"
+    },
+    {
+      "file": "o2a.outbound.cancelled.json",
+      "type": "outbound.cancelled",
+      "sha256": "13ed5c149c5435506d567161d9543e58e1f498bc3ba15bd885f40067560dde53"
+    },
+    {
+      "file": "o2a.outbound.line_cancelled.json",
+      "type": "outbound.line_cancelled",
+      "sha256": "9042cf5b601f487e8b6481b8482b10442b8f6591002356a01d6b4e12934b07ca"
+    },
+    {
+      "file": "o2a.outbound.picking_started.json",
+      "type": "outbound.picking_started",
+      "sha256": "596a267932cffac224be4d053773c396315185382c9ef912b3e5cdd2e9bb893d"
+    },
+    {
+      "file": "o2a.outbound.ready_to_invoice.json",
+      "type": "outbound.ready_to_invoice",
+      "sha256": "7d61e1ccd2b909bee765ce51400111227b36f99d8946d0ddef07684d55d32453"
+    },
+    {
+      "file": "o2a.outbound.shipped.json",
+      "type": "outbound.shipped",
+      "sha256": "ed9398a8aad6613a027410cafc7b07ca97bd8e4383418677f149ed448427dc34"
+    },
+    {
+      "file": "o2a.production.leftovers_returned.json",
+      "type": "production.leftovers_returned",
+      "sha256": "2769385dfa7dc74d93f8e215f7fc5054e843cff5bf5b50f9ea93b48ee79b8e48"
+    },
+    {
+      "file": "o2a.production.materials_delivered.json",
+      "type": "production.materials_delivered",
+      "sha256": "011f8b031fecd2e9c5d22a2c9e25b70378a9b058dbd0b6b8e4431839168e8873"
+    },
+    {
+      "file": "o2a.production.output_received.json",
+      "type": "production.output_received",
+      "sha256": "4c1b42437ecd9e5ecb3a358b516457d30798993e920f1789554d8c1296d17c42"
+    },
+    {
+      "file": "o2a.receipt.completed.json",
+      "type": "receipt.completed",
+      "sha256": "3a6b8d7dab93208cafa9287e83b91a6bec833ad9859a2e68c88dd5c38afcbbe9"
+    },
+    {
+      "file": "o2a.stock.adjusted.json",
+      "type": "stock.adjusted",
+      "sha256": "971571873c1c9a21041eff092ef3ca0f69813e0a6d1b3ba0877b152c74ce6367"
+    },
+    {
+      "file": "o2a.stock.balance_snapshot.json",
+      "type": "stock.balance_snapshot",
+      "sha256": "5897a2ef1b8f0a84cff547794e8bdbfa829d95bcf1702c3d526bf0f8706a4952"
+    },
+    {
+      "file": "o2a.stock.transferred.json",
+      "type": "stock.transferred",
+      "sha256": "f1cce234ba4e6f4004e922cbbc41b494aae775add99416defda4174278a21e7d"
+    },
+    {
+      "file": "resposta.aceito.json",
+      "type": null,
+      "sha256": "d53405056b93259544b7f28c0525d3243897f004e57613a7da076804deeccfb8"
+    },
+    {
+      "file": "resposta.duplicado.json",
+      "type": null,
+      "sha256": "4c673e41e5428d1b612ab371abcbf029e45d8c5bb2a741f1c2494cf6c1f644ac"
+    },
+    {
+      "file": "resposta.erro-dependencia.json",
+      "type": null,
+      "sha256": "d10318ca13ec17d509e51d9cbe0b5a745e8c78d2a3328ecea00254e951400cda"
+    },
+    {
+      "file": "resposta.erro-validacao.json",
+      "type": null,
+      "sha256": "4076d772426592743e9c1acf1eb7840cef10f9f19e5802c93e433d474c2616d9"
+    },
+    {
+      "file": "s2s.access-check.request.json",
+      "type": null,
+      "sha256": "e9757a1d177c4d494f60263d92a1e2b13bcb81e5e7dbd58a5dd94693888a3338"
+    },
+    {
+      "file": "s2s.access-check.response.ativo.json",
+      "type": null,
+      "sha256": "94b3dcac0c5b39009375dfeb47c2637ccf19e22b6ae0df3c0009c195c49f874c"
+    },
+    {
+      "file": "s2s.access-check.response.revogado.json",
+      "type": null,
+      "sha256": "2fc880030a1da514a661b407e04f41e92d8fc97bd8eabe6168a7c5ce7dcf4654"
+    },
+    {
+      "file": "sso.jwks.json",
+      "type": null,
+      "sha256": "45c472b40c0fe571d1f52a1109e41575ddb4ab7b0ffba3816244ac5d232bbdb7"
+    },
+    {
+      "file": "sso.launch-token.claims.json",
+      "type": null,
+      "sha256": "81a5a15c15a15d2bda97f1b733ca4858744e26e2486d0b1b5cf1a4df35f88304"
+    },
+    {
+      "file": "sso.launch-token.header.json",
+      "type": null,
+      "sha256": "c1ecd78bdad7e762132955b49d982b6fe394c25df7d248f91af88c274a16f4af"
+    }
+  ]
+}

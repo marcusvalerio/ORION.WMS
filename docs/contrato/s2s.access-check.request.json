@@ -1,0 +1,9 @@
+{
+  "method": "GET",
+  "path": "/api/integrations/orion/v1/access?atlas_user_id=0a7a5000-0000-4000-8000-000000000101",
+  "headers": {
+    "X-Astraeus-Key-Id": "atlas-co-0a7a5000",
+    "X-Astraeus-Timestamp": "1763211600",
+    "X-Astraeus-Signature": "sha256=<hex HMAC de '1763211600.GET./api/integrations/orion/v1/access?atlas_user_id=...' >"
+  }
+}

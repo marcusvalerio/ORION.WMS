@@ -1,0 +1,43 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900108",
+  "type": "receipt.completed",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "receipt",
+    "id": "0410e000-0000-4000-8000-000000000601",
+    "sequence": 3
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "code": "REC-000077",
+    "atlas_purchase_order_id": "0a7a5000-0000-4000-8000-000000000601",
+    "purchaseOrderStatus": "partially_received",
+    "invoice_number": "4588",
+    "invoice_access_key": "35261133444555000149550010000045881000045881",
+    "completed_at": "2026-11-15T13:00:00Z",
+    "items": [
+      {
+        "atlas_line_id": "0a7a5000-0000-4000-8000-000000000611",
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "sku": "PA-1001",
+        "expected_qty": 5000,
+        "received_qty": 3000,
+        "accepted_qty": 2990,
+        "rejected_qty": 10,
+        "lots": [
+          {
+            "lot_code": "L2611-07",
+            "expiration_date": null,
+            "quantity": 2990
+          }
+        ]
+      }
+    ]
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

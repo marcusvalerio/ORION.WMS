@@ -1,0 +1,36 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900116",
+  "type": "import.cleared",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "receipt",
+    "id": "0410e000-0000-4000-8000-000000000602",
+    "sequence": 4
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "code": "REC-000078",
+    "atlas_purchase_order_id": "0a7a5000-0000-4000-8000-000000000602",
+    "declaration": {
+      "type": "DUIMP",
+      "number": "26BR0000123456",
+      "cleared_at": "2026-11-14"
+    },
+    "origin_country": "CN",
+    "items": [
+      {
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "sku": "PA-1001",
+        "ncm": "73181500",
+        "lot_code": "IMP-2611",
+        "quantity": 10000
+      }
+    ]
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

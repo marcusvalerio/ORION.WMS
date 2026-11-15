@@ -1,0 +1,20 @@
+{
+  "iss": "https://atlas.exemplo.com.br",
+  "aud": "orion-wms",
+  "sub": "0a7a5000-0000-4000-8000-000000000101",
+  "iat": 1763211600,
+  "nbf": 1763211600,
+  "exp": 1763211660,
+  "jti": "6f1d2b9e-3c4a-4e1f-9a7b-1c2d3e4f5a6b",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "email": "maria.souza@alfa.com.br",
+  "name": "Maria Souza",
+  "orion_role": "supervisor",
+  "access_version": 3,
+  "warehouses": [
+    "DEP-01"
+  ],
+  "return_to": "/separacao",
+  "state": "q8Zr0pV1xS2t"
+}

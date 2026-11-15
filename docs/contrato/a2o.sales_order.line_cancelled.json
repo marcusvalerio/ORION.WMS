@@ -1,0 +1,21 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900014",
+  "type": "sales_order.line_cancelled",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "sales_order",
+    "id": "0a7a5000-0000-4000-8000-000000000501",
+    "sequence": 4
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "atlas_sales_order_id": "0a7a5000-0000-4000-8000-000000000501",
+    "number": "PV-2026-00153",
+    "atlas_line_id": "0a7a5000-0000-4000-8000-000000000512",
+    "cancelled_quantity": 40,
+    "reason": "Item descontinuado"
+  }
+}

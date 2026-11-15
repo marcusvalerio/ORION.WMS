@@ -1,0 +1,40 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900020",
+  "type": "stock.initial_snapshot",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "stock_snapshot",
+    "id": "0a7a5000-0000-4000-8000-000000000990",
+    "sequence": 1
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "snapshot_id": "0a7a5000-0000-4000-8000-000000000990",
+    "taken_at": "2026-11-15T13:00:00Z",
+    "chunk": 1,
+    "chunks": 1,
+    "atlas_warehouse_id": "0a7a5000-0000-4000-8000-000000000801",
+    "receiving_location": "DEP-01/REC",
+    "items": [
+      {
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "product_code": "PA-1001",
+        "lot_code": "L2610-01",
+        "expiration_date": null,
+        "quantity": 1200,
+        "unit_cost": 0.41
+      },
+      {
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000203",
+        "product_code": "PA-1003",
+        "lot_code": null,
+        "expiration_date": null,
+        "quantity": 80,
+        "unit_cost": 3.1
+      }
+    ]
+  }
+}

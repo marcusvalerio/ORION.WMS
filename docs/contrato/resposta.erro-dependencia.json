@@ -1,0 +1,9 @@
+{
+  "status": "rejected",
+  "event_id": "0a7a5000-0000-4000-8000-000000900010",
+  "error": {
+    "code": "dependency_missing",
+    "message": "Cliente 0a7a5000-0000-4000-8000-000000000301 ainda não recebido; reenviar após customer.upserted.",
+    "retryable": true
+  }
+}

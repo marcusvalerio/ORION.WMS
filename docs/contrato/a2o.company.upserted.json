@@ -1,0 +1,30 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900001",
+  "type": "company.upserted",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "company",
+    "id": "0a7a5000-0000-4000-8000-000000000001",
+    "sequence": 7
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "company": {
+      "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+      "name": "Alfa Indústria",
+      "legal_name": "Alfa Indústria e Comércio Ltda",
+      "document": "11444777000161",
+      "email": "contato@alfa.com.br",
+      "phone": "1133334444",
+      "address": "Rua das Indústrias, 100",
+      "city": "São Paulo",
+      "state": "SP",
+      "zip_code": "01001000",
+      "status": "active",
+      "updated_at": "2026-11-15T13:00:00Z"
+    }
+  }
+}

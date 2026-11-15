@@ -1,0 +1,27 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900118",
+  "type": "divergence.registered",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "receipt",
+    "id": "0410e000-0000-4000-8000-000000000601",
+    "sequence": 2
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "code": "DIV-000015",
+    "receipt": "REC-000077",
+    "atlas_purchase_order_id": "0a7a5000-0000-4000-8000-000000000601",
+    "kind": "quantity_short",
+    "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+    "sku": "PA-1001",
+    "expected_qty": 5000,
+    "found_qty": 3000
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

@@ -1,0 +1,19 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900019",
+  "type": "production_order.cancelled",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "production_order",
+    "id": "0a7a5000-0000-4000-8000-000000000701",
+    "sequence": 2
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "atlas_production_order_id": "0a7a5000-0000-4000-8000-000000000701",
+    "number": "OP-2026-00031",
+    "reason": "Plano alterado pelo MRP"
+  }
+}

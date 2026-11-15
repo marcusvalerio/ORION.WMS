@@ -1,0 +1,37 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900119",
+  "type": "stock.balance_snapshot",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "stock_snapshot",
+    "id": "0410e000-0000-4000-8000-000000000990",
+    "sequence": 1
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "snapshot_id": "0410e000-0000-4000-8000-000000000990",
+    "taken_at": "2026-11-15T13:00:00Z",
+    "chunk": 1,
+    "chunks": 1,
+    "reason": "daily_reconciliation",
+    "as_of_event_id": "0410e000-0000-4000-8000-000000900120",
+    "items": [
+      {
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "sku": "PA-1001",
+        "orion_warehouse_code": "DEP-01",
+        "lot_code": "L2610-01",
+        "on_hand": 895,
+        "reserved": 0,
+        "blocked": 0,
+        "in_quarantine": 0
+      }
+    ]
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

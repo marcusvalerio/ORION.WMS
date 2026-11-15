@@ -1,0 +1,38 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900018",
+  "type": "production_order.released",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "production_order",
+    "id": "0a7a5000-0000-4000-8000-000000000701",
+    "sequence": 1
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "production_order": {
+      "atlas_production_order_id": "0a7a5000-0000-4000-8000-000000000701",
+      "number": "OP-2026-00031",
+      "status": "released",
+      "atlas_product_id": "0a7a5000-0000-4000-8000-000000000204",
+      "product_code": "KIT-500",
+      "quantity": 100,
+      "unit": "UN",
+      "planned_date": "2026-11-17",
+      "output_lot_code": "OP31-2611",
+      "atlas_warehouse_id": "0a7a5000-0000-4000-8000-000000000801",
+      "components": [
+        {
+          "atlas_material_id": "0a7a5000-0000-4000-8000-000000000711",
+          "line_no": 1,
+          "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+          "product_code": "PA-1001",
+          "unit": "UN",
+          "quantity": 1000
+        }
+      ]
+    }
+  }
+}

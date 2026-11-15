@@ -1,0 +1,32 @@
+{
+  "id": "0410e000-0000-4000-8000-000000900112",
+  "type": "stock.transferred",
+  "version": 1,
+  "source": "orion",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "stock_transfer",
+    "id": "0410e000-0000-4000-8000-000000000691",
+    "sequence": 1
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "code": "TRF-000004",
+    "from_orion_warehouse_code": "DEP-01",
+    "to_orion_warehouse_code": "DEP-02",
+    "from_atlas_warehouse_id": "0a7a5000-0000-4000-8000-000000000801",
+    "to_atlas_warehouse_id": "0a7a5000-0000-4000-8000-000000000802",
+    "items": [
+      {
+        "atlas_product_id": "0a7a5000-0000-4000-8000-000000000201",
+        "sku": "PA-1001",
+        "lot_code": "L2610-01",
+        "quantity": 300
+      }
+    ]
+  },
+  "company_id": "0410e000-0000-4000-8000-000000000001",
+  "created_at": "2026-11-15T13:00:00Z",
+  "attempt": 0
+}

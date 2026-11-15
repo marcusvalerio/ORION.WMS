@@ -1,0 +1,29 @@
+{
+  "id": "0a7a5000-0000-4000-8000-000000900003",
+  "type": "integration.activated",
+  "version": 1,
+  "source": "atlas",
+  "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+  "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+  "aggregate": {
+    "type": "integration",
+    "id": "0a7a5000-0000-4000-8000-000000000001",
+    "sequence": 1
+  },
+  "occurred_at": "2026-11-15T13:00:00Z",
+  "payload": {
+    "stock_owner": "orion",
+    "sales_release_status": "approved",
+    "purchase_release_status": "sent",
+    "production_release_status": "released",
+    "require_invoice_before_ship": true,
+    "warehouses": [
+      {
+        "atlas_warehouse_id": "0a7a5000-0000-4000-8000-000000000801",
+        "code": "CD-SP",
+        "name": "CD São Paulo",
+        "orion_warehouse_code": "DEP-01"
+      }
+    ]
+  }
+}
