@@ -55,8 +55,10 @@ export async function resetPasswordAction(_: ResetPasswordState, fd: FormData): 
 }
 
 export async function saveSettingsAction(_: ActionState, fd: FormData) {
-  return runAction(fd, async ({ ctx, data, key }) => {
-    const r = await updateSettings(ctx, data, { idempotencyKey: key });
+  // Chaves dos parâmetros têm ponto ("inventory.accuracy_target"): lidas planas do formulário.
+  const flat = Object.fromEntries([...fd.entries()].filter(([k, v]) => typeof v === "string" && !k.startsWith("_") && !k.startsWith("$ACTION")));
+  return runAction(fd, async ({ ctx, key }) => {
+    const r = await updateSettings(ctx, flat, { idempotencyKey: key });
     return r.changed ? `${r.changed} parâmetro(s) alterado(s).` : "Nenhuma alteração.";
   });
 }

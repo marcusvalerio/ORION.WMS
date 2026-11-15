@@ -1,7 +1,16 @@
 import Link from "next/link";
-import { Ban, Play, RotateCcw } from "lucide-react";
+import { Ban, Mail, Play, RotateCcw } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
-import { getOutboxEvent, listOutboxEvents, INTEGRATION_STATUSES, type IntegrationEventRow } from "@/server/services/integration";
+import {
+  getEmailMessage,
+  getOutboxEvent,
+  listEmailMessages,
+  listOutboxEvents,
+  INTEGRATION_STATUSES,
+  type EmailMessageRow,
+  type IntegrationEventRow,
+} from "@/server/services/integration";
+import { emailTransportFromEnv } from "@/server/integrations/outbox/email";
 import { transportFromEnv } from "@/server/integrations/outbox/transports";
 import { OUTBOX_DEFAULTS } from "@/server/integrations/outbox/processor";
 import { discardEventAction, processQueueAction, retryEventAction } from "@/server/actions/integration";
@@ -36,6 +45,9 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
   }
   const list = await listOutboxEvents(ctx, { status: params.status, type: params.type, q: params.q, page: pageNumber(params.page) });
   const selected = isUuid(params.id) ? await getOutboxEvent(ctx, params.id).catch(() => null) : null;
+  const emails = await listEmailMessages(ctx);
+  const email = isUuid(params.email) ? await getEmailMessage(ctx, params.email) : null;
+  const emailTransport = emailTransportFromEnv();
   const config = transportFromEnv();
   const canProcess = can(ctx.user.role, "integration.process");
   const canManage = can(ctx.user.role, "integration.manage");
@@ -91,6 +103,8 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
         </div>
 
         {selected ? <EventDetail event={selected} canManage={canManage} /> : null}
+
+        <EmailsCard rows={emails.rows} total={emails.total} params={params} selected={email} transportName={emailTransport.name} />
 
         <Card>
           <FilterBar resetHref="/integracao">
@@ -161,8 +175,111 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
   );
 }
 
+const EMAIL_STATUS: Record<EmailMessageRow["status"], { label: string; tone: "success" | "info" | "danger" | "neutral" }> = {
+  logged: { label: "Registrado (sem envio)", tone: "info" },
+  sent: { label: "Enviado", tone: "success" },
+  failed: { label: "Falhou", tone: "danger" },
+  skipped: { label: "Sem destinatário", tone: "neutral" },
+};
+
+function EmailsCard({
+  rows,
+  total,
+  params,
+  selected,
+  transportName,
+}: {
+  rows: EmailMessageRow[];
+  total: number;
+  params: Record<string, string | undefined>;
+  selected: (EmailMessageRow & { html: string; text_body: string }) | null;
+  transportName: "log" | "http";
+}) {
+  const base = Object.fromEntries(Object.entries(params).filter(([k, v]) => v && k !== "email")) as Record<string, string>;
+  return (
+    <Card>
+      <CardHeader
+        title={
+          <span className="flex items-center gap-2">
+            <Mail className="size-4" aria-hidden /> Avisos por e-mail
+          </span>
+        }
+        description={
+          transportName === "log"
+            ? `Transporte de registro: os e-mails são gerados e guardados aqui, sem envio real (defina EMAIL_API_URL para enviar). ${total} no total.`
+            : `Envio por API HTTP (EMAIL_API_URL). ${total} no total.`
+        }
+        actions={
+          <Link href="/configuracoes" className="link text-xs">
+            Destinatários
+          </Link>
+        }
+      />
+      {selected ? (
+        <CardBody className="space-y-3 border-b border-line">
+          <div className="flex flex-wrap items-start justify-between gap-2">
+            <div className="min-w-0">
+              <p className="font-medium">{selected.subject}</p>
+              <p className="text-xs text-fg-2">
+                Para: {selected.to_addresses.length ? selected.to_addresses.join(", ") : "—"} · {fmtDateTime(selected.created_at)}
+              </p>
+            </div>
+            <Link href={`/integracao?${new URLSearchParams(base)}`} className={buttonClass("ghost", "sm")}>
+              Fechar
+            </Link>
+          </div>
+          {selected.error ? <Alert level="danger" title="Erro no envio">{selected.error}</Alert> : null}
+          <iframe
+            title={`Pré-visualização: ${selected.subject}`}
+            sandbox=""
+            srcDoc={selected.html}
+            className="h-[560px] w-full rounded-lg border border-line bg-white"
+          />
+        </CardBody>
+      ) : null}
+      {rows.length ? (
+        <TableWrap>
+          <table className="table-base">
+            <thead>
+              <tr>
+                <th>Gerado em</th>
+                <th>Assunto</th>
+                <th>Destinatários</th>
+                <th>Status</th>
+                <th />
+              </tr>
+            </thead>
+            <tbody>
+              {rows.map((m) => (
+                <tr key={m.id} aria-selected={selected?.id === m.id}>
+                  <td className="whitespace-nowrap">{fmtDateTime(m.created_at)}</td>
+                  <td className="max-w-sm">
+                    <span className="line-clamp-2">{m.subject}</span>
+                    <span className="block font-mono text-[11px] text-muted">{m.event_type}</span>
+                  </td>
+                  <td className="max-w-xs text-xs break-all">{m.to_addresses.length ? m.to_addresses.join(", ") : "—"}</td>
+                  <td>
+                    <Badge tone={EMAIL_STATUS[m.status].tone}>{EMAIL_STATUS[m.status].label}</Badge>
+                  </td>
+                  <td className="text-right">
+                    <Link href={`/integracao?${new URLSearchParams({ ...base, email: m.id })}`} className="link text-xs">
+                      Ver e-mail
+                    </Link>
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </TableWrap>
+      ) : (
+        <EmptyState title="Nenhum e-mail gerado" description="Inventário aprovado, divergência registrada e recebimento agendado geram avisos ao processar a fila." />
+      )}
+    </Card>
+  );
+}
+
 function clean(params: Record<string, string | undefined>): Record<string, string> {
-  return Object.fromEntries(Object.entries(params).filter(([k, v]) => v && k !== "id")) as Record<string, string>;
+  return Object.fromEntries(Object.entries(params).filter(([k, v]) => v && k !== "id" && k !== "email")) as Record<string, string>;
 }
 
 function codeOf(e: IntegrationEventRow): string {

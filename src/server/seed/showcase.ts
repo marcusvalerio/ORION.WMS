@@ -5,6 +5,13 @@ import { loadSessionUser } from "../auth/users";
 import { formatLocationCode } from "../services/warehouse";
 import { adjustStock } from "../services/stock";
 import { approveInventory, createInventory, recordCounts, submitInventory } from "../services/inventory";
+import * as receiving from "../services/receiving";
+import * as outbound from "../services/outbound";
+import * as tasks from "../services/tasks";
+import { withMovementClock } from "../services/stock-core";
+import { processOutbox } from "../integrations/outbox/processor";
+import { localTransport } from "../integrations/outbox/transports";
+import { logEmailTransport } from "../integrations/outbox/email";
 
 /**
  * VITRINE DO INVENTÁRIO (somente modo demonstração / `npm run db:seed`): um segundo depósito,
@@ -16,6 +23,11 @@ import { approveInventory, createInventory, recordCounts, submitInventory } from
  * `seedDemo` para não mudar os números do roteiro de testes.
  */
 export async function seedInventoryShowcase(db: Db): Promise<void> {
+  await seedCdMapShowcase(db);
+  await seedFlowShowcase(db);
+}
+
+async function seedCdMapShowcase(db: Db): Promise<void> {
   const [company] = await db.query<{ id: string }>(`select id from erp.companies where is_demo order by created_at limit 1`);
   if (!company) return;
   const c = company.id;
@@ -145,5 +157,131 @@ export async function seedInventoryShowcase(db: Db): Promise<void> {
       i.id,
       Math.round((counted.length - k) * 1.6),
     ]);
+  }
+}
+
+export const FLOW_DAYS = 14;
+const FLOW_MARKER = "PC-4900";
+
+/**
+ * VITRINE DO FLUXO (gráfico "Recebimentos × expedições" do painel): nos últimos 14 dias, no
+ * DEP-01, um recebimento por dia (pedido de compra → recebimento → conferência → liberação →
+ * armazenagem) e, na maioria dos dias, uma expedição (pedido de venda → reserva → separação →
+ * conferência → expedição) — tudo pelos serviços reais.
+ *
+ * O histórico de movimentações é imutável e grava `now()`; para cair no dia certo, cada dia é
+ * executado dentro de `withMovementClock` (stock-core), que só define o `created_at` no INSERT.
+ * Datas dos cabeçalhos (recebimento, pedido, expedição) são recuadas depois, por UPDATE, para
+ * ficarem coerentes. Ao final processa a outbox (ERP local + avisos por e-mail registrados).
+ * Idempotente: não roda de novo se o pedido marcador PC-4900 já existe.
+ */
+export async function seedFlowShowcase(db: Db): Promise<void> {
+  const [company] = await db.query<{ id: string }>(`select id from erp.companies where is_demo order by created_at limit 1`);
+  if (!company) return;
+  const c = company.id;
+  const [done] = await db.query(`select 1 from erp.purchase_orders where company_id = $1 and number = $2`, [c, FLOW_MARKER]);
+  if (done) return;
+  const [wh] = await db.query<{ id: string }>(`select id from wms.warehouses where company_id = $1 and code = 'DEP-01'`, [c]);
+  const [product] = await db.query<{ id: string }>(`select id from erp.products where company_id = $1 and sku = 'CIA-001'`, [c]);
+  const [supplier] = await db.query<{ id: string }>(`select id from erp.suppliers where company_id = $1 order by code limit 1`, [c]);
+  const [customer] = await db.query<{ id: string }>(`select id from erp.customers where company_id = $1 order by code limit 1`, [c]);
+  if (!wh || !product || !supplier || !customer) return;
+  const ctxOf = async (email: string): Promise<Ctx> => {
+    const [u] = await db.query<{ id: string }>(`select id from wms.users where email = $1`, [email]);
+    return { db, user: (await loadSessionUser(db, u.id)) as SessionUser };
+  };
+  const sup = await ctxOf("supervisor@metalsupply.demo");
+  const op = await ctxOf("operador@metalsupply.demo");
+  const admin = await ctxOf("admin@metalsupply.demo");
+
+  // destinatário de demonstração dos avisos por e-mail (transporte de registro: nada é enviado)
+  await db.query(
+    `insert into wms.company_settings (company_id, key, value, updated_by) values ($1, 'notifications.email_recipients', $2, $3)
+     on conflict (company_id, key) do nothing`,
+    [c, JSON.stringify(["estoque@metalsupply.demo", "supervisao@metalsupply.demo"]), admin.user.id],
+  );
+
+  for (let ago = FLOW_DAYS - 1; ago >= 0; ago--) {
+    const n = FLOW_DAYS - 1 - ago; // 0..13
+    const received = 40 + ((n * 37) % 55);
+    const shipped = n % 5 === 3 ? 0 : 18 + ((n * 23) % 40);
+    // horário de trabalho (≈ 9h–16h em São Paulo), nunca no futuro
+    const day = new Date(Date.now() - ago * 86_400_000);
+    const at = (h: number) => {
+      const d = new Date(day);
+      d.setUTCHours(h + 3, (n * 7) % 50, 0, 0);
+      return d.getTime() > Date.now() ? new Date(Date.now() - (16 - h) * 60_000) : d;
+    };
+
+    const poNumber = n === 0 ? FLOW_MARKER : `PC-${4900 + n}`;
+    const [po] = await db.query<{ id: string }>(
+      `insert into erp.purchase_orders (company_id, number, supplier_id, expected_date, invoice_number, created_at)
+       values ($1, $2, $3, $4::date, $5, $6) returning id`,
+      [c, poNumber, supplier.id, at(9).toISOString().slice(0, 10), `NF 001.${String(200 + n).padStart(3, "0")}`, at(8).toISOString()],
+    );
+    await db.query(`insert into erp.purchase_order_items (purchase_order_id, line_no, product_id, quantity, unit_price) values ($1, 1, $2, $3, 10)`, [
+      po.id,
+      product.id,
+      received,
+    ]);
+    const receiptId = await withMovementClock(at(10), async () => {
+      const r = await receiving.createReceiptFromPurchaseOrder(sup, { purchaseOrderId: po.id, warehouseId: wh.id });
+      await receiving.startCheck(op, r.id);
+      const [item] = await db.query<{ id: string }>(`select id from wms.receipt_items where receipt_id = $1`, [r.id]);
+      await receiving.saveCounts(op, r.id, { items: [{ itemId: item.id, countedQty: received }] });
+      await receiving.finishCheck(op, r.id, {});
+      await receiving.releaseReceipt(sup, r.id);
+      const putaways = await db.query<{ id: string }>(`select id from wms.tasks where receipt_id = $1 and status = 'pending'`, [r.id]);
+      for (const t of putaways) {
+        await tasks.startTask(op, t.id);
+        await tasks.completeTask(op, t.id, {});
+      }
+      return r.id;
+    });
+    const ts = at(10).toISOString();
+    await db.query(
+      `update wms.receipts set created_at = $2, arrived_at = $2, check_started_at = $2, checked_at = $2, released_at = $2,
+              completed_at = $2::timestamptz + interval '40 minutes', updated_at = $2::timestamptz + interval '40 minutes' where id = $1`,
+      [receiptId, ts],
+    );
+    await db.query(`update wms.tasks set created_at = $2, started_at = $2, completed_at = $2::timestamptz + interval '40 minutes' where receipt_id = $1`, [
+      receiptId,
+      ts,
+    ]);
+
+    if (!shipped) continue;
+    const [so] = await db.query<{ id: string }>(
+      `insert into erp.sales_orders (company_id, number, customer_id, created_at) values ($1, $2, $3, $4) returning id`,
+      [c, `PV-${1900 + n}`, customer.id, at(13).toISOString()],
+    );
+    await db.query(`insert into erp.sales_order_items (sales_order_id, line_no, product_id, quantity) values ($1, 1, $2, $3)`, [so.id, product.id, shipped]);
+    const orderId = await withMovementClock(at(14), async () => {
+      const o = await outbound.importSalesOrder(sup, { salesOrderId: so.id, warehouseId: wh.id });
+      await outbound.reserveOrder(sup, o.id);
+      await outbound.releaseForPicking(sup, o.id);
+      const picks = await db.query<{ id: string; quantity: number; from_location_id: string }>(
+        `select id, quantity, from_location_id from wms.tasks where order_id = $1 and task_type = 'picking' and status = 'pending'`,
+        [o.id],
+      );
+      for (const t of picks) await tasks.completeTask(op, t.id, { quantity: Number(t.quantity), locationId: t.from_location_id });
+      const order = await outbound.getOrder(op, o.id);
+      await outbound.checkOrder(op, o.id, { lines: order!.lines.map((l) => ({ lineId: l.id, checkedQty: Number(l.picked_qty) })) });
+      return o.id;
+    });
+    // a expedição sai em outro relógio (fim da tarde): saída de doca
+    const shipAt = at(16);
+    await withMovementClock(shipAt, () => outbound.shipOrder(op, orderId, { carrier: "Transportadora Demo", vehiclePlate: "DEM0A00" }));
+    await db.query(
+      `update wms.outbound_orders set created_at = $2, reserved_at = $2, picked_at = $2, checked_at = $2, shipped_at = $3, updated_at = $3 where id = $1`,
+      [orderId, at(14).toISOString(), shipAt.toISOString()],
+    );
+    await db.query(`update wms.shipments set shipped_at = $2 where order_id = $1`, [orderId, shipAt.toISOString()]);
+    await db.query(`update wms.tasks set created_at = $2, started_at = $2, completed_at = $2 where order_id = $1`, [orderId, at(14).toISOString()]);
+  }
+
+  // entrega a outbox (ERP local) e registra os avisos por e-mail (transporte de registro)
+  for (let i = 0; i < 10; i++) {
+    const r = await processOutbox(db, { transport: localTransport, email: logEmailTransport, companyId: c, limit: 100 });
+    if (!r.claimed) break;
   }
 }

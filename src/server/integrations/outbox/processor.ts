@@ -1,9 +1,12 @@
 import "server-only";
 import type { Db } from "../../db/types";
 import type { OutboxEvent, Transport } from "./transports";
+import { deliverEventEmail, emailTransportFromEnv, type EmailTransport } from "./email";
 
 export interface ProcessOptions {
   transport: Transport;
+  /** Canal de e-mail (avisos). Omitido: transporte do ambiente (`log` sem EMAIL_API_URL). */
+  email?: EmailTransport;
   /** Restringe a uma empresa (painel); omitido, processa todas (cron). */
   companyId?: string | null;
   /** Máximo de eventos por execução. */
@@ -48,6 +51,7 @@ const errorText = (error: unknown) => ((error as Error)?.message ?? String(error
  * 2. Entrega cada evento pelo transporte. O `local` roda na mesma transação que
  *    marca o evento como enviado (atômico); o `http` envia fora de transação e o
  *    destino deduplica pelo id do evento (Idempotency-Key).
+ *    Em seguida o canal de e-mail gera o aviso do evento, se houver (ver email.ts).
  * 3. Falha: volta para "na fila" com `next_attempt_at` = agora + backoff, ou
  *    "falhou" ao atingir `maxAttempts`; o último erro fica registrado.
  */
@@ -73,6 +77,7 @@ export async function processOutbox(db: Db, options: ProcessOptions): Promise<Pr
   );
   claimed.sort((a, b) => a.created_at.localeCompare(b.created_at));
 
+  const email = options.email ?? emailTransportFromEnv();
   const result: ProcessResult = { claimed: claimed.length, sent: 0, retrying: 0, failed: 0, results: [] };
   for (const event of claimed) {
     try {
@@ -81,10 +86,12 @@ export async function processOutbox(db: Db, options: ProcessOptions): Promise<Pr
           const [still] = await tx.query(`select id from wms.integration_events where id = $1 and status = 'sending' for update`, [event.id]);
           if (!still) return;
           await o.transport.send(event, tx);
+          await deliverEventEmail(tx, event, email);
           await markSent(tx, event.id);
         });
       } else {
         await o.transport.send(event, db);
+        await deliverEventEmail(db, event, email);
         await markSent(db, event.id);
       }
       result.sent++;

@@ -26,6 +26,7 @@ export function ActionForm({
   className,
   resetOnSuccess = false,
   id,
+  onSuccess,
 }: {
   action: ServerAction;
   children: ReactNode;
@@ -33,12 +34,15 @@ export function ActionForm({
   className?: string;
   resetOnSuccess?: boolean;
   id?: string;
+  /** Chamado no cliente quando a ação termina com sucesso. */
+  onSuccess?: () => void;
 }) {
   // Sucesso vira notificação global, disparada assim que a resposta chega: a tela costuma
   // mudar de etapa e este formulário pode deixar de existir na nova renderização.
   const [state, formAction, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await action(prev, formData);
     if (result.ok && result.message) toast(result.message, true);
+    if (result.ok) onSuccess?.();
     return result;
   }, INITIAL_ACTION_STATE);
   const keyRef = useRef<{ key: string; ts: number } | null>(null);

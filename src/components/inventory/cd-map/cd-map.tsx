@@ -12,6 +12,7 @@ import { cellBox, cellColors, IsoBox, legendFor, project, projectedBounds, pts, 
 
 const FULL_PAD = 30;
 const ANIM_MS = 650;
+const AUTO_ADVANCE_KEY = "orion.inventario.avancarSozinho";
 const MODES: { key: ColorMode; label: string }[] = [
   { key: "situation", label: "Situação" },
   { key: "occupancy", label: "Ocupação" },
@@ -54,6 +55,26 @@ export function CdMap({
   const [query, setQuery] = useState("");
   const [notFound, setNotFound] = useState(false);
   const selected = map.cells.find((c) => c.id === selectedId) ?? null;
+  // "Avançar sozinho" (lembrado neste navegador) e foco no SKU ao chegar por avanço automático
+  const [autoAdvance, setAutoAdvance] = useState(true);
+  const [arrivedId, setArrivedId] = useState<string | null>(null);
+  useEffect(() => {
+    try {
+      const saved = window.localStorage.getItem(AUTO_ADVANCE_KEY);
+      // eslint-disable-next-line react-hooks/set-state-in-effect -- preferência só existe no cliente
+      if (saved !== null) setAutoAdvance(saved === "1");
+    } catch {
+      /* armazenamento indisponível: mantém o padrão */
+    }
+  }, []);
+  const changeAutoAdvance = useCallback((on: boolean) => {
+    setAutoAdvance(on);
+    try {
+      window.localStorage.setItem(AUTO_ADVANCE_KEY, on ? "1" : "0");
+    } catch {
+      /* ignora */
+    }
+  }, []);
 
   const route = useMemo(() => routeOrder(map), [map]);
   const you = useMemo(() => lastCountedCell(map), [map]);
@@ -118,6 +139,28 @@ export function CdMap({
       animateTo(aisleTarget(cell), () => setMode("front"));
     },
     [map, mode, animateTo, aisleTarget],
+  );
+
+  /** Após confirmar a contagem: próximo endereço pendente na rota (o atual ainda aparece pendente no mapa antigo). */
+  const advanceFrom = useCallback(
+    (fromId: string) => {
+      const i = route.findIndex((c) => c.id === fromId);
+      const todo = (c: MapCell) => c.id !== fromId && (c.situation === "pending" || c.situation === "recount");
+      const target = route.slice(i + 1).find(todo) ?? route.slice(0, Math.max(0, i)).find(todo) ?? null;
+      if (!target) return;
+      const from = map.cells.find((c) => c.id === fromId);
+      setArrivedId(target.id);
+      if (from && from.y === target.y && from.zoneId === target.zoneId) {
+        setSelectedId(target.id);
+        return;
+      }
+      // outra rua: a câmera percorre o mapa até a rua do próximo endereço
+      setMode("overview");
+      if (from) setVb(aisleTarget(from));
+      setSelectedId(target.id);
+      requestAnimationFrame(() => animateTo(aisleTarget(target), () => setMode("front")));
+    },
+    [route, map, aisleTarget, animateTo],
   );
 
   const back = useCallback(() => {
@@ -392,6 +435,10 @@ export function CdMap({
             onClose={back}
             onPrev={ri > 0 ? () => select(route[ri - 1].id) : null}
             onNext={ri >= 0 && ri < route.length - 1 ? () => select(route[ri + 1].id) : next ? () => select(next.id) : null}
+            autoAdvance={autoAdvance}
+            onAutoAdvanceChange={changeAutoAdvance}
+            onCounted={() => (autoAdvance ? advanceFrom(selected.id) : undefined)}
+            focusScan={arrivedId === selected.id}
           />
         ) : (
           <>

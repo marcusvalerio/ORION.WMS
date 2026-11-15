@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { ArrowLeft, ArrowRight, Check, X } from "lucide-react";
 import type { MapCell } from "@/lib/cd-map";
 import { SITUATION_LABELS } from "@/lib/cd-map";
@@ -37,6 +37,10 @@ export function CellPanel({
   onClose,
   onPrev,
   onNext,
+  autoAdvance,
+  onAutoAdvanceChange,
+  onCounted,
+  focusScan = false,
 }: {
   cell: MapCell;
   levels: number;
@@ -47,8 +51,23 @@ export function CellPanel({
   onClose: () => void;
   onPrev: (() => void) | null;
   onNext: (() => void) | null;
+  /** "Avançar sozinho": após confirmar a contagem, vai para o próximo endereço pendente. */
+  autoAdvance: boolean;
+  onAutoAdvanceChange: (on: boolean) => void;
+  /** Contagem confirmada com sucesso neste endereço. */
+  onCounted: () => void;
+  /** Foca o campo de SKU ao abrir (chegada por avanço automático). */
+  focusScan?: boolean;
 }) {
   const [scan, setScan] = useState("");
+  const scanRef = useRef<HTMLInputElement>(null);
+  const qtyRef = useRef<HTMLDivElement>(null);
+  useEffect(() => {
+    if (!focusScan) return;
+    // mantém o operador no fluxo de leitura: SKU primeiro; sem itens, a 1ª quantidade
+    const target = scanRef.current ?? qtyRef.current?.querySelector<HTMLInputElement>("input[type=number]") ?? null;
+    target?.focus({ preventScroll: true });
+  }, [focusScan]);
   const editable = canCount && cell.items.some((i) => !i.adjusted);
   const counted = cell.items.filter((i) => i.counted !== null);
   const pct = cell.occupancy * 100;
@@ -121,6 +140,7 @@ export function CellPanel({
           <label className="flex flex-col gap-1.5 text-sm text-fg-2">
             SKU lido
             <input
+              ref={scanRef}
               value={scan}
               onChange={(e) => setScan(e.target.value)}
               placeholder="Leia ou digite o SKU / código de barras"
@@ -142,7 +162,13 @@ export function CellPanel({
           {blind ? <p className="-mt-1 text-xs text-fg-2">Contagem cega: o saldo esperado não é exibido.</p> : null}
 
           {editable ? (
-            <ActionForm action={recordCountsAction} className="space-y-3" key={cell.items.map((i) => `${i.id}:${i.counted}`).join("|")}>
+            <ActionForm
+              action={recordCountsAction}
+              className="space-y-3"
+              key={cell.items.map((i) => `${i.id}:${i.counted}`).join("|")}
+              onSuccess={onCounted}
+            >
+              <div ref={qtyRef} className="space-y-3">
               <input type="hidden" name="_id" value={inventoryId} />
               {cell.items.map((i, idx) => (
                 <ItemBlock key={i.id} item={i} blind={blind} highlight={match?.id === i.id}>
@@ -163,7 +189,12 @@ export function CellPanel({
                   />
                 </ItemBlock>
               ))}
+              </div>
               <SubmitButton className="h-12 w-full rounded-full text-[15px]">Confirmar contagem</SubmitButton>
+              <label className="flex items-center justify-center gap-2 text-xs text-fg-2">
+                <input type="checkbox" checked={autoAdvance} onChange={(e) => onAutoAdvanceChange(e.target.checked)} className="size-4 accent-current" />
+                Avançar sozinho para o próximo endereço pendente
+              </label>
             </ActionForm>
           ) : (
             <div className="space-y-2">

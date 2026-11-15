@@ -13,6 +13,7 @@
  *    término previsto = agora + endereços restantes ÷ ritmo (só enquanto em contagem).
  */
 
+/** Meta padrão; a meta efetiva vem do parâmetro da empresa `inventory.accuracy_target`. */
 export const ACCURACY_TARGET = 99;
 const MIN_HOURS = 0.25;
 
@@ -86,6 +87,7 @@ export function computeInventoryKpis({
   history,
   currentId,
   now = Date.now(),
+  target = ACCURACY_TARGET,
 }: {
   status: string;
   blind: boolean;
@@ -94,6 +96,8 @@ export function computeInventoryKpis({
   history: CycleInput[];
   currentId: string;
   now?: number;
+  /** meta de acuracidade da empresa (%) */
+  target?: number;
 }): InventoryKpis {
   const counted = items.filter((i) => n(i.counted_qty) !== null);
   const diffOf = (i: KpiItemInput) => Number(i.counted_qty) - Number(i.expected_qty);
@@ -174,7 +178,7 @@ export function computeInventoryKpis({
     accuracy: blind ? null : accuracy,
     previousAccuracy,
     deltaPp: !blind && accuracy !== null && previousAccuracy !== null ? round1(accuracy - previousAccuracy) : null,
-    target: ACCURACY_TARGET,
+    target,
     cycles,
     locations: { counted: locDone.length, total: byLoc.size },
     items: { counted: counted.length, total: items.length },

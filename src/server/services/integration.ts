@@ -147,3 +147,43 @@ export async function discardOutboxEvent(ctx: Ctx, id: string, input: unknown, o
     return { id: eventId };
   });
 }
+
+// ---------------------------------------------------------------------------
+// Avisos por e-mail gerados pela outbox (ver integrations/outbox/email.ts)
+// ---------------------------------------------------------------------------
+
+export interface EmailMessageRow {
+  id: string;
+  event_id: string;
+  event_type: string;
+  template: string;
+  to_addresses: string[];
+  subject: string;
+  status: "logged" | "sent" | "failed" | "skipped";
+  transport: string;
+  error: string | null;
+  created_at: string;
+}
+
+export async function listEmailMessages(ctx: Ctx, limit = 20): Promise<{ rows: EmailMessageRow[]; total: number }> {
+  assertCan(ctx, "audit.view");
+  const rows = await ctx.db.query<EmailMessageRow>(
+    `select m.id, m.event_id, e.event_type, m.template, m.to_addresses, m.subject, m.status, m.transport, m.error, m.created_at::text as created_at
+     from wms.email_messages m join wms.integration_events e on e.id = m.event_id
+     where m.company_id = $1 order by m.created_at desc, m.id limit $2`,
+    [ctx.user.companyId, limit],
+  );
+  const [count] = await ctx.db.query<{ n: number }>(`select count(*)::int as n from wms.email_messages where company_id = $1`, [ctx.user.companyId]);
+  return { rows, total: count.n };
+}
+
+export async function getEmailMessage(ctx: Ctx, id: string): Promise<(EmailMessageRow & { html: string; text_body: string }) | null> {
+  assertCan(ctx, "audit.view");
+  const [row] = await ctx.db.query<EmailMessageRow & { html: string; text_body: string }>(
+    `select m.id, m.event_id, e.event_type, m.template, m.to_addresses, m.subject, m.status, m.transport, m.error,
+            m.created_at::text as created_at, m.html, m.text_body
+     from wms.email_messages m join wms.integration_events e on e.id = m.event_id where m.id = $1 and m.company_id = $2`,
+    [id, ctx.user.companyId],
+  );
+  return row ?? null;
+}

@@ -56,6 +56,10 @@ Veja [`.env.example`](.env.example). Nenhuma é obrigatória em desenvolvimento.
 | `ERP_WEBHOOK_SECRET` | Segredo (≥ 16 caracteres) da assinatura HMAC-SHA256 dos eventos. |
 | `ERP_WEBHOOK_TIMEOUT_MS` | Tempo máximo de cada envio (padrão 10000). |
 | `CRON_SECRET` | Token (≥ 16 caracteres) que protege `/api/integracao/processar`. |
+| `EMAIL_API_URL` | Opcional. Avisos por e-mail da outbox (inventário aprovado, divergência, recebimento agendado) via `POST` JSON `{from,to,subject,html,text}` nesta URL. Sem ela, o transporte é de **registro**: os e-mails são gerados e mostrados na tela de Integração, sem envio real. SMTP não está incluído (ponto de extensão: `EmailTransport` em `src/server/integrations/outbox/email.ts`). Destinatários em Configurações. |
+| `EMAIL_API_TOKEN` | Opcional. Enviado como `Authorization: Bearer` ao `EMAIL_API_URL`. |
+| `EMAIL_FROM` | Opcional. Remetente informado ao `EMAIL_API_URL`. |
+| `APP_URL` | Opcional. Endereço público do ORION, para os links absolutos nos e-mails. |
 
 ### Scripts
 

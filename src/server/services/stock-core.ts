@@ -1,4 +1,5 @@
 import "server-only";
+import { AsyncLocalStorage } from "node:async_hooks";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { DomainError, NotFoundError } from "../errors";
@@ -171,12 +172,25 @@ export interface MovementInput {
   taskId?: string | null;
 }
 
+/**
+ * Relógio das movimentações para o SEED DE DEMONSTRAÇÃO: dentro de
+ * `withMovementClock(data, fn)`, as movimentações gravadas por `fn` (pelos
+ * serviços reais) recebem `created_at = data`, para montar histórico dos
+ * últimos dias. O histórico continua imutável (só a data de criação muda, no
+ * INSERT). Fora disso vale `now()`. Não é exposto a ações/rotas.
+ */
+const movementClock = new AsyncLocalStorage<Date>();
+export function withMovementClock<T>(at: Date, fn: () => Promise<T>): Promise<T> {
+  return movementClock.run(at, fn);
+}
+
 export async function insertMovement(tx: Queryable, ctx: Ctx, m: MovementInput): Promise<string> {
+  const at = movementClock.getStore();
   const [row] = await tx.query<{ id: string }>(
     `insert into wms.stock_movements
       (company_id, warehouse_id, movement_type, product_id, lot_code, expiry_date, quantity,
-       from_location_id, to_location_id, reason, reference_type, reference_id, reference_code, task_id, created_by)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15) returning id`,
+       from_location_id, to_location_id, reason, reference_type, reference_id, reference_code, task_id, created_by, created_at)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, coalesce($16::timestamptz, now())) returning id`,
     [
       ctx.user.companyId,
       m.warehouseId,
@@ -193,6 +207,7 @@ export async function insertMovement(tx: Queryable, ctx: Ctx, m: MovementInput):
       m.referenceCode ?? null,
       m.taskId ?? null,
       ctx.user.id,
+      at ? at.toISOString() : null,
     ],
   );
   return row.id;
