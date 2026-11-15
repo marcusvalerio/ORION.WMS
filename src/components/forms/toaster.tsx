@@ -1,7 +1,7 @@
 "use client";
 
 import { useSyncExternalStore } from "react";
-import { CircleAlert, CircleCheck, X } from "lucide-react";
+import { X } from "lucide-react";
 import { cn } from "@/components/ui/cn";
 
 interface Toast {
@@ -42,19 +42,18 @@ export function Toaster() {
   return (
     <div className="pointer-events-none fixed inset-x-0 bottom-0 z-50 flex flex-col items-center gap-2 p-4 sm:items-end" aria-live="polite">
       {items.map((t) => {
-        const Icon = t.ok ? CircleCheck : CircleAlert;
         return (
           <div
             key={t.id}
-            role="status"
+            role={t.ok ? "status" : "alert"}
             className={cn(
-              "pointer-events-auto flex w-full max-w-sm items-start gap-2 rounded-lg border bg-surface px-3 py-2.5 text-sm shadow-lg",
-              t.ok ? "border-ok-line" : "border-crit-line",
+              "orion-in pointer-events-auto flex w-full max-w-sm items-center gap-3 rounded-2xl px-4 py-3 text-sm shadow-lg",
+              t.ok ? "bg-noite-900 text-creme-100" : "border border-crit-line bg-crit-bg text-crit-fg",
             )}
           >
-            <Icon className={cn("mt-0.5 size-4 shrink-0", t.ok ? "text-ok-fg" : "text-crit-fg")} aria-hidden />
-            <p className="flex-1 text-fg">{t.message}</p>
-            <button type="button" onClick={() => dismiss(t.id)} className="text-muted hover:text-fg-2" aria-label="Fechar">
+            <span className={cn("size-2 shrink-0 rounded-full", t.ok ? "bg-ok-solid" : "bg-crit-solid")} aria-hidden />
+            <p className="flex-1">{t.message}</p>
+            <button type="button" onClick={() => dismiss(t.id)} className={cn("rounded-full p-1", t.ok ? "text-ceu-300 hover:text-creme-100" : "hover:opacity-80")} aria-label="Fechar aviso">
               <X className="size-4" />
             </button>
           </div>
