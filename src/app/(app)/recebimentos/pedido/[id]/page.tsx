@@ -64,7 +64,7 @@ export default async function PurchaseOrderDeliveriesPage({ params }: { params: 
           />
         </CardBody>
       </Card>
-      <div className="grid gap-5 xl:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-2">
         <Card>
           <CardHeader title="Saldo por item" description="Faltas e avarias de uma entrega voltam ao saldo pendente; sobras ficam como divergência e não abatem outros itens." />
           <PoBalanceTable rows={balance} />
@@ -119,7 +119,7 @@ export default async function PurchaseOrderDeliveriesPage({ params }: { params: 
                 </tbody>
               </table>
             </TableWrap>
-            <CardBody className="grid gap-3 border-t border-line md:grid-cols-4 md:items-end">
+            <CardBody className="grid grid-cols-1 gap-3 border-t border-line md:grid-cols-4 md:items-end">
               <Field label="Depósito de destino" required>
                 <Select name="warehouseId" required options={warehouses.filter((w) => w.active).map((w) => ({ value: w.id, label: `${w.code} — ${w.name}` }))} />
               </Field>

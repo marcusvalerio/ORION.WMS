@@ -1,22 +1,24 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { getSessionUser } from "@/server/auth/session";
 import { getDb } from "@/server/db";
-import { buildReport, REPORTS, toCsv } from "@/server/services/reports";
+import { can } from "@/lib/permissions";
+import { exportReport, REPORTS, toCsv } from "@/server/services/reports";
 import { companyHeaderLines, getCompanyProfile } from "@/server/services/company";
 import { DomainError, PermissionError, toUserMessage } from "@/server/errors";
 
 export const dynamic = "force-dynamic";
 
-/** Exportação CSV de relatórios: exige sessão e permissão reports.export; respeita os filtros da URL. */
+/** Exportação CSV de relatórios: exige sessão e permissão reports.export (administrador e supervisor); respeita os filtros da URL. */
 export async function GET(request: NextRequest, { params }: { params: Promise<{ report: string }> }) {
   const { report } = await params;
   const user = await getSessionUser();
   if (!user) return NextResponse.json({ error: "Não autenticado." }, { status: 401 });
   if (user.mustChangePassword) return NextResponse.json({ error: "Troca de senha obrigatória." }, { status: 403 });
+  if (!can(user.role, "reports.export")) return NextResponse.json({ error: "Exportação restrita a administradores e supervisores." }, { status: 403 });
   if (!(report in REPORTS)) return NextResponse.json({ error: "Relatório inexistente." }, { status: 404 });
   try {
     const db = await getDb();
-    const table = await buildReport({ db, user }, report, request.nextUrl.searchParams);
+    const table = await exportReport({ db, user }, report, request.nextUrl.searchParams);
     const stamp = new Date().toISOString().slice(0, 16).replace(/[-:T]/g, "");
     // Identificação da empresa (razão social, CNPJ e endereço) antes do cabeçalho; ?cabecalho=0 omite.
     const preamble =

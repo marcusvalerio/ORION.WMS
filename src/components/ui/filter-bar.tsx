@@ -23,9 +23,10 @@ export function FilterBar({ children, resetHref, action }: { children: ReactNode
 
 export function FilterField({ label, children, className }: { label: string; children: ReactNode; className?: string }) {
   return (
-    <div className={className ?? "w-full sm:w-48"}>
+    // o rótulo envolve o campo: associação implícita para leitores de tela
+    <label className={`block ${className ?? "w-full sm:w-48"}`}>
       <span className="label">{label}</span>
       {children}
-    </div>
+    </label>
   );
 }

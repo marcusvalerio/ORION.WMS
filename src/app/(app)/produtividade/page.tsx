@@ -49,9 +49,11 @@ export default async function ProductivityPage({ searchParams }: { searchParams:
         description="Calculada dos registros operacionais: tarefas concluídas (por quem concluiu), movimentações de estoque, contagens e divergências de separação."
         breadcrumbs={crumbs}
         actions={
-          <a href={`/api/relatorios/produtividade?${csv}`} className={buttonClass("primary", "sm")}>
-            <Download className="size-4" /> Exportar CSV
-          </a>
+          can(ctx.user.role, "reports.export") ? (
+            <a href={`/api/relatorios/produtividade?${csv}`} className={buttonClass("primary", "sm")}>
+              <Download className="size-4" /> Exportar CSV
+            </a>
+          ) : null
         }
       />
       {data && data.rows.length ? (

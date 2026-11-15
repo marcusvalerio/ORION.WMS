@@ -144,7 +144,7 @@ export default async function NewReceiptPage() {
 
       <div className="mt-5">
         <Disclosure title="Entrada avulsa (sem pedido de compra)">
-          <ActionForm action={createManualReceiptAction} className="grid gap-3 md:grid-cols-2">
+          <ActionForm action={createManualReceiptAction} className="grid grid-cols-1 gap-3 md:grid-cols-2">
             <Field label="Depósito de destino" required>
               <Select name="warehouseId" required options={whOptions} />
             </Field>

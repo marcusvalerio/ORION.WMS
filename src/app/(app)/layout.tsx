@@ -37,9 +37,9 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       <Sidebar allowed={allowed} />
       <div className="lg:pl-60">
         <header className="sticky top-0 z-20 hidden h-14 items-center justify-between border-b border-line bg-surface/90 px-6 backdrop-blur lg:flex">
-          <div className="flex items-center gap-2 text-sm" title={companyTitle || undefined}>
-            <span className="font-medium text-fg">{user.companyName}</span>
-            {company.document_formatted ? <span className="text-xs text-muted">CNPJ {company.document_formatted}</span> : null}
+          <div className="flex shrink-0 items-center gap-2 text-sm" title={companyTitle || undefined}>
+            <span className="font-medium whitespace-nowrap text-fg">{user.companyName}</span>
+            {company.document_formatted ? <span className="hidden text-xs whitespace-nowrap text-muted xl:inline">CNPJ {company.document_formatted}</span> : null}
             {user.companyIsDemo ? <DemoBadge /> : null}
           </div>
           <TopSearch className="mx-6 w-full max-w-md" />
@@ -50,11 +50,11 @@ export default async function AppLayout({ children }: { children: React.ReactNod
           </div>
         </header>
         <div className="flex items-center justify-between gap-2 border-b border-line bg-surface px-4 py-2 text-xs lg:hidden">
-          <span className="flex items-center gap-2 truncate">
-            <span className="truncate font-medium text-fg-2">{user.companyName}</span>
-            {user.companyIsDemo ? <DemoBadge /> : null}
+          <span className="flex min-w-0 items-center gap-2">
+            <span className="min-w-0 truncate font-medium text-fg-2">{user.companyName}</span>
+            {user.companyIsDemo ? <DemoBadge className="shrink-0" /> : null}
           </span>
-          <span className="flex items-center gap-2">
+          <span className="flex shrink-0 items-center gap-2">
             {user.role === "operator" ? <CollectorLink /> : null}
             {gift}
             <UserMenu name={user.name} role={ROLE_LABELS[user.role]} theme={theme} compact />
@@ -80,7 +80,8 @@ export default async function AppLayout({ children }: { children: React.ReactNod
 function UserMenu({ name, role, theme, compact }: { name: string; role: string; theme: ThemePref; compact?: boolean }) {
   return (
     <div className="flex items-center gap-3">
-      <div className="text-right leading-tight">
+      {/* no celular o nome sai da barra compacta para não espremer a empresa */}
+      <div className={compact ? "hidden text-right leading-tight sm:block" : "text-right leading-tight"}>
         <p className={compact ? "text-xs font-medium text-fg-2" : "text-sm font-medium text-fg"}>{name}</p>
         {!compact ? <p className="text-xs text-muted">{role}</p> : null}
       </div>

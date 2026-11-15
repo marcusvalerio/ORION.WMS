@@ -57,7 +57,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
         }
         breadcrumbs={[{ label: "Operações" }, { label: "Tarefas", href: "/tarefas" }, { label: task.code }]}
       />
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <Card>
             <CardBody>
@@ -160,7 +160,7 @@ export default async function TaskPage({ params }: { params: Promise<{ id: strin
                   )
                 ) : null}
 
-                <ActionForm action={completeTaskAction} confirm="Confirmar a execução física desta tarefa?" className="grid gap-3 sm:grid-cols-2">
+                <ActionForm action={completeTaskAction} confirm="Confirmar a execução física desta tarefa?" className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <input type="hidden" name="_id" value={task.id} />
                   {task.task_type === "putaway" || task.task_type === "transfer" || task.task_type === "return" ? (
                     <Field label="Endereço de destino confirmado" required className="sm:col-span-2">

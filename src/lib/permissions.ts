@@ -36,7 +36,7 @@ export const PERMISSIONS = {
   "outbound.reserve": MANAGERS,
   "outbound.check": ALL_OPERATIONAL,
   "outbound.ship": ALL_OPERATIONAL,
-  "reports.export": ["admin", "supervisor", "auditor"],
+  "reports.export": MANAGERS,
   "audit.view": ["admin", "supervisor", "auditor"],
   "users.manage": ["admin"],
   "settings.manage": ["admin"],
@@ -58,6 +58,7 @@ export const PERMISSIONS = {
   "export.pack": ALL_OPERATIONAL,
   "production.manage": MANAGERS,
   "production.operate": ALL_OPERATIONAL,
+  "reports.view": ["admin", "supervisor", "auditor"],
 } satisfies Record<string, Role[]>;
 
 export type Permission = keyof typeof PERMISSIONS;

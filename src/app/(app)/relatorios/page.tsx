@@ -44,7 +44,7 @@ const DEEP_LINKS: Partial<Record<ReportKey, string>> = {
 export default async function ReportsPage({ searchParams }: { searchParams: SearchParams }) {
   const ctx = await requireCtx();
   const params = await readParams(searchParams);
-  if (!can(ctx.user.role, "reports.export")) {
+  if (!can(ctx.user.role, "reports.view")) {
     return (
       <>
         <PageHeader title="Relatórios" breadcrumbs={[{ label: "Gestão" }, { label: "Relatórios" }]} />
@@ -58,7 +58,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
     <>
       <PageHeader
         title="Relatórios"
-        description="Consultas consolidadas com exportação CSV (separador ponto e vírgula, compatível com Excel). Para filtrar, use a tela operacional correspondente e exporte por lá — o CSV respeita os filtros aplicados."
+        description="Consultas consolidadas com exportação CSV (separador ponto e vírgula, compatível com Excel; exportação para administradores e supervisores). Para filtrar, use a tela operacional correspondente e exporte por lá — o CSV respeita os filtros aplicados."
         breadcrumbs={[{ label: "Gestão" }, { label: "Relatórios" }]}
       />
       <Card className="mb-5">
@@ -69,7 +69,7 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
           </div>
         </CardBody>
       </Card>
-      <div className="grid gap-5 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-4">
         <nav className="space-y-1.5" aria-label="Relatórios">
           {(Object.keys(REPORTS) as ReportKey[]).map((key) => (
             <Link
@@ -99,9 +99,11 @@ export default async function ReportsPage({ searchParams }: { searchParams: Sear
                     Abrir com filtros
                   </Link>
                 ) : null}
-                <a href={`/api/relatorios/${selected}`} className={buttonClass("primary", "sm")}>
-                  <Download className="size-4" /> Exportar CSV
-                </a>
+                {can(ctx.user.role, "reports.export") ? (
+                  <a href={`/api/relatorios/${selected}`} className={buttonClass("primary", "sm")}>
+                    <Download className="size-4" /> Exportar CSV
+                  </a>
+                ) : null}
               </>
             }
           />

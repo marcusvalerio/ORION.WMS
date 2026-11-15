@@ -76,7 +76,7 @@ export default async function WavePage({ params }: { params: Promise<{ id: strin
         </CardBody>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <Card>
             <CardHeader

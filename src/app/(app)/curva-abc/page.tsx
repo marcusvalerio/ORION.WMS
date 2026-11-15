@@ -34,7 +34,7 @@ export default async function AbcPage() {
         breadcrumbs={[{ label: "Gestão" }, { label: "Curva ABC" }]}
       />
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Distribuição do giro" description={`A: ${counts.A} · B: ${counts.B} · C: ${counts.C} produto(s). Blocos cheios = giro em relação ao produto de maior giro.`} />
           <CardBody>
@@ -60,7 +60,7 @@ export default async function AbcPage() {
           <CardHeader title="Parâmetros" />
           <CardBody>
             {manage ? (
-              <ActionForm action={saveSlottingSettingsAction} className="grid gap-3 sm:grid-cols-2">
+              <ActionForm action={saveSlottingSettingsAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <Field label="Período (dias)" required>
                   <Input name="days" type="number" min={7} max={730} defaultValue={settings.days} required />
                 </Field>

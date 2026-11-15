@@ -259,21 +259,6 @@ export const AUDIT_ACTION_LABELS: Record<string, string> = {
   "return.item_inspected": "Item da devolução inspecionado",
   "return.completed": "Devolução concluída",
   "return.cancelled": "Devolução cancelada",
-};
-
-export const DOCK_TYPE_LABELS: Record<string, string> = {
-  inbound: "Entrada",
-  outbound: "Saída",
-  both: "Entrada e saída",
-};
-
-export const RETURN_REASON_LABELS: Record<string, string> = {
-  damaged_in_transit: "Avaria no transporte",
-  wrong_item: "Item errado",
-  quality: "Problema de qualidade",
-  regret: "Desistência do cliente",
-  excess: "Envio em excesso",
-  other: "Outro",
   "wave.created": "Onda criada",
   "wave.order_added": "Pedido incluído na onda",
   "wave.order_removed": "Pedido retirado da onda",
@@ -305,6 +290,21 @@ export const RETURN_REASON_LABELS: Record<string, string> = {
   "production.output_received": "Produto acabado recebido",
   "production.completed": "Requisição encerrada",
   "production.cancelled": "Requisição cancelada",
+};
+
+export const DOCK_TYPE_LABELS: Record<string, string> = {
+  inbound: "Entrada",
+  outbound: "Saída",
+  both: "Entrada e saída",
+};
+
+export const RETURN_REASON_LABELS: Record<string, string> = {
+  damaged_in_transit: "Avaria no transporte",
+  wrong_item: "Item errado",
+  quality: "Problema de qualidade",
+  regret: "Desistência do cliente",
+  excess: "Envio em excesso",
+  other: "Outro",
 };
 
 export const PACKAGE_TYPE_LABELS: Record<string, string> = {

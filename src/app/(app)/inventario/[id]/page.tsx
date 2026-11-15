@@ -97,7 +97,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
         </CardBody>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="min-w-0 space-y-5 xl:col-span-2">
           <Card>
             <CardHeader
@@ -123,7 +123,7 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
 
           {counting && can(role, "inventory.count") ? (
             <Disclosure title="Incluir item encontrado (não constava no sistema)">
-              <ActionForm action={addInventoryItemAction} resetOnSuccess className="grid gap-3 sm:grid-cols-2">
+              <ActionForm action={addInventoryItemAction} resetOnSuccess className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                 <input type="hidden" name="_id" value={id} />
                 <Field label="Endereço" required>
                   <Select name="locationId" required placeholder="Selecione…" options={locations.rows.map((l) => ({ value: l.id, label: l.code }))} />

@@ -2,7 +2,8 @@ import "server-only";
 import type { Db } from "../db/types";
 import type { Ctx, SessionUser } from "../context";
 import { loadSessionUser } from "../auth/users";
-import { formatLocationCode } from "../services/warehouse";
+import { createLocation, createZone, formatLocationCode } from "../services/warehouse";
+import { createDock } from "../services/docks";
 import { adjustStock } from "../services/stock";
 import { approveInventory, createInventory, recordCounts, submitInventory } from "../services/inventory";
 import * as receiving from "../services/receiving";
@@ -15,7 +16,8 @@ import { logEmailTransport } from "../integrations/outbox/email";
 
 /**
  * VITRINE DO INVENTÁRIO (somente modo demonstração / `npm run db:seed`): um segundo depósito,
- * "CD-02", com porta-paletes de 4 ruas × 8 módulos × 4 níveis e uma rua de picking, saldo
+ * "CD-02", com porta-paletes de 4 ruas × 8 módulos × 4 níveis e uma rua de picking (mais docas
+ * e câmara refrigerada em `seedCdOperations`), saldo
  * carregado por ajuste auditado, 5 inventários rotativos já aprovados (ciclos anteriores, com
  * datas retroativas mensais) e um inventário geral em contagem (~60% dos endereços contados).
  *
@@ -24,7 +26,46 @@ import { logEmailTransport } from "../integrations/outbox/email";
  */
 export async function seedInventoryShowcase(db: Db): Promise<void> {
   await seedCdMapShowcase(db);
+  await seedCdOperations(db);
   await seedFlowShowcase(db);
+}
+
+/**
+ * CD-02 operável (é o primeiro depósito nos formulários): recebimento, expedição e uma pequena
+ * câmara refrigerada, para que pedidos/ondas e a NF-e de exemplo (com ADE-003 refrigerado)
+ * funcionem também neste depósito. Criado pelos serviços reais (zona, endereço e doca, com
+ * auditoria). Idempotente item a item — completa também bancos de demonstração já existentes.
+ */
+export async function seedCdOperations(db: Db): Promise<void> {
+  const [company] = await db.query<{ id: string }>(`select id from erp.companies where is_demo order by created_at limit 1`);
+  if (!company) return;
+  const [wh] = await db.query<{ id: string }>(`select id from wms.warehouses where company_id = $1 and code = 'CD-02'`, [company.id]);
+  const [u] = await db.query<{ id: string }>(`select id from wms.users where email = 'admin@metalsupply.demo'`);
+  if (!wh || !u) return;
+  const admin: Ctx = { db, user: (await loadSessionUser(db, u.id)) as SessionUser };
+
+  const zone = async (code: string, name: string, zoneType: string) => {
+    const [z] = await db.query<{ id: string }>(`select id from wms.zones where warehouse_id = $1 and code = $2`, [wh.id, code]);
+    return z ? z.id : (await createZone(admin, { warehouseId: wh.id, code, name, zoneType })).id;
+  };
+  const loc = async (zoneId: string, aisle: string, bay: string, level: string, locationType: string, storageClass: string | null, capacityUnits: number) => {
+    const code = formatLocationCode("CD-02", { aisle, bay, level, position: "00" });
+    const [l] = await db.query(`select 1 from wms.locations where warehouse_id = $1 and code = $2`, [wh.id, code]);
+    if (!l) await createLocation(admin, { zoneId, aisle, bay, level, position: "00", locationType, storageClass, capacityUnits });
+  };
+  const dock = async (code: string, name: string, dockType: string) => {
+    const [d] = await db.query(`select 1 from wms.docks where warehouse_id = $1 and code = $2`, [wh.id, code]);
+    if (!d) await createDock(admin, { warehouseId: wh.id, code, name, dockType });
+  };
+
+  const zRec = await zone("REC", "Docas de recebimento", "receiving");
+  await loc(zRec, "RC", "01", "00", "dock", null, 5000);
+  const zExp = await zone("EXP", "Docas de expedição", "shipping");
+  await loc(zExp, "EX", "01", "00", "dock", null, 5000);
+  const zFri = await zone("FRI", "Câmara refrigerada", "storage");
+  for (const bay of ["01", "02"]) await loc(zFri, "06", bay, "01", "rack", "refrigerated", 50);
+  await dock("DOC-01", "Doca 1 — recebimento", "inbound");
+  await dock("DOC-02", "Doca 2 — expedição", "outbound");
 }
 
 async function seedCdMapShowcase(db: Db): Promise<void> {

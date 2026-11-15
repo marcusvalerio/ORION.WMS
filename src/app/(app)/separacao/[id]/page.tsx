@@ -96,7 +96,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         </CardBody>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <Card>
             <CardHeader title="Itens do pedido" description="Disponível agora = saldo livre em endereços ativos de armazenagem/picking, não vencido." />
@@ -197,7 +197,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <p className="mb-3 text-xs text-muted">Reconte os volumes na doca. Qualquer diferença em relação ao separado é registrada como divergência e bloqueia a expedição.</p>
                 <ActionForm action={checkOrderAction} className="space-y-3">
                   <input type="hidden" name="_id" value={id} />
-                  <div className="grid gap-3 sm:grid-cols-2">
+                  <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                     {activeLines.map((l, idx) => (
                       <Field key={l.id} label={`${l.sku} — conferido (separado: ${fmtQty(l.picked_qty)})`} required>
                         <input type="hidden" name={`lines.${idx}.lineId`} value={l.id} />
@@ -219,7 +219,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 <p className="mb-3 text-xs text-muted">
                   Baixa física de {fmtQty(o.lines.reduce((a, l) => a + l.checked_qty, 0))} un da doca, consumo das reservas e comunicação ao ERP.
                 </p>
-                <ActionForm action={shipOrderAction} confirm="Confirmar a expedição? A baixa de estoque é definitiva." className="grid gap-3 sm:grid-cols-3">
+                <ActionForm action={shipOrderAction} confirm="Confirmar a expedição? A baixa de estoque é definitiva." className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <input type="hidden" name="_id" value={id} />
                   <Field label="Transportadora">
                     <Input name="carrier" maxLength={120} />
@@ -398,7 +398,16 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               </CardBody>
             </Card>
           ) : null}
-          {o.status === "picking" ? (
+          {o.status === "picking" && o.wave_id ? (
+            <Alert level="info">
+              Separação pela onda{" "}
+              <Link href={`/ondas/${o.wave_id}`} className="link">
+                {o.wave_code}
+              </Link>
+              : execute o roteiro e, ao fim, distribua os volumes do pedido na doca.
+            </Alert>
+          ) : null}
+          {o.status === "picking" && !o.wave_id ? (
             <Alert level="info">
               Separação em andamento.{" "}
               <Link href="/tarefas?type=picking&status=pending,in_progress" className="link">

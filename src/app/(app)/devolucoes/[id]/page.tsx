@@ -41,7 +41,7 @@ export default async function ReturnPage({ params }: { params: Promise<{ id: str
         description={`${r.customer_name} · Pedido ${r.order_code}`}
         breadcrumbs={[{ label: "Entrada" }, { label: "Devoluções", href: "/devolucoes" }, { label: r.code }]}
       />
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           <Card>
             <CardBody>

@@ -65,7 +65,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
       </div>
 
       {current ? (
-        <div className="mt-5 grid gap-5 xl:grid-cols-5">
+        <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-5">
           <Card className="xl:col-span-3">
             <CardHeader
               title={`Mapa estrutural — ${current.code} ${current.name}`}

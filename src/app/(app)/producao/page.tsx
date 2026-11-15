@@ -133,7 +133,7 @@ export default async function ProductionPage() {
         {manage && pending.length ? (
           <CardBody className="border-t border-subtle">
             {lines.length ? (
-              <ActionForm action={createRequisitionAction} className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+              <ActionForm action={createRequisitionAction} className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
                 <Field label="Ordem de produção" required>
                   <Select name="productionOrderId" required options={pending.map((o) => ({ value: o.id, label: `${o.number} — ${o.sku}` }))} />
                 </Field>

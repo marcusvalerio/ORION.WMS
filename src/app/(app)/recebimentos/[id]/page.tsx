@@ -95,7 +95,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
         </CardBody>
       </Card>
 
-      <div className="grid gap-5 xl:grid-cols-3">
+      <div className="grid grid-cols-1 gap-5 xl:grid-cols-3">
         <div className="space-y-5 xl:col-span-2">
           {r.status === "expected" ? (
             <Card>
@@ -278,7 +278,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
                 {r.items
                   .filter((i) => i.quality_hold_qty > 0)
                   .map((i) => (
-                    <ActionForm key={i.id} action={releaseQualityHoldAction} resetOnSuccess className="grid gap-3 sm:grid-cols-[1fr_120px_2fr_auto] sm:items-end">
+                    <ActionForm key={i.id} action={releaseQualityHoldAction} resetOnSuccess className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_120px_2fr_auto] sm:items-end">
                       <input type="hidden" name="_id" value={i.id} />
                       <div className="text-sm">
                         <span className="font-medium">{i.sku}</span>
@@ -321,7 +321,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
             {["expected", "checking", "checked", "released"].includes(r.status) && can(role, "divergence.create") ? (
               <CardBody className="border-t border-line">
                 <Disclosure title="Registrar divergência ou ocorrência manual">
-                  <ActionForm action={addReceiptDivergenceAction} resetOnSuccess className="grid gap-3 sm:grid-cols-3">
+                  <ActionForm action={addReceiptDivergenceAction} resetOnSuccess className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                     <input type="hidden" name="_id" value={id} />
                     <Field label="Tipo">
                       <Select

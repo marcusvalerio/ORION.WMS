@@ -62,7 +62,7 @@ export default async function DashboardPage() {
         ))}
       </div>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card className="xl:col-span-2">
           <CardHeader title="Recebimentos × expedições" description="Unidades armazenadas e expedidas por dia (últimos 14 dias), a partir das movimentações." />
           <CardBody>
@@ -106,7 +106,7 @@ export default async function DashboardPage() {
         </CardBody>
       </Card>
 
-      <div className="mt-5 grid gap-5 xl:grid-cols-3">
+      <div className="mt-5 grid grid-cols-1 gap-5 xl:grid-cols-3">
         <Card>
           <CardHeader title="Alertas operacionais" description="Pontos que exigem atenção agora." />
           {alerts.length ? (

@@ -42,7 +42,7 @@ export default async function HealthPage() {
         breadcrumbs={[{ label: "Gestão" }, { label: "Saúde" }]}
         badges={<Badge tone={overall.tone}>{overall.label}</Badge>}
       />
-      <div className="grid gap-5 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2">
         <Card>
           <CardHeader title="Aplicação e banco" />
           <CardBody>

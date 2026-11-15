@@ -40,7 +40,7 @@ describe("Autenticação e permissões", () => {
   });
 
   it("matriz: auditor só consulta; operador não aprova nem ajusta", () => {
-    const writePerms = Object.keys(PERMISSIONS).filter((p) => !["reports.export", "audit.view", "productivity.view"].includes(p));
+    const writePerms = Object.keys(PERMISSIONS).filter((p) => !["reports.view", "audit.view", "productivity.view"].includes(p));
     for (const p of writePerms) expect(can("auditor", p as never)).toBe(false);
     expect(can("operator", "stock.adjust")).toBe(false);
     expect(can("operator", "inventory.approve")).toBe(false);
