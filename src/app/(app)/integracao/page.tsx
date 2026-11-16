@@ -70,6 +70,12 @@ export default async function IntegrationPage({ searchParams }: { searchParams: 
         }
       />
       <div className="space-y-5">
+        <div className="flex gap-2 text-sm">
+          <span className="rounded-md border border-line bg-canvas px-3 py-1.5 font-semibold">Outbox (ORION → ERP)</span>
+          <Link href="/integracao/atlas" className="rounded-md border border-line px-3 py-1.5 hover:bg-canvas">
+            ATLAS
+          </Link>
+        </div>
         {config.ok ? (
           <Alert level="info" title={`Transporte: ${config.description}`}>
             {config.transport.name === "local"

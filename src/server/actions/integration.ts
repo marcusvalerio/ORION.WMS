@@ -28,3 +28,11 @@ export async function discardEventAction(_: ActionState, fd: FormData) {
     return "Evento descartado.";
   });
 }
+
+export async function reprocessAtlasEventAction(_: ActionState, fd: FormData) {
+  return runAction(fd, async ({ ctx, id }) => {
+    const { reprocessAtlasEvent } = await import("../services/atlas-sync");
+    await reprocessAtlasEvent(ctx, id);
+    return "Evento do ATLAS reaplicado.";
+  });
+}

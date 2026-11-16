@@ -40,7 +40,7 @@ async function outboundHeader(tx: Queryable, orderId: string) {
      left join wms.shipments s on s.order_id = o.id where o.id = $1`,
     [orderId],
   );
-  return o;
+  return o ?? { code: undefined as unknown as string, atlas_sales_order_id: null, invoice_access_key: null, shipped_at: null, carrier: null, vehicle_plate: null, shipment: null };
 }
 
 /** Lotes por linha (reservas separadas/consumidas). */
@@ -96,7 +96,7 @@ export async function buildAtlasPayload(
     case "outbound.accepted":
     case "outbound.picking_started": {
       const o = await outboundHeader(tx, aggregateId);
-      return { ...legacy, code: o.code, atlas_sales_order_id: o.atlas_sales_order_id };
+      return { ...legacy, code: o.code ?? legacy.code, atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null };
     }
     case "outbound.ready_to_invoice": {
       const o = await outboundHeader(tx, aggregateId);
@@ -106,8 +106,8 @@ export async function buildAtlasPayload(
       const [packages] = await tx.query<{ n: number }>(`select count(*)::int as n from wms.export_packages where order_id = $1`, [aggregateId]);
       return {
         ...legacy,
-        code: o.code,
-        atlas_sales_order_id: o.atlas_sales_order_id,
+        code: o.code ?? legacy.code,
+        atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null,
         gross_weight_kg: weight,
         net_weight_kg: weight,
         volumes: packages?.n ? Number(packages.n) : null,
@@ -127,9 +127,9 @@ export async function buildAtlasPayload(
       const lots = await lotsByLine(tx, aggregateId, ["consumed"]);
       return {
         ...legacy,
-        code: o.code,
+        code: o.code ?? legacy.code,
         shipment: o.shipment ?? legacy.shipment,
-        atlas_sales_order_id: o.atlas_sales_order_id,
+        atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null,
         access_key: o.invoice_access_key,
         carrier: o.carrier,
         vehicle_plate: o.vehicle_plate,
@@ -146,7 +146,7 @@ export async function buildAtlasPayload(
     }
     case "outbound.cancelled": {
       const o = await outboundHeader(tx, aggregateId);
-      return { ...legacy, code: o.code, atlas_sales_order_id: o.atlas_sales_order_id, released_reservations: true };
+      return { ...legacy, code: o.code ?? legacy.code, atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null, released_reservations: true };
     }
     case "outbound.line_cancelled": {
       const o = await outboundHeader(tx, aggregateId);
@@ -159,8 +159,8 @@ export async function buildAtlasPayload(
         : [];
       return {
         ...legacy,
-        code: o.code,
-        atlas_sales_order_id: o.atlas_sales_order_id,
+        code: o.code ?? legacy.code,
+        atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null,
         atlas_line_id: line?.atlas_line_id ?? null,
         cancelled_qty: n(legacy.cancelled_qty),
       };
@@ -391,7 +391,7 @@ export async function buildAtlasPayload(
       const totals = (legacy.totals as { grossWeightKg?: number; netWeightKg?: number; volumeM3?: number }) ?? {};
       return {
         ...legacy,
-        atlas_sales_order_id: o.atlas_sales_order_id,
+        atlas_sales_order_id: o.atlas_sales_order_id ?? legacy.atlas_sales_order_id ?? null,
         incoterm: legacy.incoterm ?? null,
         destination_country: legacy.destinationCountry ?? null,
         invoice: legacy.commercialInvoice ?? null,

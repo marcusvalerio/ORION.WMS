@@ -15,7 +15,7 @@ import {
   type LaunchClaims,
   type LinkRequest,
 } from "../integrations/atlas/contract";
-import { decryptSecret, encryptSecret, sha256Hex } from "../integrations/atlas/crypto";
+import { canonicalJson, decryptSecret, encryptSecret, sha256Hex } from "../integrations/atlas/crypto";
 import { ensureSystemUser, systemCtx } from "../integrations/atlas/system";
 import { SsoError } from "../integrations/atlas/sso";
 import { checkAtlasAccess, type ClientOptions } from "../integrations/atlas/client";
@@ -513,7 +513,7 @@ export async function receiveAtlasEvent(db: Db, link: LinkRow, raw: unknown, opt
     const details = parsed.error.issues.slice(0, 20).map((i) => ({ path: `payload.${i.path.join(".")}`, issue: i.message }));
     return rejected(e.id, "validation_failed", `${details[0].path}: ${details[0].issue}`, 400, false, { details });
   }
-  const hash = sha256Hex(JSON.stringify({ type: e.type, version: e.version, aggregate: e.aggregate, payload: e.payload }));
+  const hash = sha256Hex(canonicalJson({ type: e.type, version: e.version, aggregate: e.aggregate, payload: e.payload }));
   try {
     return await db.transaction(async (tx) => {
       const [seen] = await tx.query<{ status: string; payload_hash: string; company_id: string }>(

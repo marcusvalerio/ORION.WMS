@@ -83,6 +83,11 @@ export default async function UsersPage({ searchParams }: { searchParams: Search
                       </Link>
                       {u.id === ctx.user.id ? <span className="ml-1.5 text-[11px] text-muted">(você)</span> : null}
                       {u.is_demo ? <DemoBadge className="ml-1.5" /> : null}
+                      {u.atlas_user_id ? (
+                        <Badge tone="info" className="ml-1.5">
+                          ATLAS
+                        </Badge>
+                      ) : null}
                     </td>
                     <td className="text-fg-2">{u.email}</td>
                     <td>{ROLE_LABELS[u.role]}</td>

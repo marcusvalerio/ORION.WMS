@@ -10,6 +10,7 @@ import {
   type SyncPreview,
 } from "@/server/services/company";
 import { entityHistory } from "@/server/services/audit";
+import { isAtlasManaged } from "@/server/services/atlas-sync";
 import { isAtlasConfigured } from "@/server/integrations/atlas/connector";
 import { linkAtlasCompanyAction, syncCompanyAction, unlinkAtlasCompanyAction, updateCompanyAction } from "@/server/actions/company";
 import { toUserMessage } from "@/server/errors";
@@ -50,7 +51,9 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
     );
   }
   const company = await getCompanyProfile(ctx.db, ctx.user.companyId);
-  const configured = isAtlasConfigured();
+  const managed = await isAtlasManaged(ctx.db, ctx.user.companyId);
+  // Conector legado (ATLAS_DATABASE_URL): só para empresas sem vínculo pela API do ATLAS.
+  const configured = isAtlasConfigured() && !managed;
   const linked = company.source === "atlas";
 
   let options: AtlasCompanyOption[] | null = null;
@@ -78,7 +81,7 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
         breadcrumbs={[{ label: "Gestão" }, { label: "Dados da empresa" }]}
         badges={
           <>
-            {linked ? <Badge tone="info">Origem: ATLAS.ERP</Badge> : <Badge>Origem: cadastro local</Badge>}
+            {managed ? <Badge tone="info">Gerenciado pelo ATLAS</Badge> : linked ? <Badge tone="info">Origem: ATLAS.ERP</Badge> : <Badge>Origem: cadastro local</Badge>}
             {company.is_demo ? <DemoBadge /> : null}
           </>
         }
@@ -278,6 +281,12 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
           </Card>
         </div>
 
+        {managed ? (
+          <Alert level="info" title="Gerenciado pelo ATLAS">
+            Esta empresa está vinculada ao ATLAS.ERP pela integração: razão social, CNPJ, contato e endereço são atualizados automaticamente
+            (evento company.upserted) e não podem ser editados aqui.
+          </Alert>
+        ) : (
         <Card>
           <CardHeader
             title="Editar manualmente"
@@ -325,6 +334,7 @@ export default async function CompanyPage({ searchParams }: { searchParams: Sear
             </ActionForm>
           </CardBody>
         </Card>
+        )}
       </div>
     </>
   );

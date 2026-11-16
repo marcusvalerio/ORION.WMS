@@ -119,7 +119,16 @@ function diff(before: CompanyData, after: CompanyData) {
 }
 export type CompanyChange = ReturnType<typeof diff>[number];
 
+/** Empresa vinculada pela API do ATLAS: dados mestres chegam por company.upserted (somente leitura no ORION). */
+async function assertNotApiLinked(tx: Queryable, companyId: string) {
+  const [l] = await tx.query<{ status: string }>(`select status from wms.atlas_links where company_id = $1`, [companyId]);
+  if (l && l.status !== "disabled") {
+    throw new DomainError("Empresa gerenciada pelo ATLAS: os dados mestres são atualizados automaticamente pela integração.", "ATLAS_MANAGED");
+  }
+}
+
 async function lockCompany(tx: Queryable, companyId: string): Promise<CompanyProfile> {
+  await assertNotApiLinked(tx, companyId);
   await tx.query(`select id from erp.companies where id = $1 for update`, [companyId]);
   return getCompanyProfile(tx, companyId);
 }

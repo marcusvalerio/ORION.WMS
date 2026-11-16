@@ -35,7 +35,8 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
   const [user, warehouses, history] = await Promise.all([getUser(ctx, id), listCompanyWarehouses(ctx), entityHistory(ctx, "user", id)]);
   if (!user) notFound();
   const self = user.id === ctx.user.id;
-  const demoLocked = isDemoMode() && user.is_demo;
+  const atlasLocked = Boolean(user.atlas_user_id);
+  const demoLocked = (isDemoMode() && user.is_demo) || atlasLocked;
   return (
     <>
       <PageHeader
@@ -47,10 +48,16 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
             <Badge tone={user.active ? "success" : "neutral"}>{user.active ? "Ativo" : "Inativo"}</Badge>
             {user.must_change_password ? <Badge tone="warning">Troca de senha pendente</Badge> : null}
             {user.is_demo ? <DemoBadge /> : null}
+            {atlasLocked ? <Badge tone="info">Gerenciado pelo ATLAS</Badge> : null}
           </>
         }
       />
-      {demoLocked ? (
+      {atlasLocked ? (
+        <Alert level="info" className="mb-4">
+          Usuário gerenciado pelo ATLAS.ERP (login único): nome, e-mail, perfil, ativação e senha são alterados no ATLAS. Aqui só é possível restringir
+          depósitos quando o ATLAS não os define.
+        </Alert>
+      ) : demoLocked ? (
         <Alert level="info" className="mb-4">
           Modo demonstração: perfil, situação e senha dos usuários de demonstração estão protegidos (os atalhos da tela de login dependem deles). Crie um
           novo usuário para testar essas funções.
@@ -68,7 +75,7 @@ export default async function UserPage({ params }: { params: Promise<{ id: strin
               <Field label="Perfil" htmlFor="role" required hint={self ? "Você não pode deixar a empresa sem administrador ativo." : undefined}>
                 <Select id="role" name="role" defaultValue={user.role} options={ROLES.map((r) => ({ value: r, label: ROLE_LABELS[r] }))} />
               </Field>
-              <SubmitButton>Salvar</SubmitButton>
+              <SubmitButton disabled={atlasLocked}>Salvar</SubmitButton>
             </ActionForm>
           </CardBody>
         </Card>

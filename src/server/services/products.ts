@@ -36,10 +36,12 @@ export interface ProductRow {
   physical: number;
   reserved: number;
   blocked: number;
+  /** "atlas" = cadastro mestre gerenciado pelo ATLAS (somente leitura). */
+  source: string;
 }
 
 const PRODUCT_SELECT = `
-  select p.id, p.sku, p.description, p.barcode, p.uom, p.category, p.status, p.weight_kg, p.length_cm, p.width_cm, p.height_cm,
+  select p.id, p.source, p.sku, p.description, p.barcode, p.uom, p.category, p.status, p.weight_kg, p.length_cm, p.width_cm, p.height_cm,
          coalesce(s.lot_controlled, false) as lot_controlled,
          coalesce(s.expiry_controlled, false) as expiry_controlled,
          coalesce(s.serial_controlled, false) as serial_controlled,

@@ -74,6 +74,11 @@ export default async function ProductsPage({ searchParams }: { searchParams: Sea
                     <td>
                       {p.description}
                       {p.status !== "active" ? <Badge className="ml-2">Inativo</Badge> : null}
+                      {p.source === "atlas" ? (
+                        <Badge tone="info" className="ml-2">
+                          Gerenciado pelo ATLAS
+                        </Badge>
+                      ) : null}
                     </td>
                     <td className="code">{p.barcode ?? "—"}</td>
                     <td>{p.uom}</td>
