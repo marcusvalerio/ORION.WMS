@@ -8,7 +8,7 @@ Este documento descreve a divisão de responsabilidades entre os sistemas, as en
 
 | Sistema | Papel | Situação |
 |---|---|---|
-| **ATLAS.ERP** | Dono dos cadastros mestres (empresa, produtos, fornecedores, clientes), pedidos de compra e venda, fiscal (NF-e, NCM, DI/DUIMP, DU-E), custos e MRP (ordens de produção e lista de componentes). | Existe como sistema separado. No ORION, a fronteira é o schema `erp` local (`supabase/migrations/20261009000001_erp_core.sql` e tabelas `erp.production_orders`/`erp.production_order_components` de `20261114000006`), lido pelo gateway `src/server/integrations/erp/gateway.ts`. Os dados da empresa podem ser lidos do banco do ATLAS (`ATLAS_DATABASE_URL`, somente leitura, só `public.companies`). |
+| **ATLAS.ERP** | Dono dos cadastros mestres (empresa, produtos, fornecedores, clientes), pedidos de compra e venda, fiscal (NF-e, NCM, DI/DUIMP, DU-E), custos e MRP (ordens de produção e lista de componentes). | Existe como sistema separado. No ORION, a fronteira é o schema `erp` local (`supabase/migrations/20261009000001_erp_core.sql` e tabelas `erp.production_orders`/`erp.production_order_components` de `20261114000006`), lido pelo gateway `src/server/integrations/erp/gateway.ts`. A integração oficial é a API do contrato `docs/INTEGRACAO-ATLAS-ORION.md` (vínculo, eventos, SSO). O conector direto ao banco do ATLAS (`ATLAS_DATABASE_URL`) está **aposentado**: continua funcionando, por compatibilidade, apenas para empresas sem vínculo pela API. |
 | **ORION.WMS** | Dono do físico: endereços, saldo por endereço/lote/série, reservas, tarefas (armazenagem, separação, reposição, inventário, separação para produção), conferência, volumes/packing list e expedição física. | Existe (este repositório). |
 | **TMS** (futuro) | Dono de cargas, roteiros, transportadoras, fretes e rastreio da entrega. | **Proposto.** Não há código de TMS. Hoje o WMS guarda apenas campos textuais de transportadora/placa na expedição e no agendamento de docas. |
 
@@ -102,3 +102,7 @@ Nada desta seção está implementado. Proposta de contrato:
 - **Carga/romaneio:** o WMS publicaria `shipment.ready` quando o pedido estiver conferido (e, se exportação, com packing list fechado), com volumes, pesos, dimensões e m³ (já calculados em `export_packages`). O TMS montaria cargas e roteiros e devolveria `load.planned` (carga, transportadora, veículo, doca e janela).
 - **Agenda de docas:** o WMS continua dono das docas (`wms.dock_appointments`). O TMS solicitaria janelas (`dock.slot_requested`) e o WMS confirmaria ou recusaria (`dock.slot_confirmed`), mantendo a regra de não sobreposição garantida no banco.
 - **Expedição:** `outbound.shipped` (existente) passaria a incluir o identificador da carga do TMS; rastreio e prova de entrega ficam no TMS.
+
+## 7. Integração ATLAS ↔ ORION pela API (substitui `ATLAS_DATABASE_URL`)
+
+Fases 1–3 do contrato estão implementadas no ORION (`src/server/integrations/atlas/**`, `src/server/services/atlas-sync.ts`, `src/app/api/atlas/**`, `src/app/api/sso/**`, migration `20261116000050_atlas_link.sql`). O ORION não lê mais o banco do ATLAS para empresas vinculadas: cadastros, documentos e acessos chegam por eventos assinados (HMAC por empresa) e os fatos físicos voltam pela outbox no envelope do contrato. `ATLAS_DATABASE_URL` pode ser removida quando todas as empresas estiverem vinculadas.

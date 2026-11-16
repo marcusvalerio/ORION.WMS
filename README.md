@@ -50,7 +50,14 @@ Veja [`.env.example`](.env.example). Nenhuma é obrigatória em desenvolvimento.
 | `SESSION_SECRET` | Segredo (≥ 32 caracteres) do cookie de sessão. **Obrigatório em produção.** Em desenvolvimento, um segredo aleatório é gerado em `.data/session-secret`. |
 | `WMS_AUTO_SEED` | `false` desliga a carga automática dos dados de demonstração. |
 | `WMS_DEMO_MODE` | `true`: abre sem login, como a administradora de demonstração, com banco PGlite temporário e sem `SESSION_SECRET`. Sem a variável, liga sozinho na **Vercel** (preview e produção) quando não há `DATABASE_URL`; `false` desliga. Os dados voltam ao inicial quando o servidor reinicia. |
-| `ATLAS_DATABASE_URL` | Conexão Postgres **somente leitura** com o banco do ATLAS.ERP, para importar os dados da empresa. Só no servidor. Sem ela, os dados são editados manualmente. |
+| `ATLAS_DATABASE_URL` | Conexão Postgres **somente leitura** com o banco do ATLAS.ERP, **legado (aposentado)**: importação manual dos dados da empresa. Continua funcionando para empresas *sem* vínculo pela API do ATLAS; empresas vinculadas recebem `company.upserted`. Só no servidor. Sem ela, os dados são editados manualmente. |
+| `ATLAS_URL` | Base do ATLAS.ERP (ex.: `https://atlas.exemplo.com.br`). Habilita o botão “Entrar com ATLAS” e o envio da outbox ao ATLAS. |
+| `ATLAS_ISSUER` / `ATLAS_SSO_ISSUER` | `iss` exigido no token de SSO (padrão `ATLAS_URL`). |
+| `ATLAS_JWKS_URL` | JWKS público do ATLAS (padrão `${ATLAS_URL}/.well-known/astraeus-jwks.json`; cache de 5 min e nova busca ao ver `kid` desconhecido — rotação de chave sem reinício). |
+| `ATLAS_API_URL` | Base da API do ATLAS para a outbox (`/api/integrations/orion/v1/events`) e a checagem de acesso (padrão `ATLAS_URL`). |
+| `ORION_INSTALL_KEY_ID` / `ORION_INSTALL_SECRET` | Credencial de instalação (≥ 32 caracteres), igual nas duas instalações; só autoriza `POST/DELETE /api/atlas/v1/links`. |
+| `ATLAS_INTEGRATION_ENCRYPTION_KEY` | Chave AES-256-GCM (32 bytes em base64 ou 64 hex) que cifra o segredo HMAC de cada empresa. Obrigatória em produção. |
+| `ORION_ATLAS_ACCESS_CHECK_SECONDS` / `ORION_ATLAS_ACCESS_GRACE_SECONDS` | Intervalo da checagem de acesso no ATLAS (padrão 900) e tolerância com o ATLAS fora do ar (padrão 3600). |
 | `ERP_OUTBOX_TRANSPORT` | `local` ou `http`. Sem a variável: `http` se `ERP_WEBHOOK_URL` existir, senão `local`. |
 | `ERP_WEBHOOK_URL` | Endpoint do ERP que recebe os eventos da outbox (POST JSON assinado). |
 | `ERP_WEBHOOK_SECRET` | Segredo (≥ 16 caracteres) da assinatura HMAC-SHA256 dos eventos. |
@@ -209,3 +216,13 @@ Migration `20261114000006_comex_production.sql`. Arquitetura e eventos do ecossi
 - **Produção** (`/producao`): requisição a partir da ordem de produção do ERP, reserva FEFO (tudo ou nada configurável), tarefas de separação até o endereço da linha (zona tipo "Produção"), entrega à linha com confirmação, devolução de sobras e entrada do produto acabado com o lote da ordem, que vira armazenagem normal. Eventos `production.materials_delivered`, `production.leftovers_returned`, `production.output_received`.
 - Permissões novas: `comex.manage`, `customs.clear`, `production.manage` (admin/supervisor); `export.pack`, `production.operate` (operacionais).
 - Seed: NCM nos produtos, zona `PRD` com a linha `DEP-01/RUA-PR/...`, produto acabado `SUP-006` e a ordem `OP-2026-001` (5 un; componentes CHP-004 ×5 e LUB-002 ×2), sem requisição nem reserva.
+
+## Integração ATLAS.ERP pela API (contrato v1)
+
+Contrato completo em `docs/INTEGRACAO-ATLAS-ORION.md` e fixtures em `docs/contrato/*.json` (validadas por `tests/atlas-contract.test.ts`, inclusive o SHA-256 do `index.json`).
+
+- **Vínculo**: o ATLAS chama `POST /api/atlas/v1/links` (credencial de instalação, HMAC `X-Astraeus-*`) com `{ atlas_company_id, key_id, secret, company, admin? , previous_secret_hours? }`; o ORION cria/vincula a empresa (`erp.companies.source='atlas'`), guarda o segredo cifrado e devolve `orion_company_id`. Repetir com novo `secret` rotaciona (o anterior vale por 24 h). `DELETE /api/atlas/v1/links/{atlas_company_id}` desativa.
+- **Eventos ATLAS → ORION**: `POST /api/atlas/v1/events` e `/events:batch` (HMAC da empresa, janela de 300 s, idempotência em `wms.atlas_inbox`, ordem por `aggregate.sequence`, `409 out_of_order`, `422 dependency_missing`), além de `GET /capabilities`, `GET /documents/{tipo}/{id}` e `GET /stock/balances`. Cadastros viram somente leitura no ORION (selo “Gerenciado pelo ATLAS”); pedidos de venda viram pedidos de saída, compras viram recebimentos previstos, OPs viram requisições; `stock.initial_snapshot` lança o saldo no endereço de recebimento e gera tarefas de armazenagem.
+- **ORION → ATLAS**: para empresas vinculadas a outbox envia o envelope do contrato (ids `atlas_*`, `aggregate.sequence`) assinado com o segredo da empresa. Eventos novos: `outbound.accepted`, `document.rejected`, `outbound.picking_started`, `outbound.ready_to_invoice`, `stock.adjusted`, `stock.balance_snapshot` (diário via `GET/POST /api/atlas/cron/snapshot` com `CRON_SECRET`, agendado em `vercel.json`, e ao fim da carga inicial).
+- **SSO**: `POST /api/sso/atlas` (form post do token ES256) e `GET /api/sso/authorize` (início pelo ORION, `state` em cookie). Usuários do ATLAS são provisionados no primeiro acesso, não têm senha local e são checados no ATLAS a cada 15 min. Empresas sem vínculo e o modo demonstração continuam com login local; o e-mail é único por empresa (se o mesmo e-mail/senha existir em duas empresas, o login pede o CNPJ).
+- **Painel**: *Gestão › Integração › ATLAS* mostra o vínculo, eventos recebidos (reprocessar os com erro) e a reconciliação.
