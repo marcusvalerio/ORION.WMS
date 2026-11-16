@@ -7,13 +7,14 @@ import type { Ctx, SessionUser } from "../context";
 import { createToken, verifyToken } from "./token";
 import { loadDemoAdmin, loadSessionUser } from "./users";
 import { isDemoMode } from "../demo-mode";
+import { enforceAtlasAccess } from "../services/atlas-sync";
 
 export const SESSION_COOKIE = "orion_session";
 const TTL_SECONDS = 60 * 60 * 12; // 12 horas (um turno)
 
-export async function startSession(userId: string): Promise<void> {
+export async function startSession(userId: string, extra: { src?: "local" | "atlas"; av?: number } = {}): Promise<void> {
   const store = await cookies();
-  store.set(SESSION_COOKIE, createToken(userId, TTL_SECONDS), {
+  store.set(SESSION_COOKIE, createToken(userId, TTL_SECONDS, undefined, extra), {
     httpOnly: true,
     sameSite: "lax",
     secure: process.env.NODE_ENV === "production" && process.env.WMS_INSECURE_COOKIES !== "true",
@@ -33,7 +34,10 @@ export const getLoggedUser = cache(async (): Promise<SessionUser | null> => {
   const payload = verifyToken(store.get(SESSION_COOKIE)?.value);
   if (!payload) return null;
   const db = await getDb();
-  return loadSessionUser(db, payload.uid);
+  const user = await loadSessionUser(db, payload.uid);
+  // Usuário do ATLAS: checagem periódica de acesso (revogação, contrato 2.7).
+  if (user?.atlasUserId && (await enforceAtlasAccess(db, user.id)) === "denied") return null;
+  return user;
 });
 
 /**

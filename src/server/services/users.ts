@@ -61,18 +61,20 @@ export interface UserListRow {
   created_at: string;
   last_login_at: string | null;
   warehouse_codes: string[] | null;
+  /** Preenchido quando o usuário é gerenciado pelo ATLAS (SSO). */
+  atlas_user_id: string | null;
 }
 
 export async function listUsers(ctx: Ctx, f: { q?: string | null; role?: string | null; status?: string | null } = {}) {
   assertCan(ctx, "users.manage");
   return ctx.db.query<UserListRow>(
-    `select u.id, u.name, u.email, u.role, u.active, u.is_demo, u.must_change_password, u.created_at::text as created_at,
+    `select u.id, u.name, u.email, u.role, u.active, u.is_demo, u.must_change_password, u.created_at::text as created_at, u.atlas_user_id,
             (select max(a.created_at)::text from wms.audit_log a where a.company_id = u.company_id and a.user_id = u.id
                and a.action = 'auth.login') as last_login_at,
             (select json_agg(w.code order by w.code) from wms.user_warehouses uw join wms.warehouses w on w.id = uw.warehouse_id
                where uw.user_id = u.id) as warehouse_codes
      from wms.users u
-     where u.company_id = $1 and ($2::text is null or u.name ilike '%' || $2 || '%' or u.email ilike '%' || $2 || '%')
+     where u.company_id = $1 and not u.is_system and ($2::text is null or u.name ilike '%' || $2 || '%' or u.email ilike '%' || $2 || '%')
        and ($3::text is null or u.role = $3) and ($4::text is null or u.active = ($4 = 'active'))
      order by u.active desc, u.name`,
     [ctx.user.companyId, f.q || null, f.role || null, f.status || null],
@@ -82,7 +84,7 @@ export async function listUsers(ctx: Ctx, f: { q?: string | null; role?: string 
 export async function getUser(ctx: Ctx, id: string) {
   assertCan(ctx, "users.manage");
   const [u] = await ctx.db.query<UserListRow & { warehouse_ids: string[] | null; password_changed_at: string | null }>(
-    `select u.id, u.name, u.email, u.role, u.active, u.is_demo, u.must_change_password, u.created_at::text as created_at,
+    `select u.id, u.name, u.email, u.role, u.active, u.is_demo, u.must_change_password, u.created_at::text as created_at, u.atlas_user_id,
             u.password_changed_at::text as password_changed_at,
             (select max(a.created_at)::text from wms.audit_log a where a.company_id = u.company_id and a.user_id = u.id
                and a.action = 'auth.login') as last_login_at,
@@ -113,15 +115,25 @@ interface LockedUser {
   role: Role;
   active: boolean;
   is_demo: boolean;
+  atlas_user_id: string | null;
+  is_system: boolean;
 }
 
 async function lockUser(tx: Queryable, ctx: Ctx, id: string): Promise<LockedUser> {
   const [u] = await tx.query<LockedUser>(
-    `select id, email, role, active, is_demo from wms.users where id = $1 and company_id = $2 for update`,
+    `select id, email, role, active, is_demo, atlas_user_id, is_system from wms.users where id = $1 and company_id = $2 for update`,
     [id, ctx.user.companyId],
   );
   if (!u) throw new NotFoundError("Usuário");
+  if (u.is_system) throw new NotFoundError("Usuário");
   return u;
+}
+
+/** Usuário provisionado pelo ATLAS: nome, e-mail, perfil, ativação e senha são geridos no ATLAS. */
+function assertNotAtlasManaged(u: LockedUser, what: string) {
+  if (u.atlas_user_id) {
+    throw new DomainError(`Usuário gerenciado pelo ATLAS: não é possível ${what} no ORION. Altere o acesso no ATLAS.`, "ATLAS_MANAGED");
+  }
 }
 
 /** Bloqueia, sob lock, a remoção do último administrador ativo da empresa. */
@@ -192,7 +204,7 @@ export async function createUser(ctx: Ctx, input: unknown, opts?: OpOptions) {
   const d = parse(createSchema, input);
   const hash = await hashPassword(d.password);
   return runOperation(ctx, "user.create", opts, async (tx) => {
-    const [dup] = await tx.query(`select 1 from wms.users where lower(email) = $1`, [d.email]);
+    const [dup] = await tx.query(`select 1 from wms.users where company_id = $1 and lower(email) = $2`, [ctx.user.companyId, d.email]);
     if (dup) throw new DomainError("Já existe um usuário com este e-mail.", "DUPLICATE", "email");
     const [u] = await tx.query<{ id: string }>(
       `insert into wms.users (company_id, name, email, role, password_hash, must_change_password)
@@ -215,6 +227,7 @@ export async function updateUser(ctx: Ctx, id: string, input: unknown, opts?: Op
   const d = parse(updateSchema, input);
   return runOperation(ctx, "user.update", opts, async (tx) => {
     const u = await lockUser(tx, ctx, id);
+    assertNotAtlasManaged(u, "alterar nome ou perfil");
     if (u.role !== d.role) {
       assertDemoUserEditable(u, "alterar o perfil");
       if (u.role === "admin") await assertKeepsAnAdmin(tx, ctx, u);
@@ -229,6 +242,7 @@ export async function setUserActive(ctx: Ctx, id: string, active: boolean, opts?
   assertCan(ctx, "users.manage");
   return runOperation(ctx, active ? "user.activate" : "user.deactivate", opts, async (tx) => {
     const u = await lockUser(tx, ctx, id);
+    assertNotAtlasManaged(u, active ? "ativar" : "inativar");
     if (u.active === active) throw new DomainError(active ? "O usuário já está ativo." : "O usuário já está inativo.", "INVALID_STATUS");
     if (!active) {
       if (id === ctx.user.id) throw new DomainError("Você não pode inativar o seu próprio usuário.", "SELF_DEACTIVATION");
@@ -251,6 +265,7 @@ export async function resetUserPassword(ctx: Ctx, id: string, opts?: OpOptions) 
   const hash = await hashPassword(password);
   const result = await runOperation(ctx, "user.reset_password", opts, async (tx) => {
     const u = await lockUser(tx, ctx, id);
+    assertNotAtlasManaged(u, "redefinir a senha");
     assertDemoUserEditable(u, "redefinir a senha");
     if (!u.active) throw new DomainError("Ative o usuário antes de redefinir a senha.", "INVALID_STATUS");
     await tx.query(`update wms.users set password_hash = $2, must_change_password = true, updated_at = now() where id = $1`, [id, hash]);

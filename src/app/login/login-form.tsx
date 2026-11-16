@@ -10,7 +10,15 @@ const DEMO_PASSWORD_HINT = "orion-demo";
 const INPUT =
   "h-12 w-full rounded-xl border border-noite-600 bg-[#03061A] px-3.5 text-[15px] text-creme-100 placeholder:text-gelo-500 focus:border-ceu-400 focus:ring-2 focus:ring-ceu-400/30 focus:outline-none";
 
-export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: string; role: string; roleLabel: string }[] }) {
+export function LoginForm({
+  demoUsers,
+  atlasSso = false,
+  ssoError = null,
+}: {
+  demoUsers: { email: string; name: string; role: string; roleLabel: string }[];
+  atlasSso?: boolean;
+  ssoError?: string | null;
+}) {
   const [state, action, pending] = useActionState(loginAction, INITIAL_ACTION_STATE);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -43,6 +51,13 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
             onChange={(e) => setPassword(e.target.value)}
           />
         </label>
+        <details className="-mt-1 text-[13px] text-ceu-300" open={Boolean(state.message?.includes("CNPJ"))}>
+          <summary className="cursor-pointer">Acessa mais de uma empresa?</summary>
+          <label className="mt-2 flex flex-col gap-1.5">
+            CNPJ da empresa
+            <input name="company" inputMode="numeric" autoComplete="organization" placeholder="00.000.000/0000-00" className={INPUT} />
+          </label>
+        </details>
         <p className="-mt-1 text-right text-[13px] text-ceu-300">Esqueceu a senha? Peça ao administrador.</p>
         <button
           type="submit"
@@ -58,6 +73,22 @@ export function LoginForm({ demoUsers }: { demoUsers: { email: string; name: str
           </p>
         ) : null}
       </form>
+      {atlasSso ? (
+        <div className="flex flex-col gap-2 border-t border-noite-600 pt-4">
+          <a
+            href="/api/sso/authorize"
+            className="inline-flex h-12 items-center justify-center rounded-full border border-ceu-400 text-[15px] font-semibold text-creme-100 hover:bg-noite-800"
+          >
+            Entrar com ATLAS
+          </a>
+          <p className="text-center text-xs text-ceu-300">Empresas integradas ao ATLAS.ERP entram com a conta do ATLAS.</p>
+        </div>
+      ) : null}
+      {ssoError ? (
+        <p role="alert" className="rounded-xl bg-crit-solid/15 px-3 py-2 text-sm text-[#FFA3A9]">
+          {ssoError}
+        </p>
+      ) : null}
       {demoUsers.length ? (
         <div className="border-t border-noite-600 pt-4">
           <p className="text-xs font-medium text-creme-100">Perfis de demonstração</p>

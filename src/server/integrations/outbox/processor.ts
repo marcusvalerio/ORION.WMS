@@ -71,7 +71,7 @@ export async function processOutbox(db: Db, options: ProcessOptions): Promise<Pr
        update wms.integration_events e
           set status = 'sending', locked_at = now(), last_attempt_at = now(), attempts = e.attempts + 1, transport = $4
          from c where e.id = c.id
-       returning e.id, e.company_id, e.event_type, e.aggregate_type, e.aggregate_id, e.payload, e.attempts, e.created_at::text as created_at`,
+       returning e.id, e.company_id, e.event_type, e.aggregate_type, e.aggregate_id, e.aggregate_seq::int as aggregate_seq, e.payload, e.attempts, e.created_at::text as created_at`,
       [o.companyId ?? null, o.limit, o.staleLockMs, o.transport.name],
     ),
   );
@@ -98,7 +98,8 @@ export async function processOutbox(db: Db, options: ProcessOptions): Promise<Pr
       result.results.push({ id: event.id, event_type: event.event_type, status: "sent" });
     } catch (error) {
       const message = errorText(error);
-      const exhausted = event.attempts >= o.maxAttempts;
+      // Recusa definitiva do destino (ex.: 400/403 do ATLAS com retryable:false) vai direto para "falhou".
+      const exhausted = event.attempts >= o.maxAttempts || (error as { retryable?: boolean })?.retryable === false;
       const delay = backoffMs(event.attempts, o.baseDelayMs, o.maxDelayMs);
       await db.query(
         `update wms.integration_events

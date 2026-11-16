@@ -154,7 +154,8 @@ export type MovementType =
   | "return"
   | "production_pick"
   | "production_issue"
-  | "production_return";
+  | "production_return"
+  | "initial_load";
 
 export interface MovementInput {
   warehouseId: string;

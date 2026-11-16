@@ -2,7 +2,7 @@
 
 import { redirect } from "next/navigation";
 import { getDb } from "../db";
-import { authenticate } from "../auth/users";
+import { AmbiguousLoginError, authenticate } from "../auth/users";
 import { endSession, getSessionUser, startSession } from "../auth/session";
 import type { ActionState } from "@/lib/action-state";
 
@@ -10,8 +10,15 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
   const email = String(formData.get("email") ?? "");
   const password = String(formData.get("password") ?? "");
   if (!email || !password) return { ok: false, message: "Informe e-mail e senha.", ts: Date.now() };
+  const companyDocument = String(formData.get("company") ?? "") || null;
   const db = await getDb();
-  const user = await authenticate(db, email, password);
+  let user;
+  try {
+    user = await authenticate(db, email, password, companyDocument);
+  } catch (error) {
+    if (error instanceof AmbiguousLoginError) return { ok: false, message: error.message, ts: Date.now() };
+    throw error;
+  }
   if (!user) return { ok: false, message: "E-mail ou senha inválidos.", ts: Date.now() };
   await startSession(user.id);
   await db.query(

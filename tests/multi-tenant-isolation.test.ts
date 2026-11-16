@@ -67,6 +67,7 @@ const MODULES: Record<string, Record<string, unknown>> = {
 
 /** Exports que não recebem contexto de usuário (puros/internos) ou dependem de sistema externo — com o motivo. */
 const EXCLUDED: Record<string, string> = {
+  "atlas-sync.*": "empresa resolvida só pelo key_id assinado ou pelo contexto; coberta por tests/atlas-multi-tenant.test.ts",
   "common.*": "auxiliares internos (nextCode/audit/runOperation) sempre recebem o companyId do contexto",
   "stock-core.*": "núcleo de saldo chamado só pelos serviços (coberto indiretamente + verificação de FKs cruzadas)",
   "comex.assertCustomsCleared": "interno, recebe receiptId já validado por lockReceipt",

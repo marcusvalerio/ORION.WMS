@@ -5,7 +5,7 @@ import { assertCan } from "../context";
 import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalDate, qty } from "../validation";
-import { audit, runOperation, type OpOptions } from "./common";
+import { audit, enqueueAtlasEvent, runOperation, type OpOptions } from "./common";
 import { checkReplenishmentTx } from "./replenishment";
 import { addStock, availableOf, insertMovement, lockBalance, lockBalanceById, removeStock, validateDestination } from "./stock-core";
 
@@ -271,6 +271,26 @@ export async function adjustStock(ctx: Ctx, input: unknown, opts?: OpOptions) {
       referenceType: "manual_adjustment",
     });
     await audit(tx, ctx, "stock.adjusted", "stock_movement", movementId, loc.code, d);
+    const [info] = await tx.query<{ sku: string; atlas_product_id: string | null; warehouse_code: string }>(
+      `select p.sku, p.external_id as atlas_product_id, w.code as warehouse_code from erp.products p, wms.warehouses w
+       where p.id = $1 and w.id = $2`,
+      [d.productId, loc.warehouse_id],
+    );
+    await enqueueAtlasEvent(tx, ctx, "stock.adjusted", "stock_adjustment", movementId, {
+      code: `AJU-${movementId.slice(0, 8).toUpperCase()}`,
+      reason: "manual_adjustment",
+      notes: d.reason,
+      approved_by: ctx.user.name,
+      items: [
+        {
+          atlas_product_id: info?.atlas_product_id ?? null,
+          sku: info?.sku ?? "",
+          lot_code: d.lotCode ? d.lotCode : null,
+          orion_warehouse_code: info?.warehouse_code ?? "",
+          delta: d.direction === "in" ? d.quantity : -d.quantity,
+        },
+      ],
+    });
     // Gatilho de reposição: o ajuste pode ter derrubado o saldo de um endereço de picking.
     await checkReplenishmentTx(tx, ctx, { warehouseId: loc.warehouse_id, productIds: [d.productId] });
     return { id: movementId };

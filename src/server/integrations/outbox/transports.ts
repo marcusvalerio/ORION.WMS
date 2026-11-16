@@ -13,6 +13,8 @@ export interface OutboxEvent {
   payload: Record<string, unknown>;
   attempts: number;
   created_at: string;
+  /** aggregate.sequence do envelope (contrato ATLAS 3.3). */
+  aggregate_seq?: number | null;
 }
 
 /**
@@ -127,6 +129,84 @@ export function httpTransport(options: HttpTransportOptions): Transport {
   };
 }
 
+/** Erro de entrega que não deve ser repetido automaticamente. */
+export class NonRetryableError extends Error {
+  readonly retryable = false;
+  constructor(message: string) {
+    super(message);
+    this.name = "NonRetryableError";
+  }
+}
+
+/**
+ * Transporte ATLAS (contrato 3.2/3.6): para empresas vinculadas
+ * (wms.atlas_links), POST do envelope do contrato em
+ * `${ATLAS_API_URL}/api/integrations/orion/v1/events`, assinado com o HMAC DA
+ * EMPRESA (X-Astraeus-Key-Id/Timestamp/Signature) e Idempotency-Key = id do
+ * evento. 2xx = entregue; 4xx com `retryable:false` = falha definitiva; demais
+ * erros voltam para a fila com backoff. Empresas sem vínculo seguem pelo
+ * transporte `fallback` (local ou webhook legado ERP_WEBHOOK_URL).
+ */
+export function atlasTransport(options: { apiUrl: string; fallback: Transport; timeoutMs?: number; fetchImpl?: typeof fetch }): Transport {
+  return {
+    name: "http",
+    async send(event, q) {
+      const [link] = await q.query<{ atlas_company_id: string; key_id: string; secret_ciphertext: string; status: string }>(
+        `select atlas_company_id, key_id, secret_ciphertext, status from wms.atlas_links where company_id = $1`,
+        [event.company_id],
+      );
+      if (!link || link.status === "disabled") return options.fallback.send(event, q);
+      const { buildOutboundEnvelope } = await import("../atlas/contract");
+      const { decryptSecret } = await import("../atlas/crypto");
+      const { atlasRequest } = await import("../atlas/client");
+      const body = JSON.stringify(
+        buildOutboundEnvelope({
+          id: event.id,
+          event_type: event.event_type,
+          aggregate_type: event.aggregate_type,
+          aggregate_id: event.aggregate_id,
+          aggregate_seq: event.aggregate_seq ?? null,
+          company_id: event.company_id,
+          created_at: event.created_at,
+          attempts: event.attempts,
+          payload: event.payload,
+          atlas_company_id: link.atlas_company_id,
+        }),
+      );
+      let r: { status: number; text: string };
+      try {
+        r = await atlasRequest(
+          { keyId: link.key_id, secret: decryptSecret(link.secret_ciphertext) },
+          { apiUrl: options.apiUrl, fetchImpl: options.fetchImpl, timeoutMs: options.timeoutMs },
+          "POST",
+          "api/integrations/orion/v1/events",
+          body,
+          { "Idempotency-Key": event.id, "X-Orion-Event-Id": event.id },
+        );
+      } catch (error) {
+        throw new Error((error as Error).message);
+      }
+      if (r.status >= 200 && r.status < 300) {
+        await q.query(`update wms.atlas_links set last_outbound_at = now() where company_id = $1`, [event.company_id]);
+        return;
+      }
+      let retryable = r.status >= 500 || r.status === 429 || r.status === 408;
+      let detail = r.text.slice(0, 300);
+      try {
+        const err = (JSON.parse(r.text) as { error?: { code?: string; message?: string; retryable?: boolean } }).error;
+        if (err) {
+          if (typeof err.retryable === "boolean") retryable = err.retryable;
+          detail = `${err.code ?? ""}: ${err.message ?? ""}`;
+        }
+      } catch {
+        // corpo não-JSON: mantém o texto
+      }
+      const message = `ATLAS HTTP ${r.status}${detail ? ` — ${detail}` : ""}`;
+      throw retryable ? new Error(message) : new NonRetryableError(message);
+    },
+  };
+}
+
 export type TransportConfig =
   | { ok: true; transport: Transport; description: string }
   | { ok: false; error: string; name: "http" };
@@ -137,6 +217,24 @@ export type TransportConfig =
  * - sem a variável, usa `http` quando ERP_WEBHOOK_URL existe, senão `local`.
  */
 export function transportFromEnv(env: Record<string, string | undefined> = process.env): TransportConfig {
+  const legacy = legacyTransportFromEnv(env);
+  const atlasUrl = (env.ATLAS_API_URL ?? env.ATLAS_URL)?.trim().replace(/\/+$/, "");
+  if (!atlasUrl || !legacy.ok) return legacy;
+  let host = atlasUrl;
+  try {
+    host = new URL(atlasUrl).host;
+  } catch {
+    return { ok: false, name: "http", error: "ATLAS_API_URL/ATLAS_URL inválida." };
+  }
+  const timeoutMs = Number(env.ERP_WEBHOOK_TIMEOUT_MS) > 0 ? Number(env.ERP_WEBHOOK_TIMEOUT_MS) : 10_000;
+  return {
+    ok: true,
+    transport: atlasTransport({ apiUrl: atlasUrl, fallback: legacy.transport, timeoutMs }),
+    description: `ATLAS (${host}) para empresas vinculadas; demais: ${legacy.description}`,
+  };
+}
+
+function legacyTransportFromEnv(env: Record<string, string | undefined>): TransportConfig {
   const url = env.ERP_WEBHOOK_URL?.trim();
   const choice = env.ERP_OUTBOX_TRANSPORT?.trim() || (url ? "http" : "local");
   if (choice !== "http") return { ok: true, transport: localTransport, description: "Local (schema erp deste banco)" };

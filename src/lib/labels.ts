@@ -128,6 +128,7 @@ export const MOVEMENT_LABELS: Record<string, string> = {
   production_pick: "Separação para produção",
   production_issue: "Entrega à produção",
   production_return: "Sobra devolvida pela produção",
+  initial_load: "Carga inicial (ATLAS)",
 };
 
 export const ZONE_TYPE_LABELS: Record<string, string> = {
@@ -320,4 +321,18 @@ export const WAVE_GROUPING_LABELS: Record<string, string> = {
   carrier: "Transportadora",
   date: "Data prevista",
   manual: "Seleção manual",
+};
+
+export const ATLAS_LINK_STATUS_LABELS: Record<string, { label: string; tone: Tone }> = {
+  activating: { label: "Em ativação", tone: "warning" },
+  active: { label: "Ativo", tone: "success" },
+  suspended: { label: "Suspenso (somente leitura)", tone: "danger" },
+  disabled: { label: "Desativado", tone: "neutral" },
+};
+
+export const ATLAS_INBOX_STATUS_LABELS: Record<string, { label: string; tone: Tone }> = {
+  received: { label: "Recebido", tone: "info" },
+  applied: { label: "Aplicado", tone: "success" },
+  failed: { label: "Erro", tone: "danger" },
+  ignored: { label: "Ignorado (já aplicado)", tone: "neutral" },
 };

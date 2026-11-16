@@ -5,7 +5,7 @@ import type { Ctx } from "../context";
 import { assertCan } from "../context";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalUuid } from "../validation";
-import { audit, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
+import { audit, enqueueAtlasEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { addStock, changeReserved, insertMovement, removeStock } from "./stock-core";
 import { isSerialControlled, pickSerials } from "./serials";
 import { checkReplenishmentTx, emergencyReplenishmentTx } from "./replenishment";
@@ -470,6 +470,7 @@ export async function releaseWave(ctx: Ctx, waveId: string, opts?: OpOptions) {
     );
     for (const o of orders) {
       await audit(tx, ctx, "outbound.picking_released", "outbound_order", o.id, o.code, { wave: w.code });
+      await enqueueAtlasEvent(tx, ctx, "outbound.picking_started", "outbound_order", o.id, { code: o.code, wave: w.code });
     }
     await tx.query(
       `update wms.waves set status = 'released', released_at = now(), released_by = $2, version = version + 1 where id = $1`,

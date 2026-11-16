@@ -2,6 +2,7 @@ import "server-only";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
 import { DomainError } from "../errors";
+import { buildAtlasPayload } from "../integrations/atlas/outbound-payloads";
 
 export interface OpOptions {
   /** Chave única da requisição (gerada pelo formulário) para evitar execução duplicada. */
@@ -42,12 +43,52 @@ export async function enqueueIntegrationEvent(
   aggregateType: string,
   aggregateId: string,
   payload: Record<string, unknown>,
-): Promise<void> {
-  await tx.query(
-    `insert into wms.integration_events (company_id, event_type, aggregate_type, aggregate_id, payload)
-     values ($1, $2, $3, $4, $5)`,
-    [ctx.user.companyId, eventType, aggregateType, aggregateId, JSON.stringify(payload)],
+): Promise<string> {
+  const companyId = ctx.user.companyId;
+  // Empresa vinculada ao ATLAS: payload no formato do contrato (ids atlas_*), ver integrations/atlas/outbound-payloads.ts.
+  const [link] = await tx.query<{ status: string }>(`select status from wms.atlas_links where company_id = $1`, [companyId]);
+  const body = link && link.status !== "disabled" ? await buildAtlasPayload(tx, companyId, eventType, aggregateId, payload) : payload;
+  // aggregate.sequence do envelope: crescente por agregado, atribuída na mesma transação (contrato 3.3/3.5).
+  const [row] = await tx.query<{ id: string }>(
+    `insert into wms.integration_events (company_id, event_type, aggregate_type, aggregate_id, payload, aggregate_seq)
+     values ($1, $2, $3, $4, $5,
+             coalesce((select max(aggregate_seq) from wms.integration_events
+                       where company_id = $1 and aggregate_type = $3 and aggregate_id = $4), 0) + 1)
+     returning id`,
+    [companyId, eventType, aggregateType, aggregateId, JSON.stringify(body)],
   );
+  return row.id;
+}
+
+/**
+ * Eventos novos do contrato ATLAS (outbound.picking_started,
+ * outbound.ready_to_invoice, stock.adjusted...): só existem para empresas
+ * vinculadas; sem vínculo nada é enfileirado (o ERP local não os consome).
+ */
+export async function enqueueAtlasEvent(
+  tx: Queryable,
+  ctx: Ctx,
+  eventType: string,
+  aggregateType: string,
+  aggregateId: string,
+  payload: Record<string, unknown>,
+): Promise<string | null> {
+  const [link] = await tx.query<{ status: string }>(`select status from wms.atlas_links where company_id = $1`, [ctx.user.companyId]);
+  if (!link || link.status === "disabled") return null;
+  return enqueueIntegrationEvent(tx, ctx, eventType, aggregateType, aggregateId, payload);
+}
+
+/**
+ * Empresa vinculada ao ATLAS com a integração suspensa (company.deactivated,
+ * modo somente leitura): bloqueia toda operação de escrita dos usuários. A
+ * aplicação de eventos do próprio ATLAS (usuário de sistema) continua.
+ */
+async function assertWritable(tx: Queryable, ctx: Ctx): Promise<void> {
+  if (ctx.user.isSystem) return;
+  const [link] = await tx.query<{ status: string }>(`select status from wms.atlas_links where company_id = $1`, [ctx.user.companyId]);
+  if (link?.status === "suspended") {
+    throw new DomainError("Empresa em modo somente leitura: a integração com o ATLAS está suspensa.", "READ_ONLY");
+  }
 }
 
 /**
@@ -64,6 +105,7 @@ export async function runOperation<T>(
 ): Promise<T> {
   const key = opts?.idempotencyKey?.trim();
   return ctx.db.transaction(async (tx) => {
+    await assertWritable(tx, ctx);
     if (key) {
       const inserted = await tx.query(
         `insert into wms.idempotency_keys (company_id, key, action, user_id) values ($1, $2, $3, $4)

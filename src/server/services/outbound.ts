@@ -8,7 +8,7 @@ import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalDate, optionalUuid, qty, nonNegQty } from "../validation";
 import { assertExportReady } from "./comex";
 import * as erp from "../integrations/erp/gateway";
-import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
+import { audit, enqueueAtlasEvent, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
 import { availableOf, changeReserved, insertMovement, lockBalanceById, removeStock, type BalanceRow } from "./stock-core";
 import { isSerialControlled, parseSerials, shipSerials } from "./serials";
 import { checkReplenishmentTx } from "./replenishment";
@@ -435,6 +435,7 @@ export async function releaseForPicking(ctx: Ctx, orderId: string, opts?: OpOpti
       [orderId, staging.id],
     );
     await audit(tx, ctx, "outbound.picking_released", "outbound_order", orderId, o.code, { tasks, staging: staging.code });
+    await enqueueAtlasEvent(tx, ctx, "outbound.picking_started", "outbound_order", orderId, { code: o.code, wave: null });
     return { id: orderId, tasks };
   });
 }
@@ -499,6 +500,8 @@ export async function checkOrder(ctx: Ctx, orderId: string, input: unknown, opts
       [orderId],
     );
     await audit(tx, ctx, "outbound.checked", "outbound_order", orderId, o.code);
+    // Conferência concluída: o ATLAS pode emitir a NF-e com as quantidades e lotes separados.
+    await enqueueAtlasEvent(tx, ctx, "outbound.ready_to_invoice", "outbound_order", orderId, { code: o.code });
     return { id: orderId, ok: true as const, mismatches: [] };
   });
 }
@@ -529,6 +532,16 @@ export async function shipOrder(ctx: Ctx, orderId: string, input: unknown, opts?
     const o = await lockOrder(tx, ctx, orderId);
     requireStatus(o, ["checked"], "expedir");
     await assertExportReady(tx, orderId);
+    const [inv] = await tx.query<{ requires_invoice: boolean; invoice_authorized_at: string | null }>(
+      `select requires_invoice, invoice_authorized_at::text as invoice_authorized_at from wms.outbound_orders where id = $1`,
+      [orderId],
+    );
+    if (inv?.requires_invoice && !inv.invoice_authorized_at) {
+      throw new DomainError(
+        `O pedido ${o.code} aguarda a NF-e autorizada no ATLAS antes da expedição (a empresa exige nota antes de expedir).`,
+        "INVOICE_PENDING",
+      );
+    }
     const reservations = await tx.query<{
       id: string;
       order_line_id: string;
@@ -757,8 +770,8 @@ export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown,
   return runOperation(ctx, "outbound.cancel_line", opts, async (tx) => {
     const o = await lockOrder(tx, ctx, orderId);
     requireStatus(o, CANCELLABLE, "cancelar linha");
-    const [line] = await tx.query<{ id: string; sku: string; cancelled_at: string | null }>(
-      `select l.id, p.sku, l.cancelled_at::text as cancelled_at from wms.outbound_order_lines l join erp.products p on p.id = l.product_id
+    const [line] = await tx.query<{ id: string; sku: string; cancelled_at: string | null; requested_qty: number }>(
+      `select l.id, p.sku, l.cancelled_at::text as cancelled_at, l.requested_qty::float8 as requested_qty from wms.outbound_order_lines l join erp.products p on p.id = l.product_id
        where l.id = $1 and l.order_id = $2 for update of l`,
       [d.lineId, orderId],
     );
@@ -783,6 +796,8 @@ export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown,
     await enqueueIntegrationEvent(tx, ctx, "outbound.line_cancelled", "outbound_order", orderId, {
       code: o.code,
       sku: line.sku,
+      line_id: line.id,
+      cancelled_qty: line.requested_qty,
       reason: d.reason,
       return_tasks: returns,
       order_cancelled: left.n === 0,

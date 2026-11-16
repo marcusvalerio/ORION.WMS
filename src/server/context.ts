@@ -15,6 +15,10 @@ export interface SessionUser {
   warehouseIds?: string[] | null;
   /** Senha temporária: o usuário precisa definir uma nova antes de operar. */
   mustChangePassword?: boolean;
+  /** Usuário de sistema (aplicação de eventos do ATLAS): nunca vem de sessão. */
+  isSystem?: boolean;
+  /** Usuário provisionado pelo ATLAS (SSO): nome, e-mail, perfil e ativação são somente leitura. */
+  atlasUserId?: string | null;
 }
 
 /** Contexto de execução de todo serviço: conexão + usuário autenticado. */

@@ -7,12 +7,17 @@ import { listDemoUsers } from "@/server/auth/users";
 import { OrionRing } from "@/components/brand/orion-ring";
 import { LoginForm } from "./login-form";
 import { ROLE_LABELS, type Role } from "@/lib/permissions";
+import { atlasEnv } from "@/server/integrations/atlas/config";
+import { SSO_ERROR_MESSAGES } from "@/lib/sso-messages";
 
 export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrar" };
 
-export default async function LoginPage() {
+export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
   if (await getLoggedUser()) redirect("/");
+  const sp = await searchParams;
+  const code = typeof sp.sso_error === "string" ? sp.sso_error : null;
+  const ssoError = code ? (SSO_ERROR_MESSAGES[code] ?? SSO_ERROR_MESSAGES.default) : null;
   const demoUsers = await listDemoUsers(await getDb());
   return (
     <div className="relative flex min-h-dvh items-center justify-center overflow-hidden bg-[#03061A] px-4 py-10 text-creme-100" style={{ colorScheme: "dark" }}>
@@ -38,7 +43,11 @@ export default async function LoginPage() {
           <h1 className="font-display text-2xl font-semibold">Bom te ver de novo</h1>
           <p className="mt-1.5 text-sm text-ceu-300">Entre para abrir o seu armazém.</p>
         </div>
-        <LoginForm demoUsers={demoUsers.map((u) => ({ ...u, roleLabel: ROLE_LABELS[u.role as Role] }))} />
+        <LoginForm
+          demoUsers={demoUsers.map((u) => ({ ...u, roleLabel: ROLE_LABELS[u.role as Role] }))}
+          atlasSso={atlasEnv().ssoEnabled}
+          ssoError={ssoError}
+        />
         {isDemoMode() ? (
           <p className="text-center text-xs text-ceu-300">
             Modo demonstração: sem login, o sistema abre como administradora.{" "}

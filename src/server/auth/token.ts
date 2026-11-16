@@ -7,6 +7,10 @@ import { isDemoMode } from "../demo-mode";
 export interface SessionPayload {
   uid: string;
   exp: number;
+  /** Origem da sessão: "atlas" quando aberta por SSO (contrato 2.5). */
+  src?: "local" | "atlas";
+  /** access_version do ATLAS no momento do login. */
+  av?: number;
 }
 
 let cachedSecret: string | null = null;
@@ -43,8 +47,13 @@ function sign(data: string, secret: string): string {
   return createHmac("sha256", secret).update(data).digest("base64url");
 }
 
-export function createToken(uid: string, ttlSeconds: number, secret = getSessionSecret()): string {
-  const payload: SessionPayload = { uid, exp: Math.floor(Date.now() / 1000) + ttlSeconds };
+export function createToken(
+  uid: string,
+  ttlSeconds: number,
+  secret = getSessionSecret(),
+  extra: Pick<SessionPayload, "src" | "av"> = {},
+): string {
+  const payload: SessionPayload = { uid, exp: Math.floor(Date.now() / 1000) + ttlSeconds, ...extra };
   const data = Buffer.from(JSON.stringify(payload)).toString("base64url");
   return `${data}.${sign(data, secret)}`;
 }
