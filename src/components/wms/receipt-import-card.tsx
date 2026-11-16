@@ -9,16 +9,32 @@ import { Checkbox, Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { INCOTERMS_2020 } from "@/lib/comex";
+import { CUSTOMS_CHANNEL_LABELS, CUSTOMS_CHANNELS, TRANSPORT_DOC_LABELS, TRANSPORT_MODE_LABELS, TRANSPORT_MODES, type CustomsChannel, type TransportMode } from "@/lib/comex-panel";
+import { ImportTimelineFull } from "@/components/comex/import-timeline";
 import { fmtDate } from "@/lib/format";
 import { can } from "@/lib/permissions";
 
 /** Dados de importação (DI/DUIMP, Incoterm, origem, contêiner, NCM) e retenção aduaneira do recebimento. */
-export async function ReceiptImportCard({ ctx, receiptId, receiptStatus }: { ctx: Ctx; receiptId: string; receiptStatus: string }) {
+export async function ReceiptImportCard({
+  ctx,
+  receiptId,
+  receiptStatus,
+  milestones,
+}: {
+  ctx: Ctx;
+  receiptId: string;
+  receiptStatus: string;
+  milestones?: { arrived_at: string | null; checked_at: string | null; completed_at: string | null };
+}) {
   const info = await getReceiptImport(ctx, receiptId);
   if (!info) return null;
   const role = ctx.user.role;
   const editable = ["expected", "checking", "checked"].includes(receiptStatus) && info.customs_status !== "cleared" && can(role, "comex.manage");
-  const hasData = Boolean(info.import_doc_type || info.incoterm || info.origin_country || info.container_number);
+  const hasData = Boolean(
+    info.import_doc_type || info.incoterm || info.origin_country || info.container_number || info.transport_doc || info.commercial_invoice || info.transport_mode,
+  );
+  const mode = info.transport_mode as TransportMode | null;
+  const channel = info.customs_channel ? CUSTOMS_CHANNEL_LABELS[info.customs_channel as CustomsChannel] : null;
   if (!hasData && !editable) return null;
   const today = new Date().toISOString().slice(0, 10);
 
@@ -37,8 +53,25 @@ export async function ReceiptImportCard({ ctx, receiptId, receiptStatus }: { ctx
               ["Incoterm", info.incoterm],
               ["País de origem", info.origin_country],
               ["Contêiner / lacre", info.container_number ? `${info.container_number}${info.seal_number ? ` · lacre ${info.seal_number}` : ""}` : null],
+              ["Modal", mode ? TRANSPORT_MODE_LABELS[mode] : null],
+              [mode ? TRANSPORT_DOC_LABELS[mode] : "BL / AWB", info.transport_doc ? <span className="font-mono">{info.transport_doc}</span> : null],
+              ["Invoice comercial", info.commercial_invoice ? <span className="font-mono">{info.commercial_invoice}</span> : null],
+              ["Canal de parametrização", channel ? `${channel.label} — ${channel.hint}` : null],
               ["Desembaraço", info.customs_cleared_on ? `${fmtDate(info.customs_cleared_on)} por ${info.customs_cleared_by_name}` : null],
             ]}
+          />
+        ) : null}
+        {hasData ? (
+          <ImportTimelineFull
+            row={{
+              shipped_on: info.shipped_on,
+              eta_on: info.eta_on,
+              arrived_at: milestones?.arrived_at ?? null,
+              import_registered_on: info.import_registered_on,
+              customs_cleared_on: info.customs_cleared_on,
+              checked_at: milestones?.checked_at ?? null,
+              completed_at: milestones?.completed_at ?? null,
+            }}
           />
         ) : null}
 
@@ -93,6 +126,32 @@ export async function ReceiptImportCard({ ctx, receiptId, receiptStatus }: { ctx
                 </Field>
                 <Field label="Lacre">
                   <Input name="sealNumber" defaultValue={info.seal_number ?? ""} maxLength={30} />
+                </Field>
+                <Field label="Modal">
+                  <Select name="transportMode" defaultValue={info.transport_mode ?? ""} placeholder="—" options={TRANSPORT_MODES.map((m) => ({ value: m, label: TRANSPORT_MODE_LABELS[m] }))} />
+                </Field>
+                <Field label="BL / AWB" hint="Conhecimento de transporte">
+                  <Input name="transportDoc" defaultValue={info.transport_doc ?? ""} maxLength={40} className="uppercase" />
+                </Field>
+                <Field label="Invoice comercial">
+                  <Input name="commercialInvoice" defaultValue={info.commercial_invoice ?? ""} maxLength={40} />
+                </Field>
+                <Field label="Canal de parametrização" hint="Após o registro da DI/DUIMP">
+                  <Select
+                    name="customsChannel"
+                    defaultValue={info.customs_channel ?? ""}
+                    placeholder="—"
+                    options={CUSTOMS_CHANNELS.map((c) => ({ value: c, label: CUSTOMS_CHANNEL_LABELS[c].label }))}
+                  />
+                </Field>
+                <Field label="Embarque">
+                  <Input type="date" name="shippedOn" defaultValue={info.shipped_on ?? ""} />
+                </Field>
+                <Field label="Chegada prevista">
+                  <Input type="date" name="etaOn" defaultValue={info.eta_on ?? ""} />
+                </Field>
+                <Field label="Registro da DI/DUIMP">
+                  <Input type="date" name="registeredOn" defaultValue={info.import_registered_on ?? ""} max={today} />
                 </Field>
                 <div className="flex items-end sm:col-span-2">
                   <Checkbox

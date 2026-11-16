@@ -347,7 +347,7 @@ export default async function ReceiptPage({ params }: { params: Promise<{ id: st
               </CardBody>
             ) : null}
           </Card>
-          <ReceiptImportCard ctx={ctx} receiptId={id} receiptStatus={r.status} />
+          <ReceiptImportCard ctx={ctx} receiptId={id} receiptStatus={r.status} milestones={{ arrived_at: r.arrived_at, checked_at: r.checked_at, completed_at: r.completed_at }} />
         </div>
 
         <div className="space-y-5">

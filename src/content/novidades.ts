@@ -36,6 +36,21 @@ export interface Release {
 
 export const RELEASES: Release[] = [
   {
+    versao: "2026.12",
+    data: "2026-11-16",
+    leve: true,
+    itens: [
+      {
+        id: "aba-comex",
+        area: "Armazém",
+        titulo: "Comex: importação e exportação em uma aba",
+        texto: "Processos de importação do embarque à armazenagem (DI/DUIMP, canal, desembaraço) e pedidos de exportação com packing list e DU-E.",
+        rota: "/comex",
+        demo: "nenhuma",
+      },
+    ],
+  },
+  {
     versao: "2026.11",
     data: "2026-11-15",
     doAtlas: "Do ATLAS: pedidos agora chegam ao ORION com a data de entrega prometida.",

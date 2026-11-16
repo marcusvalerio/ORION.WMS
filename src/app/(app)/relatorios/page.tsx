@@ -27,6 +27,8 @@ const DESCRIPTIONS: Record<ReportKey, string> = {
   expedicoes: "Expedições confirmadas com transportadora, documento e quantidades.",
   produtividade: "Tarefas, unidades movimentadas, tempo médio, separação e conferência por operador (últimos 30 dias).",
   devolucoes: "Devoluções de cliente por pedido, motivo e resultado da inspeção (apto, avariado, descarte).",
+  importacoes: "Recebimentos de importação com declaração, canal, invoice, BL/AWB, contêiner e marcos do processo.",
+  exportacoes: "Pedidos de exportação com destino, invoice, DU-E, volumes, peso bruto e expedição.",
 };
 
 const DEEP_LINKS: Partial<Record<ReportKey, string>> = {
@@ -39,6 +41,8 @@ const DEEP_LINKS: Partial<Record<ReportKey, string>> = {
   pedidos: "/separacao",
   expedicoes: "/expedicao",
   produtividade: "/produtividade",
+  importacoes: "/comex?aba=importacao",
+  exportacoes: "/comex?aba=exportacao",
 };
 
 export default async function ReportsPage({ searchParams }: { searchParams: SearchParams }) {

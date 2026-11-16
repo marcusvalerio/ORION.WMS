@@ -10,6 +10,8 @@ import * as receiving from "../services/receiving";
 import * as outbound from "../services/outbound";
 import * as tasks from "../services/tasks";
 import { withMovementClock } from "../services/stock-core";
+import * as comex from "../services/comex";
+import { iso6346CheckDigit } from "@/lib/comex";
 import { processOutbox } from "../integrations/outbox/processor";
 import { localTransport } from "../integrations/outbox/transports";
 import { logEmailTransport } from "../integrations/outbox/email";
@@ -28,6 +30,7 @@ export async function seedInventoryShowcase(db: Db): Promise<void> {
   await seedCdMapShowcase(db);
   await seedCdOperations(db);
   await seedFlowShowcase(db);
+  await seedComexShowcase(db);
 }
 
 /**
@@ -324,5 +327,132 @@ export async function seedFlowShowcase(db: Db): Promise<void> {
   for (let i = 0; i < 10; i++) {
     const r = await processOutbox(db, { transport: localTransport, email: logEmailTransport, companyId: c, limit: 100 });
     if (!r.claimed) break;
+  }
+}
+
+const COMEX_MARKER = "PC-IMP-0001";
+
+/**
+ * Vitrine da aba Comex: processos de importação em situações diferentes (em trânsito sem
+ * DI/DUIMP, aguardando desembaraço, desembaraçado/armazenado, aéreo canal vermelho) e dois
+ * pedidos de exportação (um com packing list fechado e estufado, outro em montagem de volumes).
+ * Tudo pelos serviços reais; idempotente pelo pedido de compra marcador.
+ */
+export async function seedComexShowcase(db: Db): Promise<void> {
+  const [company] = await db.query<{ id: string }>(`select id from erp.companies where is_demo order by created_at limit 1`);
+  if (!company) return;
+  const c = company.id;
+  const [done] = await db.query(`select 1 from erp.purchase_orders where company_id = $1 and number = $2`, [c, COMEX_MARKER]);
+  if (done) return;
+  const [wh] = await db.query<{ id: string }>(`select id from wms.warehouses where company_id = $1 and code = 'DEP-01'`, [c]);
+  const [product] = await db.query<{ id: string }>(`select id from erp.products where company_id = $1 and sku = 'CIA-001'`, [c]);
+  const [exportProduct] = await db.query<{ id: string }>(`select id from erp.products where company_id = $1 and sku = 'CHP-004'`, [c]);
+  if (!wh || !product || !exportProduct) return;
+  const ctxOf = async (email: string): Promise<Ctx> => {
+    const [u] = await db.query<{ id: string }>(`select id from wms.users where email = $1`, [email]);
+    return { db, user: (await loadSessionUser(db, u.id)) as SessionUser };
+  };
+  const sup = await ctxOf("supervisor@metalsupply.demo");
+  const op = await ctxOf("operador@metalsupply.demo");
+  const supplierId = async (code: string, name: string) => {
+    const [row] = await db.query<{ id: string }>(
+      `insert into erp.suppliers (company_id, code, name) values ($1, $2, $3)
+       on conflict (company_id, code) do update set name = excluded.name returning id`,
+      [c, code, name],
+    );
+    return row.id;
+  };
+  const shenzhen = await supplierId("FOR-CN01", "Shenzhen Precision Parts Co. (demo)");
+  const stuttgart = await supplierId("FOR-DE01", "Stuttgart Werkzeuge GmbH (demo)");
+  const day = (offset: number) => new Date(Date.now() + offset * 86_400_000).toISOString().slice(0, 10);
+  const container = (prefix: string) => `${prefix}${iso6346CheckDigit(prefix)}`;
+
+  const newReceipt = async (number: string, supplier: string, qty: number, price: number) => {
+    const [po] = await db.query<{ id: string }>(
+      `insert into erp.purchase_orders (company_id, number, supplier_id, expected_date, invoice_number) values ($1, $2, $3, $4::date, $5) returning id`,
+      [c, number, supplier, day(5), `NF 002.${number.slice(-3)}`],
+    );
+    await db.query(`insert into erp.purchase_order_items (purchase_order_id, line_no, product_id, quantity, unit_price) values ($1, 1, $2, $3, $4)`, [
+      po.id,
+      product.id,
+      qty,
+      price,
+    ]);
+    return (await receiving.createReceiptFromPurchaseOrder(sup, { purchaseOrderId: po.id, warehouseId: wh.id })).id;
+  };
+  const count = async (receiptId: string, qty: number, lot: string) => {
+    await receiving.startCheck(op, receiptId);
+    const [item] = await db.query<{ id: string }>(`select id from wms.receipt_items where receipt_id = $1`, [receiptId]);
+    await receiving.saveCounts(op, receiptId, { items: [{ itemId: item.id, countedQty: qty, lotCode: lot }] });
+    await receiving.finishCheck(op, receiptId, {});
+  };
+
+  // 1. Marítimo em trânsito, ainda sem DI/DUIMP
+  const r1 = await newReceipt(COMEX_MARKER, shenzhen, 600, 38.5);
+  await comex.saveReceiptImport(sup, r1, {
+    incoterm: "FOB", originCountry: "CN", transportMode: "sea", transportDoc: "MEDUSZ4471203", commercialInvoice: "SZP-2026-1187",
+    containerNumber: container("MSCU771204"), sealNumber: "ML-552190", shippedOn: day(-12), etaOn: day(9),
+  });
+
+  // 2. Chegou, DUIMP registrada no canal amarelo, aguardando desembaraço (armazenagem bloqueada)
+  const r2 = await newReceipt("PC-IMP-0002", shenzhen, 240, 52);
+  await comex.saveReceiptImport(sup, r2, {
+    importDocType: "DUIMP", importDocNumber: "26BR0004417730", incoterm: "CIF", originCountry: "CN", transportMode: "sea",
+    transportDoc: "COSU6290017781", commercialInvoice: "SZP-2026-1102", containerNumber: container("CSQU305512"), sealNumber: "CS-118204",
+    shippedOn: day(-34), etaOn: day(-4), registeredOn: day(-2), customsChannel: "yellow", holdForClearance: "on",
+  });
+  await count(r2, 240, "IMP-CN-2611");
+
+  // 3. DI canal verde: desembaraçada, recebida e armazenada
+  const r3 = await newReceipt("PC-IMP-0003", stuttgart, 80, 410);
+  await comex.saveReceiptImport(sup, r3, {
+    importDocType: "DI", importDocNumber: "26/1873345-0", incoterm: "FCA", originCountry: "DE", transportMode: "sea",
+    transportDoc: "HLCUHAM2610044", commercialInvoice: "SW-90331", containerNumber: container("HLXU874120"), sealNumber: "HL-77120",
+    shippedOn: day(-40), etaOn: day(-15), registeredOn: day(-12), customsChannel: "green", holdForClearance: "on",
+  });
+  await count(r3, 80, "IMP-DE-2610");
+  await comex.clearCustoms(sup, r3, { clearedOn: day(-10) });
+  await receiving.releaseReceipt(sup, r3);
+  for (const t of await db.query<{ id: string }>(`select id from wms.tasks where receipt_id = $1 and status = 'pending'`, [r3])) {
+    await tasks.startTask(op, t.id);
+    await tasks.completeTask(op, t.id, {});
+  }
+
+  // 4. Aéreo, DUIMP no canal vermelho, aguardando a chegada
+  const r4 = await newReceipt("PC-IMP-0004", stuttgart, 12, 1890);
+  await comex.saveReceiptImport(sup, r4, {
+    importDocType: "DUIMP", importDocNumber: "26BR0004502219", incoterm: "DAP", originCountry: "DE", transportMode: "air",
+    transportDoc: "020-55120934", commercialInvoice: "SW-90412", shippedOn: day(-2), etaOn: day(1), registeredOn: day(0),
+    customsChannel: "red", holdForClearance: "on",
+  });
+
+  // Exportação: pedido separado, packing list fechado e contêiner estufado; outro montando volumes
+  const exportOrder = async (customer: string, qty: number, data: Record<string, string>) => {
+    const o = await outbound.createManualOrder(sup, { warehouseId: wh.id, customerName: customer, lines: [{ productId: exportProduct.id, quantity: qty }] });
+    await comex.saveOrderExport(sup, o.id, { isExport: "on", ...data });
+    await outbound.reserveOrder(sup, o.id);
+    await outbound.releaseForPicking(sup, o.id);
+    for (const t of await db.query<{ id: string }>(`select id from wms.tasks where order_id = $1 and task_type = 'picking' and status = 'pending'`, [o.id])) {
+      await tasks.completeTask(op, t.id, {});
+    }
+    const order = await outbound.getOrder(op, o.id);
+    return { id: o.id, lineId: order!.lines[0].id };
+  };
+  const pkg = (lineId: string, quantity: number) => ({
+    packageType: "pallet", grossWeightKg: 48 + quantity, netWeightKg: 44 + quantity, lengthCm: 120, widthCm: 80, heightCm: 60,
+    items: [{ orderLineId: lineId, quantity }],
+  });
+  try {
+    const a = await exportOrder("Importadora Andes Ltda. (demo)", 6, {
+      incoterm: "FCA", destinationCountry: "CL", commercialInvoice: "INV-2026-0107", exportDeclaration: "26BR0001093374",
+    });
+    await comex.addExportPackage(op, a.id, pkg(a.lineId, 3));
+    await comex.addExportPackage(op, a.id, pkg(a.lineId, 3));
+    await comex.finishPacking(op, a.id);
+    await comex.stuffContainer(op, a.id, { containerNumber: container("MSCU561230"), sealNumber: "EXP-30021" });
+    const b = await exportOrder("Distribuidora Rio de la Plata S.A. (demo)", 4, { incoterm: "CPT", destinationCountry: "AR", commercialInvoice: "INV-2026-0112" });
+    await comex.addExportPackage(op, b.id, pkg(b.lineId, 2));
+  } catch {
+    // sem saldo suficiente de CHP-004 neste banco: a vitrine de importação já basta
   }
 }

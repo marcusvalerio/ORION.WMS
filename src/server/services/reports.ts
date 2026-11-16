@@ -12,6 +12,8 @@ import { listOrders, listShipments } from "./outbound";
 import { productivityByUser } from "./productivity";
 import { listReturns } from "./returns";
 import { RETURN_REASON_LABELS } from "@/lib/labels";
+import { listExportOrders, listImportProcesses } from "./comex-panel";
+import { CUSTOMS_CHANNEL_LABELS, EXPORT_SITUATION_LABELS, IMPORT_SITUATION_LABELS, TRANSPORT_MODE_LABELS } from "@/lib/comex-panel";
 import { MOVEMENT_LABELS, statusLabel, TASK_TYPE_LABELS, DIVERGENCE_TYPE_LABELS } from "@/lib/labels";
 
 export const REPORTS = {
@@ -25,6 +27,8 @@ export const REPORTS = {
   expedicoes: "Expedições",
   produtividade: "Produtividade por operador",
   devolucoes: "Devoluções de cliente",
+  importacoes: "Comex — processos de importação",
+  exportacoes: "Comex — pedidos de exportação",
 } as const;
 export type ReportKey = keyof typeof REPORTS;
 
@@ -134,6 +138,40 @@ export async function buildReport(ctx: Ctx, key: string, params: URLSearchParams
           r.units_moved, r.units_picked, r.picks_total, r.picks_accurate,
           r.accuracy === null ? null : Math.round(r.accuracy * 1000) / 10, r.lines_checked,
         ]),
+      };
+    }
+    case "importacoes": {
+      const rows = await listImportProcesses(ctx, { situation: p("situacao"), supplierId: p("fornecedor"), country: p("pais"), from: p("de"), to: p("ate"), q: p("q") });
+      return {
+        headers: ["Recebimento", "Situação", "Fornecedor", "Origem", "Incoterm", "Modal", "Declaração", "Canal", "Invoice", "BL/AWB", "Contêiner", "NF", "Embarque", "Chegada prevista", "Chegada", "Registro", "Desembaraço", "Armazenagem", "Quantidade prevista"],
+        rows: rows.map((r) => [
+          r.code,
+          IMPORT_SITUATION_LABELS[r.situation].label,
+          r.supplier_name,
+          r.origin_country,
+          r.incoterm,
+          r.transport_mode ? TRANSPORT_MODE_LABELS[r.transport_mode as keyof typeof TRANSPORT_MODE_LABELS] : null,
+          r.import_doc_type ? `${r.import_doc_type} ${r.import_doc_number}` : null,
+          r.customs_channel ? CUSTOMS_CHANNEL_LABELS[r.customs_channel as keyof typeof CUSTOMS_CHANNEL_LABELS].label : null,
+          r.commercial_invoice,
+          r.transport_doc,
+          r.container_number,
+          r.invoice_number,
+          r.shipped_on,
+          r.eta_on,
+          r.arrived_at,
+          r.import_registered_on,
+          r.customs_cleared_on,
+          r.completed_at,
+          r.expected_total,
+        ]),
+      };
+    }
+    case "exportacoes": {
+      const rows = await listExportOrders(ctx, { situation: p("situacao"), country: p("pais"), due: p("due"), from: p("de"), to: p("ate"), q: p("q") });
+      return {
+        headers: ["Pedido", "Situação", "Cliente", "Destino", "Incoterm", "Invoice", "DU-E", "Contêiner", "Lacre", "Volumes", "Peso bruto (kg)", "Packing list fechado em", "Expedido em"],
+        rows: rows.map((r) => [r.code, EXPORT_SITUATION_LABELS[r.situation].label, r.customer_name, r.destination_country, r.export_incoterm, r.commercial_invoice, r.export_declaration, r.container_number, r.seal_number, r.packages, r.gross_weight_kg, r.packed_at, r.shipped_at]),
       };
     }
     default:

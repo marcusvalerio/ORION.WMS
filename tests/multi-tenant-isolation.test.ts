@@ -20,6 +20,7 @@ import {
 import * as audit from "@/server/services/audit";
 import * as collector from "@/server/services/collector";
 import * as comex from "@/server/services/comex";
+import * as comexPanel from "@/server/services/comex-panel";
 import * as company from "@/server/services/company";
 import * as dashboard from "@/server/services/dashboard";
 import * as divergences from "@/server/services/divergences";
@@ -60,7 +61,7 @@ vi.mock("@/server/auth/session", () => ({
 vi.mock("@/server/db", () => ({ getDb: async () => session.db }));
 
 const MODULES: Record<string, Record<string, unknown>> = {
-  audit, collector, comex, company, dashboard, divergences, docks, health, integration, inventory, labels, nfe, novidades,
+  audit, collector, comex, "comex-panel": comexPanel, company, dashboard, divergences, docks, health, integration, inventory, labels, nfe, novidades,
   outbound, production, productivity, products, receiving, replenishment, reports, returns, serials, settings,
   "shipping-label": shippingLabel, slotting, stock, tasks, users, warehouse, waves,
 };
@@ -160,6 +161,14 @@ const READS = [
   ...reg("comex", {
     getReceiptImport: (x, y) => comex.getReceiptImport(adm(x), y.r.receiptId),
     getPackingList: (x, y) => comex.getPackingList(adm(x), y.r.shippedOrderId),
+  }),
+  ...reg("comex-panel", {
+    listImportProcesses: (x) => comexPanel.listImportProcesses(adm(x)),
+    "listImportProcesses#busca": (x) => comexPanel.listImportProcesses(adm(x), { q: "REC" }),
+    importIndicators: (x) => comexPanel.importIndicators(adm(x)),
+    importFilterOptions: (x) => comexPanel.importFilterOptions(adm(x)),
+    listExportOrders: (x) => comexPanel.listExportOrders(adm(x)),
+    exportIndicators: (x) => comexPanel.exportIndicators(adm(x)),
   }),
   ...reg("company", {
     getCompanyProfile: (x) => company.getCompanyProfile(env.db, x.companyId),

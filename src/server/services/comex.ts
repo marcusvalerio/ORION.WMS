@@ -6,6 +6,7 @@ import { assertCan } from "../context";
 import { assertWarehouseAccess, hasWarehouseAccess } from "../access";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalDate, checkbox, qty } from "../validation";
+import { CUSTOMS_CHANNELS, TRANSPORT_MODES } from "@/lib/comex-panel";
 import { INCOTERM_CODES, isCountryCode, isNcm, isValidContainer, normalizeContainer, normalizeNcm } from "@/lib/comex";
 import { audit, enqueueIntegrationEvent, round3, runOperation, type OpOptions } from "./common";
 
@@ -66,6 +67,16 @@ const importSchema = z.object({
   originCountry: country("País de origem"),
   containerNumber: containerField,
   sealNumber: shortText("Lacre", 30),
+  transportMode: z.preprocess(blankToNull, z.enum(TRANSPORT_MODES, { error: "Modal inválido." }).nullish()),
+  transportDoc: z.preprocess(
+    blankToNull,
+    z.string().trim().toUpperCase().min(3, "BL/AWB: ao menos 3 caracteres.").max(40, "BL/AWB: no máximo 40 caracteres.").nullish(),
+  ),
+  commercialInvoice: shortText("Invoice comercial", 40),
+  shippedOn: optionalDate,
+  etaOn: optionalDate,
+  registeredOn: optionalDate,
+  customsChannel: z.preprocess(blankToNull, z.enum(CUSTOMS_CHANNELS, { error: "Canal de parametrização inválido." }).nullish()),
   holdForClearance: checkbox,
   items: z.array(z.object({ id: uuid("Item"), ncm: ncmField })).optional(),
 });
@@ -106,6 +117,14 @@ export async function saveReceiptImport(ctx: Ctx, receiptId: string, input: unkn
   if (d.holdForClearance && !d.importDocType) {
     throw new DomainError("A retenção aduaneira exige a declaração de importação (DI ou DUIMP).", "VALIDATION", "importDocType");
   }
+  if (d.shippedOn && d.etaOn && d.etaOn < d.shippedOn) {
+    throw new DomainError("A chegada prevista não pode ser anterior ao embarque.", "VALIDATION", "etaOn");
+  }
+  if (!d.importDocType && (d.customsChannel || d.registeredOn)) {
+    throw new DomainError("Canal de parametrização e data de registro exigem a declaração (DI ou DUIMP).", "VALIDATION", "importDocType");
+  }
+  const today = new Date().toISOString().slice(0, 10);
+  if (d.registeredOn && d.registeredOn > today) throw new DomainError("A data de registro da declaração não pode estar no futuro.", "VALIDATION", "registeredOn");
   return runOperation(ctx, "receipt.import_save", opts, async (tx) => {
     const r = await lockReceiptImport(tx, ctx, receiptId);
     if (!["expected", "checking", "checked"].includes(r.status)) {
@@ -117,10 +136,13 @@ export async function saveReceiptImport(ctx: Ctx, receiptId: string, input: unkn
     const customs = d.holdForClearance ? "awaiting" : "none";
     await tx.query(
       `update wms.receipts set import_doc_type = $2, import_doc_number = $3, incoterm = $4, origin_country = $5,
-              container_number = $6, seal_number = $7, customs_status = $8, updated_at = now(), version = version + 1
+              container_number = $6, seal_number = $7, customs_status = $8, transport_mode = $9, transport_doc = $10,
+              commercial_invoice = $11, shipped_on = $12, eta_on = $13, import_registered_on = $14, customs_channel = $15,
+              updated_at = now(), version = version + 1
        where id = $1`,
       [receiptId, d.importDocType ?? null, d.importDocNumber ?? null, d.incoterm ?? null, d.originCountry ?? null,
-        d.containerNumber ?? null, d.sealNumber ?? null, customs],
+        d.containerNumber ?? null, d.sealNumber ?? null, customs, d.transportMode ?? null, d.transportDoc ?? null,
+        d.commercialInvoice ?? null, d.shippedOn ?? null, d.etaOn ?? null, d.registeredOn ?? null, d.customsChannel ?? null],
     );
     for (const item of d.items ?? []) {
       const updated = await tx.query(`update wms.receipt_items set ncm = $3 where id = $1 and receipt_id = $2 returning id`, [
@@ -203,6 +225,13 @@ export interface ReceiptImportInfo {
   origin_country: string | null;
   container_number: string | null;
   seal_number: string | null;
+  transport_mode: string | null;
+  transport_doc: string | null;
+  commercial_invoice: string | null;
+  shipped_on: string | null;
+  eta_on: string | null;
+  import_registered_on: string | null;
+  customs_channel: string | null;
   customs_status: string;
   customs_cleared_on: string | null;
   customs_cleared_by_name: string | null;
@@ -212,6 +241,8 @@ export interface ReceiptImportInfo {
 export async function getReceiptImport(ctx: Ctx, receiptId: string): Promise<ReceiptImportInfo | null> {
   const [r] = await ctx.db.query<Omit<ReceiptImportInfo, "items"> & { warehouse_id: string }>(
     `select r.warehouse_id, r.import_doc_type, r.import_doc_number, r.incoterm, r.origin_country, r.container_number, r.seal_number,
+            r.transport_mode, r.transport_doc, r.commercial_invoice, r.shipped_on::text as shipped_on, r.eta_on::text as eta_on,
+            r.import_registered_on::text as import_registered_on, r.customs_channel,
             r.customs_status, r.customs_cleared_on::text as customs_cleared_on, u.name as customs_cleared_by_name
      from wms.receipts r left join wms.users u on u.id = r.customs_cleared_by
      where r.id = $1 and r.company_id = $2`,

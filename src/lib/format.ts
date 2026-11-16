@@ -44,3 +44,10 @@ export function fmtRelative(value: string | null | undefined): string {
   if (h < 24) return `há ${h} h`;
   return `há ${Math.round(h / 24)} d`;
 }
+
+/** Dia (dd/mm/aaaa) de uma data pura ou de um instante (no fuso de São Paulo). */
+export function fmtDay(value: string | null | undefined): string {
+  if (!value) return "—";
+  if (value.length <= 10) return fmtDate(value);
+  return toDate(value).toLocaleDateString("pt-BR", { timeZone: TZ });
+}

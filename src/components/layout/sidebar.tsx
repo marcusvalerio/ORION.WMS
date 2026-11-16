@@ -35,6 +35,7 @@ import {
   ChartColumnBig,
   type LucideIcon,
   Factory,
+  Ship,
 } from "lucide-react";
 import { NAV } from "./nav";
 import { cn } from "@/components/ui/cn";
@@ -69,6 +70,7 @@ const ICONS: Record<string, LucideIcon> = {
   Waves,
   ChartColumnBig,
   Factory,
+  Ship,
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {
@@ -118,7 +120,10 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
                       )}
                     >
                       <Icon className={cn("size-4", active ? "text-link" : "text-muted")} aria-hidden />
-                      {item.label}
+                      <span className="min-w-0">
+                        {item.label}
+                        {item.hint ? <span className="block truncate text-[11px] leading-tight font-normal text-muted">{item.hint}</span> : null}
+                      </span>
                     </Link>
                   </li>
                 );

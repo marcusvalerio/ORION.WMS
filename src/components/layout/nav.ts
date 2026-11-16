@@ -7,6 +7,8 @@ export interface NavItem {
   permission?: Permission;
   /** Prefixos adicionais que mantêm o item ativo. */
   match?: string[];
+  /** Subtítulo curto exibido ao lado do rótulo (ex.: "Importação e exportação"). */
+  hint?: string;
 }
 
 export const NAV: { section: string; items: NavItem[] }[] = [
@@ -19,6 +21,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Produtos", href: "/produtos", icon: "Package" },
       { label: "Estoque", href: "/estoque", icon: "Boxes", match: ["/estoque/saldo", "/estoque/ajuste"] },
       { label: "Movimentações", href: "/estoque/movimentacoes", icon: "ArrowLeftRight" },
+      { label: "Comex", href: "/comex", icon: "Ship", hint: "Importação e exportação" },
     ],
   },
   {
