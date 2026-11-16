@@ -12,6 +12,10 @@ import {
   launchClaimsSchema,
   launchHeaderSchema,
   responseSchema,
+  linkRequestSchema,
+  linkResponseSchema,
+  batchRequestSchema,
+  batchResponseSchema,
 } from "@/server/integrations/atlas/contract";
 import { signRequest, verifySignature } from "@/server/integrations/atlas/crypto";
 
@@ -65,6 +69,18 @@ describe("Contrato ATLAS ↔ ORION: fixtures", () => {
     accessCheckRequestSchema.parse(load("s2s.access-check.request.json"));
     expect(accessCheckResponseSchema.parse(load("s2s.access-check.response.ativo.json")).active).toBe(true);
     expect(accessCheckResponseSchema.parse(load("s2s.access-check.response.revogado.json")).active).toBe(false);
+    const link = load("s2s.links.request.json");
+    expect(link.path).toBe("/api/atlas/v1/links");
+    const lreq = linkRequestSchema.parse(link.body);
+    const lres = linkResponseSchema.parse(load("s2s.links.response.json").body);
+    expect([lres.atlas_company_id, lres.key_id]).toEqual([lreq.atlas_company_id, lreq.key_id]);
+    const batch = load("s2s.events-batch.request.json");
+    expect(batch.path).toBe("/api/atlas/v1/events/batch");
+    const events = batchRequestSchema.parse(batch.body).events;
+    for (const e of events) envelopeSchema.parse(e);
+    const results = batchResponseSchema.parse(load("s2s.events-batch.response.json").body).results;
+    expect(results).toHaveLength(events.length);
+    for (const r of results) responseSchema.parse(r.body);
   });
 });
 

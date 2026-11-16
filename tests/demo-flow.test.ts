@@ -129,5 +129,8 @@ describe("Fluxo demonstrativo ponta a ponta", () => {
     expect(types).toEqual(["pick:20", "putaway:100", "shipment:20"]);
     const events = await env.db.query<{ event_type: string }>(`select event_type from wms.integration_events order by created_at`);
     expect(events.map((e) => e.event_type)).toEqual(["receipt.completed", "outbound.shipped"]);
+    const [rc] = await env.db.query<{ payload: Record<string, unknown> }>(`select payload from wms.integration_events where event_type = 'receipt.completed'`);
+    expect(rc.payload).toHaveProperty("purchase_order_status");
+    expect(rc.payload).not.toHaveProperty("purchaseOrderStatus");
   });
 });

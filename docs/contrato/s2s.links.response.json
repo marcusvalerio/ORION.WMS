@@ -1,0 +1,9 @@
+{
+  "http_status": 201,
+  "body": {
+    "status": "activating",
+    "atlas_company_id": "0a7a5000-0000-4000-8000-000000000001",
+    "orion_company_id": "0410e000-0000-4000-8000-000000000001",
+    "key_id": "atlas-co-0a7a5000-1f2e"
+  }
+}

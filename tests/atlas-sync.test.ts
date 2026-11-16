@@ -3,8 +3,10 @@ import { createServer, type IncomingMessage } from "node:http";
 import type { AddressInfo } from "node:net";
 import { createTestEnv, type TestEnv } from "./helpers";
 import { linkCompany, request, ssoKeys, testEnv, INSTALL, type AtlasCompanySim } from "./atlas-helpers";
-import { O2A_PAYLOADS, envelopeSchema } from "@/server/integrations/atlas/contract";
-import { handleBalances, handleCapabilities, handleDeleteLink, handleDocument, handleEvent } from "@/server/integrations/atlas/api";
+import { O2A_PAYLOADS, batchResponseSchema, envelopeSchema, linkResponseSchema } from "@/server/integrations/atlas/contract";
+import { handleBalances, handleBatch, handleCapabilities, handleDeleteLink, handleDocument, handleEvent, handlePostLink } from "@/server/integrations/atlas/api";
+import { resolveProductCode } from "@/server/services/collector";
+import { fixture } from "./atlas-helpers";
 import { verifySignature } from "@/server/integrations/atlas/crypto";
 import { completeAtlasSso } from "@/server/integrations/atlas/sso-flow";
 import { enforceAtlasAccess, reprocessAtlasEvent, systemCtxForTests } from "./atlas-test-utils";
@@ -101,6 +103,35 @@ describe("Cadastros e vínculo", () => {
     expect((await env.db.query(`select 1 from wms.atlas_warehouse_map where company_id = $1`, [A.orionCompanyId])).length).toBe(1);
   });
 
+  it("POST /links no formato das fixtures s2s.links.* (atlas_url aceito)", async () => {
+    const req = fixture<{ body: Record<string, Record<string, unknown> | string | null> }>("s2s.links.request").body;
+    const atlasId = crypto.randomUUID();
+    Object.assign(req, { atlas_company_id: atlasId, key_id: `atlas-co-${atlasId.slice(0, 8)}`, secret: `s-${crypto.randomUUID()}-${crypto.randomUUID()}` });
+    req.company = { ...(req.company as Record<string, unknown>), atlas_company_id: atlasId, document: "22333444000181" };
+    req.admin = null;
+    const body = JSON.stringify(req);
+    const r = await handlePostLink(env.db, request("POST", "/api/atlas/v1/links", body, INSTALL.keyId, INSTALL.secret), testEnv());
+    expect(r.status, JSON.stringify(r.body)).toBe(fixture<{ http_status: number }>("s2s.links.response").http_status);
+    const out = linkResponseSchema.parse(r.body);
+    expect(out).toMatchObject({ status: "activating", atlas_company_id: atlasId, key_id: req.key_id });
+  });
+
+  it("sku do ATLAS diferente do code vira código de barras alternativo (coletor encontra)", async () => {
+    const e = product("0a7a5000-0000-4000-8000-000000000206", "PA-1006", 1);
+    e.payload.product.sku = "ALT-PA-1006";
+    expect((await A.send(e)).status).toBe(202);
+    const pk = await env.one<{ barcode: string; units: number; active: boolean }>(
+      `select pu.barcode, pu.units_per_package::float8 as units, pu.active from wms.packaging_units pu join erp.products p on p.id = pu.product_id
+       where p.company_id = $1 and p.external_id = '0a7a5000-0000-4000-8000-000000000206' and pu.code = 'ATLAS-SKU'`,
+      [A.orionCompanyId],
+    );
+    expect(pk).toEqual({ barcode: "ALT-PA-1006", units: 1, active: true });
+    expect((await resolveProductCode(adminA, "ALT-PA-1006")).sku).toBe("PA-1006");
+    // sku igual ao code ⇒ alternativo desativado
+    expect((await A.send(product("0a7a5000-0000-4000-8000-000000000206", "PA-1006", 2))).status).toBe(202);
+    await expect(resolveProductCode(adminA, "ALT-PA-1006")).rejects.toThrow(/não encontrado/);
+  });
+
   it("upsert de cadastro aceita lacuna e ignora sequência antiga", async () => {
     const old = A.event("product.upserted", (e) => {
       e.id = crypto.randomUUID();
@@ -148,6 +179,33 @@ describe("Entrada de eventos: idempotência, ordem, dependência", () => {
     expect(r).toMatchObject({ status: 409, body: { error: { code: "out_of_order", retryable: true, expected_sequence: 2 } } });
   });
 
+  it("primeiro evento de um agregado aceita qualquer sequência; depois exige contínua", async () => {
+    const agg = crypto.randomUUID();
+    const first = A.event("sales_order.cancelled", (e) => {
+      e.id = crypto.randomUUID();
+      e.aggregate.id = agg;
+      e.aggregate.sequence = 7;
+      e.payload.atlas_sales_order_id = agg;
+    });
+    expect((await A.send(first)).status).toBe(202);
+    const gap = A.event("sales_order.cancelled", (e) => {
+      e.id = crypto.randomUUID();
+      e.aggregate.id = agg;
+      e.aggregate.sequence = 9;
+      e.payload.atlas_sales_order_id = agg;
+    });
+    expect(await A.send(gap)).toMatchObject({ status: 409, body: { error: { code: "out_of_order", expected_sequence: 8 } } });
+  });
+
+  it("POST /events/batch: { events } → { status: processed, results[] }", async () => {
+    const events = [1, 2].map(() => A.event("unit.upserted", (e) => (e.id = crypto.randomUUID())));
+    const body = JSON.stringify({ events });
+    const r = await handleBatch(env.db, request("POST", "/api/atlas/v1/events/batch", body, A.keyId, A.secret));
+    const out = batchResponseSchema.parse(r.body);
+    expect(out.results).toHaveLength(2);
+    expect(out.results.every((x) => x.http_status === 202 || x.http_status === 200)).toBe(true);
+  });
+
   it("sales_order.updated altera quantidade enquanto não começou a separação", async () => {
     expect((await A.send(A.event("sales_order.updated"))).status).toBe(202);
     const q = await env.one<{ q: number }>(
@@ -168,6 +226,8 @@ describe("Entrada de eventos: idempotência, ordem, dependência", () => {
     const ev = await env.one<{ payload: Record<string, unknown> }>(`select payload from wms.integration_events where company_id = $1 and event_type = 'outbound.line_cancelled'`, [A.orionCompanyId]);
     O2A_PAYLOADS["outbound.line_cancelled"].parse(ev.payload);
     expect(ev.payload.atlas_line_id).toBe("0a7a5000-0000-4000-8000-000000000512");
+    // cancelamento que partiu do ATLAS volta marcado: o ATLAS não desconta de novo
+    expect(ev.payload).toMatchObject({ origin: "atlas", atlas_event_id: lc.id });
     const inv = A.event("sales_invoice.authorized", (e) => (e.aggregate.sequence = 4));
     expect((await A.send(inv)).status).toBe(202);
     const o = await env.one<{ invoice_access_key: string }>(`select invoice_access_key from wms.outbound_orders o join erp.sales_orders so on so.id = o.sales_order_id where so.external_id = $1`, [SO]);
@@ -277,6 +337,18 @@ describe("Entrada de eventos: idempotência, ordem, dependência", () => {
   });
 
   it("stock.initial_snapshot: saldo no recebimento, tarefas de armazenagem, ativa o vínculo e devolve balance_snapshot", async () => {
+    // produto com controle de validade e lote sem expiration_date ⇒ bloco recusado
+    const val = product("0a7a5000-0000-4000-8000-000000000205", "VAL-01");
+    val.payload.product.expiration_controlled = true;
+    val.payload.product.batch_controlled = true;
+    expect((await A.send(val)).status).toBe(202);
+    const semValidade = A.event("stock.initial_snapshot", (e) => {
+      e.id = crypto.randomUUID();
+      e.aggregate.id = crypto.randomUUID();
+      e.payload.snapshot_id = e.aggregate.id;
+      e.payload.items = [{ atlas_product_id: "0a7a5000-0000-4000-8000-000000000205", product_code: "VAL-01", lot_code: "V1", expiration_date: null, quantity: 5, unit_cost: 1 }];
+    });
+    expect(await A.send(semValidade)).toMatchObject({ status: 400, body: { error: { code: "validation_failed" } } });
     const r = await A.send(A.event("stock.initial_snapshot"));
     expect(r.status, JSON.stringify(r.body)).toBe(202);
     const bal = await env.one<{ q: number }>(

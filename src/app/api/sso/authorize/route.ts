@@ -13,10 +13,15 @@ export function GET(request: NextRequest) {
     return NextResponse.redirect(back, 303);
   }
   const response = NextResponse.redirect(target.url, 303);
+  // Contrato 2.5: o cookie de state precisa voltar no POST vindo do ATLAS.
+  // Com ATLAS e ORION no mesmo domínio registrável (atlas.dominio/orion.dominio)
+  // SameSite=Lax basta; domínios diferentes exigem ORION_SSO_STATE_SAMESITE=none,
+  // que força Secure (só funciona em HTTPS).
+  const crossSite = process.env.ORION_SSO_STATE_SAMESITE?.toLowerCase() === "none";
   response.cookies.set(SSO_STATE_COOKIE, target.state, {
     httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production" && process.env.WMS_INSECURE_COOKIES !== "true",
+    sameSite: crossSite ? "none" : "lax",
+    secure: crossSite || (process.env.NODE_ENV === "production" && process.env.WMS_INSECURE_COOKIES !== "true"),
     path: "/api/sso",
     maxAge: SSO_STATE_TTL_SECONDS,
   });

@@ -4,7 +4,7 @@ import { serve } from "@/server/integrations/atlas/route-helpers";
 
 export const dynamic = "force-dynamic";
 
-/** Até 500 envelopes da mesma empresa, aplicados em ordem; resposta por item. */
+/** Alias legado de /api/atlas/v1/events/batch (mesmo corpo e resposta). */
 export function POST(request: NextRequest) {
   return serve(request, handleBatch);
 }

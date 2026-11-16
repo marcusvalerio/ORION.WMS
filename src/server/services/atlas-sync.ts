@@ -540,7 +540,10 @@ export async function receiveAtlasEvent(db: Db, link: LinkRow, raw: unknown, opt
         await upsertInbox(tx, link.company_id, e, hash, "ignored", null, { reason: "sequência já aplicada", last_seq: last });
         return accepted(e.id, true);
       }
-      if (!isState && e.aggregate.sequence > last + 1) {
+      // Contrato 3.5: o primeiro evento de um agregado é aceito com qualquer
+      // sequência (o ATLAS numera também eventos que não vêm ao ORION, e o
+      // "Reenviar" gera sequência nova); depois disso a sequência é contínua.
+      if (!isState && last > 0 && e.aggregate.sequence > last + 1) {
         throw new AtlasApplyError("out_of_order", `Fora de ordem: esperado sequence ${last + 1} para ${e.aggregate.type} ${e.aggregate.id}.`, 409, true, {
           expected_sequence: last + 1,
         });
@@ -614,7 +617,7 @@ async function recordFailure(db: Db, link: LinkRow, e: Envelope, hash: string, e
   });
 }
 
-/** POST /events:batch — até 500 envelopes da mesma empresa, aplicados em ordem; resposta por item. */
+/** POST /events/batch (alias /events:batch) — até 500 envelopes da mesma empresa, aplicados em ordem; resposta por item. */
 export async function receiveAtlasBatch(db: Db, link: LinkRow, raw: unknown): Promise<ApiResult> {
   const list = Array.isArray(raw) ? raw : Array.isArray((raw as { events?: unknown })?.events) ? (raw as { events: unknown[] }).events : null;
   if (!list) return rejected(null, "invalid_envelope", "Corpo deve ser uma lista de envelopes ou { events: [...] }.", 400, false);
@@ -709,9 +712,9 @@ async function applyEvent(tx: Queryable, ctx: Ctx, link: LinkRow, e: Envelope, p
     case "sales_order.updated":
       return applySalesUpdated(tx, ctx, (payload as A2OPayload<"sales_order.updated">).sales_order);
     case "sales_order.line_cancelled":
-      return applySalesLineCancelled(tx, ctx, payload as A2OPayload<"sales_order.line_cancelled">);
+      return applySalesLineCancelled(tx, ctx, payload as A2OPayload<"sales_order.line_cancelled">, e.id);
     case "sales_order.cancelled":
-      return applySalesCancelled(tx, ctx, payload as A2OPayload<"sales_order.cancelled">);
+      return applySalesCancelled(tx, ctx, payload as A2OPayload<"sales_order.cancelled">, e.id);
     case "sales_invoice.authorized": {
       const p = payload as A2OPayload<"sales_invoice.authorized">;
       const rows = await tx.query<{ id: string; code: string }>(
@@ -807,6 +810,20 @@ async function applyProduct(tx: Queryable, companyId: string, p: A2OPayload<"pro
        serial_controlled = excluded.serial_controlled, updated_at = now()`,
     [row.id, companyId, p.batch_controlled, p.expiration_controlled, p.serial_controlled ?? false],
   );
+  // Contrato 3.4: o ATLAS usa products.code como SKU do ORION; products.sku,
+  // quando diferente do code, vira código de barras alternativo (embalagem
+  // unitária ATLAS-SKU, fator 1), lido pelo coletor e pela importação de NF-e.
+  const altSku = p.sku?.trim() ?? "";
+  if (altSku && altSku.toUpperCase() !== sku.toUpperCase()) {
+    await tx.query(
+      `insert into wms.packaging_units (company_id, product_id, code, description, units_per_package, barcode)
+       values ($1,$2,'ATLAS-SKU','SKU do ATLAS (código alternativo)',1,$3)
+       on conflict (product_id, code) do update set barcode = excluded.barcode, units_per_package = 1, active = true`,
+      [companyId, row.id, altSku],
+    );
+  } else {
+    await tx.query(`update wms.packaging_units set active = false where product_id = $1 and code = 'ATLAS-SKU'`, [row.id]);
+  }
   for (const pk of p.packagings ?? []) {
     await tx.query(
       `insert into wms.packaging_units (company_id, product_id, code, description, units_per_package, barcode)
@@ -1028,7 +1045,7 @@ async function applySalesUpdated(tx: Queryable, ctx: Ctx, so: A2OPayload<"sales_
 
 const reasonOf = (reason: string) => (reason.trim().length >= 5 ? `ATLAS: ${reason.trim()}` : `Cancelado no ATLAS: ${reason.trim()}`);
 
-async function applySalesLineCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"sales_order.line_cancelled">) {
+async function applySalesLineCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"sales_order.line_cancelled">, atlasEventId: string) {
   const so = await findSales(tx, ctx.user.companyId, p.atlas_sales_order_id, p.number);
   const [item] = await tx.query<{ id: string; quantity: number }>(
     `select id, quantity::float8 as quantity from erp.sales_order_items where sales_order_id = $1 and external_id = $2`,
@@ -1047,7 +1064,7 @@ async function applySalesLineCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"s
   if (remaining > 0) await tx.query(`update erp.sales_order_items set quantity = $2 where id = $1`, [item.id, remaining]);
   if (!outbound || !line) return { outbound: outbound?.code ?? null, line: null };
   if (p.cancelled_quantity >= line.requested_qty) {
-    await cancelOrderLine(ctx, outbound.id, { lineId: line.id, reason: reasonOf(p.reason) });
+    await cancelOrderLine(ctx, outbound.id, { lineId: line.id, reason: reasonOf(p.reason) }, undefined, { origin: "atlas", atlasEventId });
     return { outbound: outbound.code, cancelled: "line" };
   }
   if (!["open", "reserved"].includes(outbound.status)) {
@@ -1063,7 +1080,7 @@ async function applySalesLineCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"s
   return { outbound: outbound.code, cancelled: "partial" };
 }
 
-async function applySalesCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"sales_order.cancelled">) {
+async function applySalesCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"sales_order.cancelled">, atlasEventId: string) {
   const [so] = await tx.query<{ id: string }>(`select id from erp.sales_orders where company_id = $1 and external_id = $2 for update`, [
     ctx.user.companyId,
     p.atlas_sales_order_id,
@@ -1071,7 +1088,7 @@ async function applySalesCancelled(tx: Queryable, ctx: Ctx, p: A2OPayload<"sales
   if (!so) return { outbound: null };
   const outbound = await activeOutbound(tx, so.id);
   if (outbound?.status === "shipped") throw alreadyShipped(`O pedido ${p.number} já foi expedido (${outbound.code}).`);
-  if (outbound) await cancelOrder(ctx, outbound.id, { reason: reasonOf(p.reason) });
+  if (outbound) await cancelOrder(ctx, outbound.id, { reason: reasonOf(p.reason) }, undefined, { origin: "atlas", atlasEventId });
   await tx.query(`update erp.sales_orders set status = 'cancelled' where id = $1`, [so.id]);
   return { outbound: outbound?.code ?? null };
 }
@@ -1249,6 +1266,21 @@ async function applyInitialSnapshot(tx: Queryable, ctx: Ctx, link: LinkRow, p: A
     [warehouseId, recvCode],
   );
   if (!location) throw unknownRef("Depósito sem endereço de recebimento ativo para a carga inicial.");
+  // Contrato 5.3: a validade do lote vem de product_lots.expires_at do ATLAS e
+  // entra no saldo e na tarefa de armazenagem. Produto com controle de validade
+  // exige expiration_date — senão o bloco inteiro é recusado (validation_failed)
+  // para correção do lote no ATLAS e nova carga. Saldo sem lote entra com lote vazio.
+  const settings = await tx.query<{ product_id: string; expiry_controlled: boolean }>(
+    `select product_id, expiry_controlled from wms.product_settings where product_id = any($1::uuid[])`,
+    [[...new Set([...products.values()].map((x) => x.id))]],
+  );
+  const ctl = new Map(settings.map((r) => [r.product_id, r]));
+  for (const item of p.items) {
+    const c = ctl.get(products.get(item.atlas_product_id)!.id);
+    if (c?.expiry_controlled && !item.expiration_date) {
+      throw new AtlasApplyError("validation_failed", `Produto ${item.product_code} controla validade: lote ${item.lot_code ?? "(sem lote)"} sem expiration_date.`, 400, false);
+    }
+  }
   const tasks: string[] = [];
   for (const item of p.items) {
     const productId = products.get(item.atlas_product_id)!.id;

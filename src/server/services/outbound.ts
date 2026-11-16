@@ -737,7 +737,13 @@ async function unwindLines(tx: Queryable, ctx: Ctx, o: OrderHeader, lineId: stri
  * Pedido expedido não pode ser cancelado. O ERP é atualizado e o evento
  * outbound.cancelled vai para a outbox na mesma transação.
  */
-export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions) {
+/** Quem pediu o cancelamento (contrato 3.6): "atlas" quando é efeito de sales_order.*cancelled. */
+export interface CancelOrigin {
+  origin: "atlas" | "orion";
+  atlasEventId?: string | null;
+}
+
+export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions, from: CancelOrigin = { origin: "orion" }) {
   assertCan(ctx, "outbound.reserve");
   const d = parse(cancelSchema, input);
   return runOperation(ctx, "outbound.cancel", opts, async (tx) => {
@@ -757,6 +763,8 @@ export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown, opt
       previous_status: o.status,
       reason: d.reason,
       return_tasks: returns,
+      origin: from.origin,
+      atlas_event_id: from.atlasEventId ?? null,
     });
     await audit(tx, ctx, "outbound.cancelled", "outbound_order", orderId, o.code, { ...d, previousStatus: o.status, returns });
     return { id: orderId, returns };
@@ -764,7 +772,7 @@ export async function cancelOrder(ctx: Ctx, orderId: string, input: unknown, opt
 }
 
 /** Cancela uma linha do pedido (mesmas regras); se não restar linha, cancela o pedido. */
-export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions) {
+export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown, opts?: OpOptions, from: CancelOrigin = { origin: "orion" }) {
   assertCan(ctx, "outbound.cancel_picking");
   const d = parse(cancelSchema.extend({ lineId: uuid("Linha") }), input);
   return runOperation(ctx, "outbound.cancel_line", opts, async (tx) => {
@@ -801,6 +809,8 @@ export async function cancelOrderLine(ctx: Ctx, orderId: string, input: unknown,
       reason: d.reason,
       return_tasks: returns,
       order_cancelled: left.n === 0,
+      origin: from.origin,
+      atlas_event_id: from.atlasEventId ?? null,
     });
     await audit(tx, ctx, "outbound.line_cancelled", "outbound_order", orderId, o.code, { sku: line.sku, reason: d.reason, returns });
     return { id: orderId, returns, orderCancelled: left.n === 0 };

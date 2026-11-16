@@ -14,7 +14,7 @@
   "payload": {
     "code": "REC-000077",
     "atlas_purchase_order_id": "0a7a5000-0000-4000-8000-000000000601",
-    "purchaseOrderStatus": "partially_received",
+    "purchase_order_status": "partially_received",
     "invoice_number": "4588",
     "invoice_access_key": "35261133444555000149550010000045881000045881",
     "completed_at": "2026-11-15T13:00:00Z",

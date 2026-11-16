@@ -140,12 +140,12 @@
     {
       "file": "o2a.outbound.cancelled.json",
       "type": "outbound.cancelled",
-      "sha256": "13ed5c149c5435506d567161d9543e58e1f498bc3ba15bd885f40067560dde53"
+      "sha256": "8c18ff686ff453d465e3c842b5f73c59a186140d03530c570c29d4931e729e87"
     },
     {
       "file": "o2a.outbound.line_cancelled.json",
       "type": "outbound.line_cancelled",
-      "sha256": "9042cf5b601f487e8b6481b8482b10442b8f6591002356a01d6b4e12934b07ca"
+      "sha256": "5a85c890284356fa8ee39a3ed2f235a42d7bb46d96af32beb39927aaade1199e"
     },
     {
       "file": "o2a.outbound.picking_started.json",
@@ -180,7 +180,7 @@
     {
       "file": "o2a.receipt.completed.json",
       "type": "receipt.completed",
-      "sha256": "3a6b8d7dab93208cafa9287e83b91a6bec833ad9859a2e68c88dd5c38afcbbe9"
+      "sha256": "69eb3a12142c6edafbd0b184eef03d321ecd059246c605045076d0be9569d1a8"
     },
     {
       "file": "o2a.stock.adjusted.json",
@@ -231,6 +231,26 @@
       "file": "s2s.access-check.response.revogado.json",
       "type": null,
       "sha256": "2fc880030a1da514a661b407e04f41e92d8fc97bd8eabe6168a7c5ce7dcf4654"
+    },
+    {
+      "file": "s2s.events-batch.request.json",
+      "type": null,
+      "sha256": "8bf3a259e6b1a4f6e5b51b3766a2cf9879329fbcecf145de364a0f9a2e9e2c33"
+    },
+    {
+      "file": "s2s.events-batch.response.json",
+      "type": null,
+      "sha256": "676829618df3bb85419445a6996717b105d997d68fb9cc2a9d4dace9f99cb6a4"
+    },
+    {
+      "file": "s2s.links.request.json",
+      "type": null,
+      "sha256": "fc14c4c55e4b0f09ace2384083fc638a2fd82cd83877fbb9a93a8f8097457688"
+    },
+    {
+      "file": "s2s.links.response.json",
+      "type": null,
+      "sha256": "6d8884dd3251859238cee9687f9b2449aabfb6285e45907a3ea90689a82603fa"
     },
     {
       "file": "sso.jwks.json",

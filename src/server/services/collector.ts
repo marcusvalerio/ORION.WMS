@@ -62,9 +62,10 @@ export async function resolveLocationCode(ctx: Ctx, code: string): Promise<ScanL
 export async function resolveProductCode(ctx: Ctx, code: string): Promise<ScanProduct> {
   const value = clean(parse(scanCode("produto"), code));
   const [product] = await ctx.db.query<ScanProduct>(
-    `select id, sku, description, barcode, uom from erp.products
-     where company_id = $1 and (barcode = $2 or upper(sku) = upper($2))
-     order by (barcode = $2) desc limit 1`,
+    `select id, sku, description, barcode, uom from erp.products p
+     where company_id = $1 and (barcode = $2 or upper(sku) = upper($2)
+       or exists (select 1 from wms.packaging_units pu where pu.product_id = p.id and pu.code = 'ATLAS-SKU' and pu.active and pu.barcode = $2))
+     order by (barcode = $2) desc, (upper(sku) = upper($2)) desc limit 1`,
     [ctx.user.companyId, value],
   );
   if (!product) throw new DomainError(`Produto "${value}" não encontrado (use o EAN ou o SKU).`, "PRODUCT_NOT_FOUND");

@@ -849,7 +849,7 @@ async function onReceiptCompleted(tx: Queryable, ctx: Ctx, receiptId: string) {
       [r.appointment_id],
     );
   }
-  await enqueueIntegrationEvent(tx, ctx, "receipt.completed", "receipt", receiptId, { code: r.code, purchaseOrderStatus: poStatus, items });
+  await enqueueIntegrationEvent(tx, ctx, "receipt.completed", "receipt", receiptId, { code: r.code, purchase_order_status: poStatus, items });
   await audit(tx, ctx, "receipt.completed", "receipt", receiptId, r.code);
 }
 

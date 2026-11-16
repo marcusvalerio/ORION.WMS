@@ -17,6 +17,7 @@ const nullableText = z.string().nullable().optional();
 const date = z.string().regex(/^\d{4}-\d{2}-\d{2}$/, "Data inválida (AAAA-MM-DD).");
 const dateTime = z.iso.datetime({ offset: true });
 const quantity = z.number().finite().nonnegative();
+const cancelOrigin = z.enum(["atlas", "orion"]);
 const positive = z.number().finite().positive();
 export const ORION_ROLES = ["admin", "supervisor", "operator", "auditor"] as const;
 const role = z.enum(ORION_ROLES);
@@ -362,6 +363,9 @@ export const O2A_PAYLOADS = {
     atlas_sales_order_id: id.nullable(),
     reason: z.string(),
     released_reservations: z.boolean().optional(),
+    /** Quem pediu o cancelamento (3.6): "atlas" = eco de sales_order.cancelled; o ATLAS não repete o efeito. */
+    origin: cancelOrigin.optional(),
+    atlas_event_id: id.nullable().optional(),
   }),
   "outbound.line_cancelled": z.object({
     code: z.string(),
@@ -370,11 +374,13 @@ export const O2A_PAYLOADS = {
     sku: z.string(),
     cancelled_qty: quantity,
     reason: z.string(),
+    origin: cancelOrigin.optional(),
+    atlas_event_id: id.nullable().optional(),
   }),
   "receipt.completed": z.object({
     code: z.string(),
     atlas_purchase_order_id: id.nullable(),
-    purchaseOrderStatus: z.string().nullable().optional(),
+    purchase_order_status: z.string().nullable().optional(),
     invoice_number: z.string().nullable().optional(),
     invoice_access_key: z.string().nullable().optional(),
     completed_at: dateTime,
@@ -637,9 +643,11 @@ export const accessCheckResponseSchema = z.discriminatedUnion("active", [
 ]);
 export type AccessCheckResponse = z.infer<typeof accessCheckResponseSchema>;
 
-/** Corpo de POST /api/atlas/v1/links (credencial de instalação). */
+/** Corpo de POST /api/atlas/v1/links (credencial de instalação) — fixture s2s.links.request.json. */
 export const linkRequestSchema = z.object({
   atlas_company_id: id,
+  /** URL pública do ATLAS que pediu o vínculo (informativa: o ORION confere com ATLAS_URL e registra). */
+  atlas_url: z.url().optional().nullable(),
   key_id: z.string().min(3).max(120),
   secret: z.string().min(32).max(200),
   company: z.object({
@@ -661,6 +669,21 @@ export const linkRequestSchema = z.object({
   previous_secret_hours: z.number().int().min(0).max(168).optional(),
 });
 export type LinkRequest = z.infer<typeof linkRequestSchema>;
+
+/** Resposta de POST /api/atlas/v1/links (201 criado, 200 atualizado/rotacionado) — fixture s2s.links.response.json. */
+export const linkResponseSchema = z.object({
+  status: z.enum(["activating", "active", "suspended", "disabled"]),
+  atlas_company_id: id,
+  orion_company_id: id,
+  key_id: z.string().min(3),
+});
+
+/** POST /api/atlas/v1/events/batch (alias legado /events:batch) — fixtures s2s.events-batch.*.json. */
+export const batchRequestSchema = z.object({ events: z.array(z.unknown()).min(1).max(500) });
+export const batchResponseSchema = z.object({
+  status: z.literal("processed"),
+  results: z.array(z.object({ http_status: z.number().int(), body: z.record(z.string(), z.unknown()) })),
+});
 
 /** Valida o payload de um tipo conhecido; devolve null se o tipo não for aceito. */
 export function payloadSchemaFor(type: string): z.ZodType | null {

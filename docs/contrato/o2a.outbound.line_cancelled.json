@@ -17,7 +17,9 @@
     "atlas_line_id": "0a7a5000-0000-4000-8000-000000000512",
     "sku": "PA-1003",
     "cancelled_qty": 40,
-    "reason": "Falta de saldo"
+    "reason": "Falta de saldo",
+    "origin": "orion",
+    "atlas_event_id": null
   },
   "company_id": "0410e000-0000-4000-8000-000000000001",
   "created_at": "2026-11-15T13:00:00Z",

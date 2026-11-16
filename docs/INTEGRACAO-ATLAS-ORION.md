@@ -1,6 +1,6 @@
 # Contrato de integração ATLAS.ERP ↔ ORION.WMS (ecossistema ASTRAEUS)
 
-Versão do contrato: **1** · Data: 2026-11-15 · Situação: **especificação aprovada para implementação** (nada deste documento está implementado, salvo onde indicado como "existe").
+Versão do contrato: **1** (revisão 2026-11-16, alinhamento pós-implementação — ver "Revisões" no fim) · Data: 2026-11-15 · Situação: **implementado nos dois lados** (branch ATLAS `claude/integracao-orion`, ORION `claude/wms-erp-mvp-io9q47`); teste real ponta a ponta em `docs/QA-INTEGRACAO.md`.
 
 Este arquivo é idêntico nos dois repositórios:
 
@@ -125,6 +125,7 @@ Erros respondem página amigável (pt-BR) e registram o motivo; nunca expõem o 
 - Token de 60 s, uso único (`jti`), `aud` fixa, entregue por POST em HTTPS.
 - `state` amarrado a cookie no fluxo B (impede login CSRF).
 - Cookie de sessão do ORION continua httpOnly/Secure/SameSite=Lax.
+- **Domínio**: o fluxo B depende do cookie `orion_sso_state` voltar no `POST /api/sso/atlas` que o navegador faz a partir de uma página do ATLAS. Com `SameSite=Lax` isso só acontece se ATLAS e ORION estiverem no **mesmo domínio registrável** (ex.: `atlas.empresa.com.br` e `orion.empresa.com.br`; portas diferentes em `localhost` também contam como mesmo site). Essa é a implantação exigida. Se os dois ficarem em domínios registráveis diferentes, o ORION aceita `ORION_SSO_STATE_SAMESITE=none`, que grava **só o cookie de state** com `SameSite=None; Secure` (exige HTTPS; o cookie de sessão continua Lax, porque o redirecionamento 303 depois do POST é navegação de topo). O fluxo A não depende de cookie.
 - O payload da sessão do ORION ganha `src: "atlas"`, `av` (access_version) e `chk` (epoch da última checagem); o token continua HMAC com `SESSION_SECRET`.
 
 ### 2.6 Provisionamento JIT e mapeamento de IDs
@@ -208,9 +209,13 @@ create table public.orion_user_access (
   version     integer not null default 1,                   -- access_version
   granted_by  uuid references public.users(id), granted_at timestamptz not null default now(),
   revoked_by  uuid references public.users(id), revoked_at timestamptz,
-  primary key (company_id, user_id),
-  foreign key (user_id, company_id) references public.user_companies(user_id, company_id) on delete cascade
+  revoke_reason text,
+  primary key (company_id, user_id)
 );
+-- user_id references public.users(id) on delete cascade. Não existe
+-- public.user_companies no esquema real do ATLAS: o vínculo funcionário ↔
+-- empresa é public.users.company_id, garantido pelo gatilho
+-- fn_orion_user_access_guard (o usuário precisa ser da mesma empresa; 23503).
 
 create table public.orion_warehouse_map (
   company_id uuid not null references public.companies(id) on delete cascade,
@@ -262,7 +267,7 @@ create table public.orion_reconciliation_runs (...);  -- 5.4
 create table public.orion_reconciliation_items (...); -- 5.4
 ```
 
-Colunas novas: `public.sales_orders.wms_status text` (`not_sent, queued, sent, accepted, rejected, picking, ready_to_invoice, shipped, cancelled`), `wms_sent_at`, `wms_last_error` (e o mesmo em `purchase_orders` e `production_orders`).
+Colunas novas: `public.sales_orders.wms_status text` (`not_sent, queued, sent, accepted, rejected, failed, picking, ready_to_invoice, shipped, cancelled`, e para compra/OP também `received, in_progress, completed`), `wms_sent_at`, `wms_last_error`, `wms_details jsonb` (e o mesmo em `purchase_orders` e `production_orders`). `rejected` = o ORION recusou o documento por regra (`document.rejected` ou 4xx não retentável); **`failed`** = o `*.released` esgotou as 20 tentativas na outbox (ORION fora do ar, configuração) — os dois liberam "Enviar ao armazém / Reenviar".
 
 RLS: todas com `company_id` seguem o padrão `has_permission(company_id, …)`. Permissões novas em `public.permissions` (módulo `orion`, mapeado em `platform_module_permission_map`): `orion.integration.view`, `orion.integration.manage`, `orion.access.manage`, `orion.documents.send`. Segredos (`*_ciphertext`) **nunca** são selecionáveis por `authenticated`: `revoke select (secret_ciphertext, previous_secret_ciphertext)` e leitura só por função `security definer` executável pelo `service_role`.
 
@@ -316,10 +321,14 @@ Base: `{ORION_URL}/api/atlas/v1`. Implementação em `src/app/api/atlas/v1/**/ro
 | `POST /links` | Vínculo de empresa (cria/atualiza `erp.companies` com `source='atlas'`, grava `key_id` + segredo cifrado, devolve `orion_company_id`) | instalação |
 | `DELETE /links/{atlas_company_id}` | Desvínculo (6.3) | instalação |
 | `POST /events` | **Entrada única de eventos** (um envelope por requisição) | empresa |
-| `POST /events:batch` | Até 500 envelopes da mesma empresa, em ordem; resposta por item | empresa |
+| `POST /events/batch` | Até 500 envelopes da mesma empresa, em ordem; resposta por item (o caminho antigo `/events:batch` continua como alias no ORION) | empresa |
 | `GET /capabilities` | Tipos e versões aceitos | empresa |
 | `GET /documents/{atlas_document_type}/{atlas_id}` | Estado do documento no ORION (para o botão "Reenviar" e o painel) | empresa |
 | `GET /stock/balances?cursor=` | Saldo físico paginado (reconciliação sob demanda, 5.4) | empresa |
+
+**`POST /links`** (fixtures `s2s.links.request.json` / `s2s.links.response.json`). Corpo: `{ atlas_company_id, atlas_url?, key_id, secret, company: { name, legal_name, document, email, phone, address, city, state, zip_code, … }, admin: { atlas_user_id, email, name } | null, previous_secret_hours? }`. `atlas_url` é informativo (URL do ATLAS que pediu); campos extras de `company` (o ATLAS manda o mesmo objeto de `company.upserted`) são ignorados; `previous_secret_hours` (padrão 24) é a janela em que o segredo anterior continua aceito numa rotação. Resposta 201 (criado) ou 200 (atualizado/rotacionado): `{ status, atlas_company_id, orion_company_id, key_id }`; o ATLAS confere que `atlas_company_id` e `key_id` ecoam o pedido. Erros no formato de 3.4 (`unknown_key`/`invalid_signature` 401, `validation_failed` 400).
+
+**`POST /events/batch`** (fixtures `s2s.events-batch.request.json` / `.response.json`), nos dois sentidos (ATLAS também expõe `POST /api/integrations/orion/v1/events/batch`): corpo `{ "events": [envelope, …] }` (1 a 500, ≤ 10 MB, todos da empresa do `key_id`), assinado uma vez sobre o corpo inteiro; cada envelope é aplicado **em ordem** exatamente como em `POST /events` (mesma idempotência e regras de sequência). Resposta HTTP 200 `{ "status": "processed", "results": [{ "http_status": 202, "body": {…resposta de /events…} }, …] }`. O emissor trata cada item pela tabela abaixo. **Uso opcional**: os processadores de outbox dos dois lados enviam um envelope por requisição (`/events`); o lote existe para cargas grandes e reprocessamentos.
 
 Tipos aceitos em `POST /events` (exemplo de cada um em `docs/contrato/a2o.*.json`):
 
@@ -330,7 +339,7 @@ Tipos aceitos em `POST /events` (exemplo de cada um em `docs/contrato/a2o.*.json
 | `integration.activated` | Grava configuração (dono do estoque, `require_invoice_before_ship`, mapa de depósitos); cria depósitos que não existem. |
 | `user_access.granted` / `user_access.revoked` | Pré-provisiona/atualiza ou inativa o `wms.users` (2.6/2.7). |
 | `unit.upserted` | Unidades e fatores (`wms.packaging_units` para embalagens). |
-| `product.upserted` / `product.deactivated` | Upsert em `erp.products` por `external_id`; `code`→`sku` (o ATLAS usa `products.code` como SKU do ORION; `products.sku` vai em `barcode` alternativo se diferente), `batch_controlled`/`expiration_controlled` → `wms.product_settings`. Desativar não apaga saldo; bloqueia novas entradas. |
+| `product.upserted` / `product.deactivated` | Upsert em `erp.products` por `external_id`; `code`→`sku` (o ATLAS usa `products.code` como SKU do ORION). `barcode` → `erp.products.barcode`. Quando `products.sku` do ATLAS é **diferente** de `code` (comparação sem caixa), vira **código de barras alternativo**: embalagem `wms.packaging_units` código `ATLAS-SKU`, fator 1, `barcode = sku` — aceita pelo coletor (`resolveProductCode`) e pela importação de NF-e; se depois ficar igual ao `code` ou vazio, a embalagem `ATLAS-SKU` é desativada. `packagings` → `wms.packaging_units`. `batch_controlled`/`expiration_controlled` → `wms.product_settings`. Desativar não apaga saldo; bloqueia novas entradas. |
 | `customer.upserted`, `supplier.upserted` | Upsert em `erp.customers`/`erp.suppliers`. |
 | `sales_order.released` | Cria `erp.sales_orders` + itens e o **pedido de saída** (`wms.outbound_orders`, origem ERP) no depósito mapeado; responde `outbound.accepted` pela outbox. |
 | `sales_order.updated` | Aceito só se a saída ainda não começou a separação; senão 409 `document_in_progress` (o ATLAS mostra "o armazém já começou a separar; cancele a linha ou o pedido"). |
@@ -357,12 +366,12 @@ Respostas de `POST /events` (exemplos em `docs/contrato/resposta.*.json`):
 ### 3.5 Idempotência, ordenação e reentrega
 
 - **Idempotência**: o `id` do envelope é a chave. ORION grava em `wms.atlas_inbox (event_id pk, …)` na mesma transação do efeito; ATLAS em `public.integration_inbox`. Reentrega do mesmo `id` ⇒ 200 `duplicate:true` sem reexecutar. Payload diferente com mesmo `id` ⇒ 400 `idempotency_conflict`.
-- **Ordenação**: por agregado, via `aggregate.sequence`. O receptor guarda o último `sequence` aplicado por agregado: igual ou menor ⇒ duplicata/obsoleto (200, `duplicate:true`, sem efeito); maior que último+1 ⇒ 409 `out_of_order`. Upserts de cadastro (`*.upserted`) são **estado completo** e aceitam lacunas (aplica se `sequence` > último; ignora se menor). Entre agregados diferentes não há garantia de ordem; dependências são resolvidas por `dependency_missing` + reenvio, e o emissor sempre enfileira o upsert de cadastros referenciados **antes** do documento quando eles nunca foram enviados.
+- **Ordenação**: por agregado, via `aggregate.sequence`. O receptor guarda o último `sequence` aplicado por agregado: igual ou menor ⇒ duplicata/obsoleto (200, `duplicate:true`, sem efeito); maior que último+1 ⇒ 409 `out_of_order` (com `expected_sequence`). **O primeiro evento visto de um agregado é aceito com qualquer sequência** (o emissor numera também eventos que não são enviados ao outro lado, e "Reenviar" gera sequência nova); a partir dele a sequência tem de ser contínua. Regra igual nos dois receptores (ORION `wms.atlas_aggregate_state`, ATLAS `integration_inbox`). Upserts de cadastro (`*.upserted`) são **estado completo** e aceitam lacunas (aplica se `sequence` > último; ignora se menor). Entre agregados diferentes não há garantia de ordem; dependências são resolvidas por `dependency_missing` + reenvio, e o emissor sempre enfileira o upsert de cadastros referenciados **antes** do documento quando eles nunca foram enviados.
 - **Reentrega**: pelo menos uma vez, backoff exponencial com jitter (2 s, 4 s … teto 30 min), máximo 20 tentativas para erros `retryable`; depois `failed`, com reprocessamento manual no painel (mesma mecânica do ORION em `services/integration.ts`).
 
 ### 3.6 Caminho de volta: API do ATLAS que recebe eventos do ORION
 
-`POST {ATLAS_URL}/api/integrations/orion/v1/events` (e `…/events:batch`). Rota `src/app/api/integrations/orion/v1/events/route.ts` no ATLAS, executada com o cliente administrativo (sem sessão de usuário), validação Zod em `src/lib/validations/orion.ts`, aplicação em funções SQL `security definer` `fn_orion_apply_*` (migration `0127_orion_aplicar_eventos.sql`), todas com `p_event_id` como chave de idempotência e chamando **as funções que já existem** para não duplicar regra de estoque/custo. Configuração do ORION: `ERP_WEBHOOK_URL = {ATLAS_URL}/api/integrations/orion/v1/events` (o transporte HTTP atual já serve; a fase 2 troca o segredo global pelo segredo por empresa).
+`POST {ATLAS_URL}/api/integrations/orion/v1/events` (e `…/events/batch`, 3.4). Rota `src/app/api/integrations/orion/v1/events/route.ts` no ATLAS, executada com o cliente administrativo (sem sessão de usuário), validação Zod em `src/lib/validations/orion.ts`, aplicação em funções SQL `security definer` `fn_orion_apply_*` (migration `0127_orion_aplicar_eventos.sql`), todas com `p_event_id` como chave de idempotência e chamando **as funções que já existem** para não duplicar regra de estoque/custo. Configuração do ORION: `ERP_WEBHOOK_URL = {ATLAS_URL}/api/integrations/orion/v1/events` (o transporte HTTP atual já serve; a fase 2 troca o segredo global pelo segredo por empresa).
 
 Outras rotas do ATLAS: `GET /api/integrations/orion/v1/access?atlas_user_id=` (2.7), `GET /api/integrations/orion/v1/capabilities`, `GET /api/integrations/orion/v1/documents/{type}/{id}` (estado do documento no ATLAS), `GET /api/integrations/orion/v1/sso/launch`, `GET /api/integrations/orion/v1/sso/authorize`, `GET /.well-known/astraeus-jwks.json`.
 
@@ -375,9 +384,9 @@ Para empresas ORION, `L(w)` = local de integração do depósito `w` (`orion_war
 | `outbound.picking_started` | **novo** | `sales_orders.status = 'picking'`, `wms_status = 'picking'`. |
 | `outbound.ready_to_invoice` | **novo** (emitido ao concluir a conferência) | `status = 'ready_to_ship'`, guarda lotes/volumes/pesos separados; se a empresa fatura antes de expedir, habilita "Gerar NF-e" (`generate-fiscal-document`) com as quantidades e lotes **separados**; ao autorizar a NF-e o ATLAS emite `sales_invoice.authorized`. |
 | `outbound.shipped` | existe (payload ganha ids ATLAS) | Para cada linha: `fn_post_stock_movement(company, product, L(w), 'issue', shipped_qty, lot, null, 'sales_order', so_id, …, idem = event_id‖line‖lot)` com custo médio vigente (mesma integração de custo de `fn_ship_shipment`, 0044); atualiza `sales_order_items.shipped_quantity`; `status = 'shipped'` ou `'partially_shipped'` (regra de 0022); cria `public.shipments` em `shipped` como registro (sem passar por pick/pack do ATLAS). Contas a receber seguem o fluxo atual (`generate-receivable`). |
-| `outbound.cancelled` | existe | `wms_status = 'cancelled'`. Se o cancelamento partiu do ORION (não do ATLAS), o pedido volta a `approved` com alerta "Armazém cancelou a saída" (não cancela o pedido comercial). |
-| `outbound.line_cancelled` | existe | `sales_order_items.cancelled_quantity += cancelled_qty`; recalcula status. |
-| `receipt.completed` | existe (payload ganha ids ATLAS, nota e lotes) | Cria `purchase_receipts` já confirmado chamando `fn_create_purchase_receipt` + `fn_confirm_purchase_receipt` com o local `L(w)` e as quantidades aceitas (reaproveita entrada de estoque, custo e vínculo com NF de entrada de 0116/0119); `purchase_orders.status = partially_received/received`. Recusados (`rejected_qty`) não entram. |
+| `outbound.cancelled` | existe | `wms_status = 'cancelled'`. Payload traz `origin` (`"atlas"` \| `"orion"`) e `atlas_event_id`. `origin: "atlas"` = eco de `sales_order.cancelled` (o ATLAS só registra o estado). `origin: "orion"` (ou ausente, emissores antigos) = o armazém cancelou: o pedido volta a `approved` com alerta "Armazém cancelou a saída" (não cancela o pedido comercial). |
+| `outbound.line_cancelled` | existe | `origin: "orion"` (ou ausente): `sales_order_items.cancelled_quantity += cancelled_qty` (limitado ao saldo aberto); recalcula status. **`origin: "atlas"`** (eco de `sales_order.line_cancelled`/`sales_order.cancelled` do próprio ATLAS, com `atlas_event_id` do evento de origem): o ATLAS **não** soma a quantidade de novo (já descontou ao cancelar) — evita a contagem dupla; só registra em `wms_details.last_line_cancel_ack`. |
+| `receipt.completed` | existe (payload ganha ids ATLAS, nota e lotes; campo `purchase_order_status` em snake_case — o nome antigo `purchaseOrderStatus` ainda é aceito pela validação do ATLAS durante a transição e é só informativo) | Cria `purchase_receipts` já confirmado chamando `fn_create_purchase_receipt` + `fn_confirm_purchase_receipt` com o local `L(w)` e as quantidades aceitas (reaproveita entrada de estoque, custo e vínculo com NF de entrada de 0116/0119); `purchase_orders.status = partially_received/received`. Recusados (`rejected_qty`) não entram. |
 | `divergence.registered` | existe | Só registro/notificação no pedido de compra (sem estoque). |
 | `customer_return.completed` | existe | Entrada de `restocked_qty` em `L(w)` (`'return'`, custo do último custo médio), vínculo à devolução fiscal (0042); `scrapped_qty` vira entrada + baixa como perda (`fn_post_adjustment` com motivo `return_scrap`). |
 | `inventory.approved` | existe (payload ganha ajustes por item) | `fn_create_adjustment` + `fn_post_adjustment` com os `delta` (motivo `inventory_count`), referência ao código do inventário do ORION. |
@@ -391,7 +400,9 @@ Para empresas ORION, `L(w)` = local de integração do depósito `w` (`orion_war
 | `stock.balance_snapshot` | **novo** | Alimenta a reconciliação (5.4); não altera saldo. |
 | `dock.appointment_created` | existe | Ignorado pelo ATLAS (200, `status: ignored`). |
 
-Respostas do ATLAS: mesmo formato e códigos de 3.4. Erros de regra (ex.: pedido não encontrado) ⇒ 422 `unknown_reference` `retryable:false`; o ORION mostra o evento como `failed` no painel `/integracao`.
+Respostas do ATLAS: mesmo formato e códigos de 3.4. Erros de regra (ex.: pedido não encontrado) ⇒ 422 `unknown_reference` `retryable:false`; o ORION mostra o evento como `failed` no painel `/integracao`. Eventos sem efeito no ATLAS (ex.: `dock.appointment_created`) respondem 200 `{"status":"ignored","duplicate":false}`.
+
+**Autoria no ATLAS (usuário de sistema)**: eventos do ORION não têm usuário do ATLAS. As funções `fn_orion_apply_*` rodam como `security definer` com `created_by = null` nos movimentos e documentos que criam, e a auditoria (`public.audit_logs`) usa `user_id = null` com `actor_label = 'orion'` (aplicação) ou `'orion.event_failed'` (falha). Não existe usuário técnico no ATLAS. No ORION, ao contrário, cada empresa vinculada tem um usuário técnico (`wms.atlas_links.system_user_id`, sem login) que assina as ações dos eventos recebidos do ATLAS.
 
 ---
 
@@ -450,6 +461,7 @@ Feita na ativação (6.1, passos 6–8), com `orion_integrations.status = 'activ
 2. Transfere os saldos de todos os locais de cada depósito para `ORION-<depósito>` (movimentos `transfer` com referência `orion_cutover`) e grava `cutover_at`.
 3. Envia `stock.initial_snapshot` em lotes de até 1000 itens (`chunk`/`chunks`), por depósito: produto, lote, validade, quantidade, custo.
 4. ORION coloca tudo no endereço de recebimento do depósito (`receiving_location`) por `stock-core.ts` (movimento `initial_load`), gerando **tarefas de armazenagem** para a equipe guardar fisicamente. Responde, ao fim, `stock.balance_snapshot` (`reason: "initial_load"`).
+   - **Validade de lote**: `expiration_date` = `product_lots.expires_at` do ATLAS (ISO `AAAA-MM-DD` ou `null`); o ORION grava no saldo e na tarefa. Produto com `expiration_controlled` e item sem `expiration_date` ⇒ o bloco inteiro é recusado com 400 `validation_failed` (corrigir o lote no ATLAS e refazer a carga). Saldo sem lote (`lot_code: null`) entra com lote vazio, mesmo para produto com controle de lote (o ORION pede o lote na próxima movimentação).
 5. ATLAS compara (5.4). Diferença zero ⇒ `status = 'active'` e liberação dos documentos. Diferença ⇒ fica em `activating` com o relatório para correção.
 
 ### 5.4 Reconciliação periódica
@@ -495,7 +507,7 @@ Empresa `SUSPENDED` na plataforma ou módulo desabilitado ⇒ `orion_integration
 - Toda tabela nova com `company_id` tem RLS nos dois lados (ATLAS: padrão `has_permission`; ORION: padrão de `20261009000003_rls_policies.sql` + `tenant_guard` de `20261115000040_tenant_consistency.sql` para as FKs novas).
 - As rotas servidor-a-servidor ignoram cookies e operam **somente** na empresa resolvida pelo `key_id`; envelope de outra empresa ⇒ 403. Teste obrigatório: com o segredo da empresa A, nenhum evento afeta B (entra na bateria `tests/multi-tenant-isolation.test.ts` do ORION e num teste equivalente no ATLAS).
 - Segredos: nunca em `NEXT_PUBLIC_*`; cifrados em repouso (AES-256-GCM); exibidos uma única vez (nunca); rotação pelo botão "Rotacionar segredo" (gera novo, guarda anterior por 24 h, envia ao ORION por `POST /links` com a credencial de instalação).
-- Variáveis — ATLAS: `ORION_URL`, `ORION_INSTALL_KEY_ID`, `ORION_INSTALL_SECRET`, `INTEGRATION_ENCRYPTION_KEY`, `ATLAS_SSO_PRIVATE_JWK`, `ATLAS_SSO_PREVIOUS_PUBLIC_JWKS`, `CRON_SECRET`. ORION: `ATLAS_URL`, `ATLAS_SSO_ISSUER`, `ATLAS_JWKS_URL`, `ORION_INSTALL_KEY_ID`, `ORION_INSTALL_SECRET`, `ATLAS_INTEGRATION_ENCRYPTION_KEY`, `ORION_ATLAS_ACCESS_CHECK_SECONDS`, `ORION_ATLAS_ACCESS_GRACE_SECONDS`, e `ERP_WEBHOOK_URL` apontando para o ATLAS. `ATLAS_DATABASE_URL` deixa de ser usada.
+- Variáveis — ATLAS: `ORION_URL`, `ORION_INSTALL_KEY_ID`, `ORION_INSTALL_SECRET`, `INTEGRATION_ENCRYPTION_KEY`, `ATLAS_SSO_PRIVATE_JWK`, `ATLAS_SSO_PREVIOUS_PUBLIC_JWKS`, `CRON_SECRET`. ORION: `ATLAS_URL`, `ATLAS_SSO_ISSUER`, `ATLAS_JWKS_URL`, `ORION_INSTALL_KEY_ID`, `ORION_INSTALL_SECRET`, `ATLAS_INTEGRATION_ENCRYPTION_KEY`, `ORION_ATLAS_ACCESS_CHECK_SECONDS`, `ORION_ATLAS_ACCESS_GRACE_SECONDS`, `ORION_SSO_STATE_SAMESITE` (opcional, `none` só para domínios diferentes, 2.5), e `ERP_WEBHOOK_URL` apontando para o ATLAS. `ATLAS_DATABASE_URL` deixa de ser usada.
 - Auditoria: ATLAS registra em `public.audit_logs` (vocabulário de 0017 ampliado): `orion.module_contracted`, `orion.linked`, `orion.access_granted/revoked`, `orion.document_sent/resent`, `orion.event_applied/failed`, `orion.secret_rotated`, `orion.disabled`. ORION registra via `audit(...)`: `auth.sso_login`, `auth.sso_denied`, `user.provisioned_from_atlas`, `atlas.event_applied/rejected`, `atlas.link_created/disabled`.
 - Limites: corpo máximo 1 MB por evento, 10 MB por lote; 600 req/min por empresa (429).
 
@@ -556,3 +568,22 @@ Rotação de segredo/chave pelas telas, alertas, logout único (front-channel), 
 - Nenhum lado muda fixture sozinho: mudança de contrato é PR espelhado nos dois repos.
 - No ORION, saldo continua mudando só por `stock-core.ts`; no ATLAS, por `fn_post_stock_movement` (com a guarda nova).
 - Arquivos novos de cada lado ficam em pastas próprias: ATLAS `src/lib/integrations/orion/**`, `src/app/api/integrations/orion/**`, `src/app/app/admin/integracoes/orion/**`; ORION `src/server/integrations/atlas/**`, `src/app/api/atlas/**`, `src/app/api/sso/**`.
+
+---
+
+## Revisões
+
+### 2026-11-16 — alinhamento pós-implementação (sem mudar `version` dos payloads)
+
+Mudanças compatíveis, aplicadas nos dois repositórios no mesmo dia, com `index.json` regenerado:
+
+1. `POST /links`: corpo e resposta unificados (3.4) e fixtures novas `s2s.links.request.json` / `s2s.links.response.json`; `atlas_url` opcional.
+2. Lote: `POST …/events/batch` (sem `:` no caminho; ORION mantém `/events:batch` como alias), corpo `{events}`, resposta `{status, results:[{http_status, body}]}`, nos dois receptores; envio em lote é opcional. Fixtures `s2s.events-batch.*`.
+3. Sequência: primeiro evento de um agregado aceita qualquer `sequence`; depois, contínua (3.5). Fixtures `o2a.outbound.line_cancelled` (seq 5) e `o2a.outbound.cancelled` (seq 6) deixaram de repetir sequência.
+4. `receipt.completed`: `purchaseOrderStatus` → `purchase_order_status` (o ATLAS aceita o antigo temporariamente).
+5. `outbound.cancelled` / `outbound.line_cancelled` ganham `origin` (`atlas`/`orion`) e `atlas_event_id`; com `origin: "atlas"` o ATLAS não repete o efeito de quantidade.
+6. `product.upserted`: `sku` ≠ `code` ⇒ código de barras alternativo `ATLAS-SKU`; carga inicial: regra de validade de lote (5.3).
+7. `orion_user_access`: FK para `public.users(id)` + gatilho de mesma empresa (não há `user_companies`).
+8. Cookie de state do SSO: exigência de mesmo domínio registrável; `ORION_SSO_STATE_SAMESITE=none` opcional (2.5).
+9. Eventos do ORION aplicados no ATLAS sem usuário (`created_by = null`, `actor_label = 'orion'`); `wms_status = 'failed'` documentado (3.1).
+
