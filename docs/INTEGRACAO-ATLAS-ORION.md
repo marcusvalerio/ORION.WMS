@@ -93,7 +93,7 @@ Por que não OIDC completo: o ATLAS não é (e não precisa virar) um provedor O
 **A. Iniciado no ATLAS (menu "Abrir ORION")**
 
 1. Navegador → `GET {ATLAS}/api/integrations/orion/v1/sso/launch?return_to=/separacao` (exige sessão ATLAS).
-2. ATLAS confere, nesta ordem: empresa com `company_modules(orion).contracted and enabled_by_company`, `company_platform_profiles.lifecycle_status in (TRIAL, ACTIVE)`, `orion_integrations.status = 'active'`, `public.users.status = 'active'`, `orion_user_access.status = 'active'`. Falhou ⇒ página de erro do ATLAS ("Seu acesso ao ORION não foi liberado pelo administrador da empresa").
+2. ATLAS confere, nesta ordem: empresa com `company_modules(orion).contracted and enabled_by_company`, `company_platform_profiles.lifecycle_status in (TRIAL, ACTIVE)`, `orion_integrations.status in ('activating','active')` (em ativação a equipe ORION já entra para preparar endereços antes da carga inicial; o ORION aceita `wms.atlas_links.status in ('activating','active')`), `public.users.status = 'active'`, `orion_user_access.status = 'active'`. Falhou ⇒ página de erro do ATLAS ("Seu acesso ao ORION não foi liberado pelo administrador da empresa").
 3. ATLAS assina o token e responde **HTML com formulário auto-submetido** (`<form method="post" action="{ORION_URL}/api/sso/atlas">` com campo `token`), `Cache-Control: no-store`, CSP com `form-action {ORION_URL}`. O token nunca vai na URL (não aparece em logs, histórico ou `Referer`).
 4. ORION `POST /api/sso/atlas` valida (2.4), provisiona/atualiza o usuário (2.6), chama `startSession` e redireciona (303) para `return_to`.
 
@@ -365,7 +365,7 @@ Respostas de `POST /events` (exemplos em `docs/contrato/resposta.*.json`):
 
 ### 3.5 Idempotência, ordenação e reentrega
 
-- **Idempotência**: o `id` do envelope é a chave. ORION grava em `wms.atlas_inbox (event_id pk, …)` na mesma transação do efeito; ATLAS em `public.integration_inbox`. Reentrega do mesmo `id` ⇒ 200 `duplicate:true` sem reexecutar. Payload diferente com mesmo `id` ⇒ 400 `idempotency_conflict`.
+- **Idempotência**: o `id` do envelope é a chave. ORION grava em `wms.atlas_inbox (event_id pk, …)` na mesma transação do efeito; ATLAS em `public.integration_inbox`. Reentrega do mesmo `id` ⇒ 200 `duplicate:true` sem reexecutar. Payload diferente com mesmo `id` ⇒ 400 `idempotency_conflict`. A comparação usa **só o conteúdo** (`type`, `version`, `aggregate`, `payload`); campos de transporte (`attempt`, `created_at`, `occurred_at` e campos legados) podem variar entre reentregas.
 - **Ordenação**: por agregado, via `aggregate.sequence`. O receptor guarda o último `sequence` aplicado por agregado: igual ou menor ⇒ duplicata/obsoleto (200, `duplicate:true`, sem efeito); maior que último+1 ⇒ 409 `out_of_order` (com `expected_sequence`). **O primeiro evento visto de um agregado é aceito com qualquer sequência** (o emissor numera também eventos que não são enviados ao outro lado, e "Reenviar" gera sequência nova); a partir dele a sequência tem de ser contínua. Regra igual nos dois receptores (ORION `wms.atlas_aggregate_state`, ATLAS `integration_inbox`). Upserts de cadastro (`*.upserted`) são **estado completo** e aceitam lacunas (aplica se `sequence` > último; ignora se menor). Entre agregados diferentes não há garantia de ordem; dependências são resolvidas por `dependency_missing` + reenvio, e o emissor sempre enfileira o upsert de cadastros referenciados **antes** do documento quando eles nunca foram enviados.
 - **Reentrega**: pelo menos uma vez, backoff exponencial com jitter (2 s, 4 s … teto 30 min), máximo 20 tentativas para erros `retryable`; depois `failed`, com reprocessamento manual no painel (mesma mecânica do ORION em `services/integration.ts`).
 
@@ -375,7 +375,7 @@ Respostas de `POST /events` (exemplos em `docs/contrato/resposta.*.json`):
 
 Outras rotas do ATLAS: `GET /api/integrations/orion/v1/access?atlas_user_id=` (2.7), `GET /api/integrations/orion/v1/capabilities`, `GET /api/integrations/orion/v1/documents/{type}/{id}` (estado do documento no ATLAS), `GET /api/integrations/orion/v1/sso/launch`, `GET /api/integrations/orion/v1/sso/authorize`, `GET /.well-known/astraeus-jwks.json`.
 
-Para empresas ORION, `L(w)` = local de integração do depósito `w` (`orion_warehouse_map.integration_location_id`, 5.2). Lotes são resolvidos/criados em `public.product_lots` pelo `lot_code`.
+Para empresas ORION, `L(w)` = local de integração do depósito `w` (`orion_warehouse_map.integration_location_id`, 5.2). Lotes são resolvidos/criados em `public.product_lots` pelo `lot_code`; `lot_code: null` (produto sem lote) é válido em todos os `lots[]` dos eventos o2a.
 
 | Evento (fixture `o2a.*.json`) | Situação no ORION | Efeito no ATLAS |
 |---|---|---|
@@ -586,4 +586,10 @@ Mudanças compatíveis, aplicadas nos dois repositórios no mesmo dia, com `inde
 7. `orion_user_access`: FK para `public.users(id)` + gatilho de mesma empresa (não há `user_companies`).
 8. Cookie de state do SSO: exigência de mesmo domínio registrável; `ORION_SSO_STATE_SAMESITE=none` opcional (2.5).
 9. Eventos do ORION aplicados no ATLAS sem usuário (`created_by = null`, `actor_label = 'orion'`); `wms_status = 'failed'` documentado (3.1).
+
+Defeitos achados no teste real (`docs/QA-INTEGRACAO.md`) e corrigidos no mesmo dia:
+
+10. SSO/checagem de acesso do ATLAS passam a valer com a integração em `activating` (o ORION já aceitava) — sem isso ninguém prepara endereços antes da carga inicial (2.3).
+11. `lot_code: null` aceito nos `lots[]` de `outbound.ready_to_invoice` e `receipt.completed` no ATLAS (produto sem lote recusava o evento com 400).
+12. Idempotência no ATLAS compara só o conteúdo do envelope: reentrega legítima do ORION virava `idempotency_conflict` (3.5).
 
