@@ -40,9 +40,15 @@ const RETRYABLE = new Set(["40001", "40P01"]); // serialization_failure, deadloc
 /** PostgreSQL/Supabase via DATABASE_URL (somente servidor). */
 export async function createPostgresDb(connectionString: string, options: { max?: number; statementTimeoutMs?: number } = {}): Promise<Db> {
   const { default: pgLib } = await import("pg");
-  pgLib.types.setTypeParser(NUMERIC_OID, toNumber);
-  pgLib.types.setTypeParser(INT8_OID, toNumber);
-  const pool = new pgLib.Pool({ connectionString, max: options.max ?? 10, statement_timeout: options.statementTimeoutMs });
+  // Parsers por pool (e não `pgLib.types.setTypeParser` global): o global só vale para a
+  // cópia de `pg-types` que o driver realmente usa. Com drivers compatíveis (ex.: o Pool
+  // do @neondatabase/serverless, que embute seu próprio pg-types) o ajuste global não tem
+  // efeito e numeric/int8 voltariam como string, quebrando comparações de quantidade.
+  const types = {
+    getTypeParser: ((oid: number, format?: "text" | "binary") =>
+      oid === NUMERIC_OID || oid === INT8_OID ? toNumber : pgLib.types.getTypeParser(oid, format)) as typeof pgLib.types.getTypeParser,
+  };
+  const pool = new pgLib.Pool({ connectionString, max: options.max ?? 10, statement_timeout: options.statementTimeoutMs, types });
 
   return {
     driver: "postgres",

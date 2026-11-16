@@ -309,7 +309,8 @@ export async function seedFlowShowcase(db: Db): Promise<void> {
       );
       for (const t of picks) await tasks.completeTask(op, t.id, { quantity: Number(t.quantity), locationId: t.from_location_id });
       const order = await outbound.getOrder(op, o.id);
-      await outbound.checkOrder(op, o.id, { lines: order!.lines.map((l) => ({ lineId: l.id, checkedQty: Number(l.picked_qty) })) });
+      const check = await outbound.checkOrder(op, o.id, { lines: order!.lines.map((l) => ({ lineId: l.id, checkedQty: Number(l.picked_qty) })) });
+      if (!check.ok) throw new Error(`Carga de demonstração: conferência divergente em ${order!.code}: ${check.mismatches.join("; ")}`);
       return o.id;
     });
     // a expedição sai em outro relógio (fim da tarde): saída de doca
