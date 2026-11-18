@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useRef, useState, type ReactNode } from "react";
-import { CircleAlert, CircleCheck, Info, Keyboard, ScanLine } from "lucide-react";
+import { useEffect, useRef, useState, useSyncExternalStore, type ReactNode } from "react";
+import { Camera, CircleAlert, CircleCheck, Info, Keyboard, ScanLine } from "lucide-react";
+import { CameraScanner, cameraPreferred, saveCameraPreference } from "./camera-scanner";
 import { cn } from "@/components/ui/cn";
 
 export type Tone = "ok" | "error" | "info";
@@ -25,6 +26,8 @@ export function useFeedback(initial: Feedback | null = null) {
   };
   return { feedback, show, clear: () => setFeedback(null) };
 }
+
+const noSubscribe = () => () => {};
 
 const TONES: Record<Tone, string> = {
   ok: "border-ok-solid bg-ok-solid text-on-solid",
@@ -51,6 +54,10 @@ export function FeedbackBanner({ feedback }: { feedback: Feedback | null }) {
  * Campo de leitura. Leitores físicos funcionam como teclado: digitam o código e
  * enviam Enter. O campo fica sempre focado; por padrão o teclado virtual não abre
  * (inputMode "none") — o botão de teclado libera a digitação manual.
+ *
+ * No celular sem leitor físico a câmera abre sozinha e lê a etiqueta; o botão de
+ * câmera abre e fecha, e a escolha fica guardada no aparelho. Se um leitor físico
+ * digitar no campo com a câmera aberta, a câmera fecha (o aparelho tem leitor).
  */
 export function ScanField({
   label,
@@ -72,6 +79,23 @@ export function ScanField({
   const ref = useRef<HTMLInputElement>(null);
   const [value, setValue] = useState(initial);
   const [manual, setManual] = useState(numeric ?? false);
+  // No servidor a câmera começa fechada; no navegador segue a preferência do aparelho.
+  const preferred = useSyncExternalStore(noSubscribe, () => !numeric && cameraPreferred(), () => false);
+  const [override, setOverride] = useState<boolean | null>(null);
+  const camera = override ?? preferred;
+
+  function toggleCamera(on: boolean) {
+    setOverride(on);
+    saveCameraPreference(on);
+    if (!on) ref.current?.focus();
+  }
+
+  async function fromCamera(code: string) {
+    if (busy) return;
+    setValue(code);
+    await onScan(code);
+    if (!numeric) setValue("");
+  }
 
   useEffect(() => {
     const input = ref.current;
@@ -111,7 +135,11 @@ export function ScanField({
           <input
             ref={ref}
             value={value}
-            onChange={(e) => setValue(e.target.value)}
+            onChange={(e) => {
+              setValue(e.target.value);
+              // Digitou sem o teclado virtual com a câmera aberta: é um leitor físico.
+              if (camera && !manual) toggleCamera(false);
+            }}
             inputMode={numeric ? "decimal" : manual ? "text" : "none"}
             type="text"
             autoComplete="off"
@@ -122,6 +150,20 @@ export function ScanField({
             aria-label={label}
             className="h-16 min-w-0 flex-1 rounded-xl border-2 border-fg bg-surface px-4 font-mono text-2xl text-fg outline-none focus:border-focus focus:ring-4 focus:ring-focus"
           />
+          {!numeric ? (
+            <button
+              type="button"
+              onClick={() => toggleCamera(!camera)}
+              aria-pressed={camera}
+              aria-label={camera ? "Fechar câmera" : "Ler com a câmera"}
+              className={cn(
+                "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2",
+                camera ? "border-focus bg-action text-on-action" : "border-fg bg-surface text-fg",
+              )}
+            >
+              <Camera className="size-7" aria-hidden />
+            </button>
+          ) : null}
           {!numeric ? (
             <button
               type="button"
@@ -141,6 +183,7 @@ export function ScanField({
           ) : null}
         </div>
       </label>
+      {camera && !numeric ? <CameraScanner onDetect={fromCamera} onClose={() => toggleCamera(false)} /> : null}
       <BigButton type="submit" disabled={busy || !value.trim()}>
         {busy ? "Validando…" : submitLabel}
       </BigButton>
