@@ -50,15 +50,55 @@ Três modos de interface (todo texto ≥ 4,5:1):
 
 Gráficos: s1 `#060B2A`, s2 `#2D77CC`, s3 `#7DB7F0`, s4 `#DDB54C`, s5 `#12A27A`, s6 `#A6B3C6`. “Hoje” em azul; seleção no mapa em creme.
 
+**Regras dos temas** (design system):
+- Use sempre os **papéis** (`bg`, `surface`, `border`, `text`, `text-muted`, `action`, `on-action`, `accent`, `focus`), nunca o tom base direto. Cor forte só para ação, foco e situação.
+- **Escuro** é escolha do usuário. **Modo inventário** entra sozinho nas telas de contagem.
+- Situações têm `-bg`, `-fg` e sólido por tema: `success`, `warning`, `danger`, `info`, `progress`, `neutral`. No escuro/inventário os sólidos clareiam (ex.: success `#2CC593`, danger `#F2545E`) e os fundos escurecem (ex.: success-bg `#0B3A31`, danger-bg `#3D0F15`). Valores completos no design system.
+- No escuro, a série 1 de gráfico vira `creme-100`.
+
 ## 4. Tipografia
 
-- **Gabarito** — títulos e números grandes (`Recebimento PC-4588`, `98,4%`).
-- **Inter** — texto corrido e interface.
-- **Geist Mono** — códigos, endereços, SKUs, lotes, NF.
+- **Gabarito** — títulos e logotipo, peso **600** (não mais pesado na interface).
+- **Inter** — todo o texto.
+- **Geist Mono** — endereços e códigos (`ARM-02-07-03`, `CIA-001`, `L2410`, `PC-4588`, `NF 000.456`).
+
+| Estilo | Família | Tamanho / linha | Peso |
+|---|---|---|---|
+| display | Gabarito | 40 / 44 | 600 |
+| page-title | Gabarito | 24 / 30 | 600 |
+| card-title | Gabarito | 16 / 22 | 600 |
+| body | Inter | 14 / 20 | 400 |
+| body-small | Inter | 13 / 18 | 400 |
+| label | Inter | 12 / 16 | 500 |
+| kpi | Inter | 28 / 32 | 500 |
+| address | Geist Mono | 14 / 20 | 500 |
+| address-hero | Geist Mono | 28 / 34 | 500 |
+| code-small | Geist Mono | 12 / 16 | 400 |
+
+- **Números** alinhados à direita, algarismos tabulares, unidade ao lado em texto secundário: `120 un`.
+- Os títulos gigantes e pesados (site, posts) são de marketing, não da interface.
+
+## 4b. Forma e espaço
+
+- Espaçamento em múltiplos de 4 px: `space-1` 4 (vãos das barras do símbolo e dos gráficos), `space-2` 8 (ícone–rótulo), `space-3` 12 (entre campos), `space-4` 16 (padding de cartão), `space-6` 24 (entre seções), `space-8` 32 (margem da página).
+- Raios: `radius-sm` 6 (selos de lote, células do mapa), `radius-md` 10 (campos, botões quadrados), `radius-lg` 18 (cartões, painéis), `radius-pill` 999 (botões principais e selos de situação), `radius-icon` 24% (ícone do app).
+- **Contorno de 1 px em `border` no lugar de sombra.**
+- **Gráficos e KPIs seguem o traço do símbolo**: barras verticais de espessuras diferentes, partidas por vãos de `space-1`; o valor continua lido pela altura ou pela quantidade de barras cheias. Séries `chart-1` a `chart-6`, nessa ordem.
 
 ## 5. Marca
 
-- Símbolo: colunas verticais com cortes (as “barras” do `orion-mark`), wordmark “orion” em minúsculas.
+- Símbolo: sete colunas verticais de espessuras diferentes, partidas em trechos de corte reto, formando um círculo; nenhum trecho menor que 1/5 da altura. Logotipo = símbolo + “orion” em minúsculas, Gabarito. Ícone do app: fundo `ceu-400`, barras `noite-900`, cantos `radius-icon`.
+- Geometria (unidades do raio R; centro x · largura · trechos verticais):
+
+  | x | largura | trechos |
+  |---|---|---|
+  | -0,70 | 0,15 | -0,30…-0,06 · 0,04…0,34 |
+  | -0,44 | 0,19 | -0,58…-0,14 · -0,04…0,58 |
+  | -0,17 | 0,13 | -0,80…-0,40 · -0,30…0,22 · 0,32…0,80 |
+  | 0,08 | 0,17 | -0,86…0,08 · 0,18…0,86 |
+  | 0,32 | 0,10 | -0,78…-0,16 · -0,06…0,78 |
+  | 0,52 | 0,07 | -0,62…0,14 · 0,24…0,62 |
+  | 0,70 | 0,045 | -0,44…0,44 |
 - Uso correto: sobre céu-400, creme ou noite. Evitar pouco contraste e trocar fonte ou caixa (nada de “ORION” em itálico/maiúsculas no logotipo).
 - Abaixo de 24 px o símbolo perde os cortes e fica só com as colunas cheias.
 - Respiro mínimo = altura do “o” em volta de toda a marca.
@@ -67,7 +107,9 @@ Gráficos: s1 `#060B2A`, s2 `#2D77CC`, s3 `#7DB7F0`, s4 `#DDB54C`, s5 `#12A27A`,
 
 ## 6. Iconografia
 
-Lucide, traço 1,75 px, sempre na cor do texto ao redor.
+Lucide, traço 1,75 px, sempre na cor do texto ao redor. O leitor (`scan-barcode`) abre o coletor a partir da busca do topo.
+
+> Fonte: design system “ORION Design System” (artefato do claude.ai), imagens de marca, painel, sinalização e LinkedIn, e a apresentação comercial. Divergência em aberto: o design system diz “WMS do ecossistema **ATLAS**”; marca, site e apresentação usam ecossistema **ASTRAEUS** (com ATLAS como o ERP).
 
 ## 7. Aplicações de referência
 
