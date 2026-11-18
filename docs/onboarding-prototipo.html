@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ORION · Onboarding “Primeiros passos” — protótipo para avaliação</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --bg:#f4f5f7; --ink:#14171f; --muted:#5d6472; --line:#dde0e6; --card:#fff;
+    --brand:#1f4fd8; --brand-soft:#e7edfd; --ok:#1a7f4b; --warn:#a15c00; --risk:#b42318;
+    --app-side:#151a26; --app-side-ink:#c6ccd8;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;font-family:Inter,system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.5}
+  header.top{padding:28px 32px 8px;max-width:1240px;margin:0 auto}
+  h1{font-size:24px;margin:0 0 4px}
+  .sub{color:var(--muted);margin:0}
+  main{max-width:1240px;margin:0 auto;padding:16px 32px 64px}
+  section{margin-top:28px}
+  h2{font-size:18px;margin:0 0 12px}
+  .note{background:#fff7e6;border:1px solid #f2d39b;border-radius:10px;padding:12px 16px;font-size:14px}
+
+  /* Controles */
+  .controls{display:flex;flex-wrap:wrap;gap:12px;align-items:center;background:var(--card);border:1px solid var(--line);border-radius:12px;padding:12px 16px}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:8px;overflow:hidden}
+  .seg button{border:0;background:#fff;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer;color:var(--muted)}
+  .seg button[aria-pressed="true"]{background:var(--brand);color:#fff}
+  .controls label{font-size:14px;display:inline-flex;gap:6px;align-items:center;color:var(--muted)}
+  .btn{border:1px solid var(--line);background:#fff;border-radius:8px;padding:7px 12px;font:inherit;font-size:14px;cursor:pointer}
+  .btn.primary{background:var(--brand);border-color:var(--brand);color:#fff}
+
+  /* App falso */
+  .stage{margin-top:12px;position:relative;height:600px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:#eef0f4;display:grid;grid-template-columns:210px 1fr}
+  .side{background:var(--app-side);color:var(--app-side-ink);padding:14px 10px;font-size:13.5px}
+  .logo{color:#fff;font-weight:700;letter-spacing:.12em;padding:4px 10px 14px}
+  .nav a{display:flex;align-items:center;gap:8px;padding:7px 10px;border-radius:7px;color:inherit;text-decoration:none;margin-bottom:2px}
+  .nav a.on{background:#252c3d;color:#fff}
+  .nav .grp{font-size:11px;text-transform:uppercase;letter-spacing:.08em;color:#7a8296;padding:10px 10px 4px}
+  .help{position:absolute;bottom:12px;left:10px;width:190px}
+  .appmain{display:flex;flex-direction:column;min-width:0}
+  .bar{display:flex;align-items:center;gap:12px;padding:10px 16px;background:#fff;border-bottom:1px solid var(--line)}
+  .search{flex:1;display:flex;align-items:center;gap:8px;border:1px solid var(--line);border-radius:8px;padding:6px 10px;color:var(--muted);font-size:14px;max-width:460px}
+  .scan{margin-left:auto;border:1px solid var(--line);border-radius:6px;padding:2px 6px;font-size:12px;color:var(--ink)}
+  .user{margin-left:auto;font-size:13px;color:var(--muted)}
+  .content{padding:18px;display:grid;grid-template-columns:repeat(3,1fr);gap:14px;align-content:start}
+  .tile{background:#fff;border:1px solid var(--line);border-radius:10px;padding:14px;font-size:13.5px}
+  .tile b{display:block;font-size:22px;margin-top:4px}
+  .task{grid-column:1 / -1;display:flex;align-items:center;gap:14px}
+  .task .grow{flex:1}
+  .go{background:var(--ok);color:#fff;border:0;border-radius:8px;padding:10px 14px;font:inherit;font-weight:600}
+
+  /* Holofote */
+  .spot{position:absolute;border-radius:10px;box-shadow:0 0 0 9999px rgba(10,14,24,.68);pointer-events:none;transition:all .35s ease;z-index:5;outline:2px solid rgba(255,255,255,.85);outline-offset:2px}
+  .veil{position:absolute;inset:0;background:rgba(10,14,24,.68);z-index:5}
+  .balloon{position:absolute;z-index:6;width:330px;background:#fff;color:var(--ink);border-radius:14px;padding:16px 18px;box-shadow:0 18px 40px rgba(0,0,0,.28);transition:top .35s ease,left .35s ease}
+  .balloon .arrow{position:absolute;width:14px;height:14px;background:#fff;transform:rotate(45deg)}
+  .balloon h3{margin:0 0 6px;font-size:16px}
+  .balloon p{margin:0 0 12px;font-size:14px;color:#3a4150}
+  .balloon .acts{display:flex;justify-content:space-between;align-items:center;gap:8px}
+  .linkish{background:none;border:0;color:var(--muted);font:inherit;font-size:13px;cursor:pointer;text-decoration:underline}
+  .route{display:block;margin:2px 0 12px}
+  .center{left:50%!important;top:50%!important;transform:translate(-50%,-50%);width:420px;text-align:center}
+  .center .route{margin:6px auto 14px}
+  .fallbacktag{display:inline-block;font-size:11px;background:#fff1e0;color:var(--warn);border-radius:4px;padding:1px 6px;margin-bottom:6px}
+
+  /* Comparativo e avaliação */
+  table{width:100%;border-collapse:collapse;background:var(--card);border:1px solid var(--line);border-radius:12px;overflow:hidden;font-size:14px}
+  th,td{text-align:left;padding:10px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{background:#f8f9fb;font-weight:600}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px}
+  .card ul{margin:0;padding-left:18px}
+  .card li{margin-bottom:8px;font-size:14px}
+  .tag{font-size:11px;font-weight:600;border-radius:4px;padding:1px 6px;margin-right:6px;vertical-align:1px}
+  .t-ok{background:#e3f4ea;color:var(--ok)} .t-risk{background:#fde8e6;color:var(--risk)} .t-dec{background:var(--brand-soft);color:var(--brand)}
+  code{background:#eef0f4;border-radius:4px;padding:0 4px;font-size:12.5px}
+  .steps{font-size:14px;margin:0;padding-left:18px}
+  @media (max-width:860px){.grid2{grid-template-columns:1fr}.stage{grid-template-columns:1fr}.side{display:none}.balloon{width:280px}}
+  @media (prefers-reduced-motion:reduce){.spot,.balloon{transition:none}}
+</style>
+</head>
+<body>
+<header class="top">
+  <h1>Onboarding “Primeiros passos” — protótipo para avaliação</h1>
+  <p class="sub">Simulação navegável do desenho combinado, com a avaliação técnica logo abaixo. Escolha um perfil e clique em “Iniciar tour”.</p>
+</header>
+<main>
+  <div class="note"><b>Situação:</b> não há código de onboarding em nenhuma branch do repositório (<code>main</code>, <code>claude/friendly-shannon-vutswg</code>, <code>claude/wms-erp-mvp-io9q47</code>, <code>frente-2-identidade</code>). Este protótipo reproduz o desenho descrito, não uma implementação existente. A tela do ORION ao fundo é uma maquete.</div>
+
+  <section>
+    <h2>1. Protótipo</h2>
+    <div class="controls">
+      <span class="seg" role="group" aria-label="Perfil">
+        <button data-role="operator" aria-pressed="true">Operador</button>
+        <button data-role="supervisor" aria-pressed="false">Supervisor</button>
+        <button data-role="admin" aria-pressed="false">Administrador</button>
+        <button data-role="auditor" aria-pressed="false">Auditor</button>
+      </span>
+      <label><input type="checkbox" id="atlas"> Empresa vinculada ao ATLAS</label>
+      <label><input type="checkbox" id="comexOff"> Comex desativado na empresa</label>
+      <button class="btn primary" id="start">Iniciar tour</button>
+      <span id="count" style="font-size:13px;color:var(--muted)"></span>
+    </div>
+
+    <div class="stage" id="stage">
+      <aside class="side">
+        <div class="logo">ORION</div>
+        <nav class="nav">
+          <a class="on" data-tour="tarefas">▣ Tarefas</a>
+          <div class="grp">Armazém</div>
+          <a data-tour="entrada">↘ Recebimento</a>
+          <a data-tour="estoque">▤ Estoque</a>
+          <a data-tour="saida">↗ Expedição</a>
+          <a data-tour="inventario">◇ Inventário 3D</a>
+          <a data-tour="comex">⇄ Comex</a>
+          <div class="grp">Gestão</div>
+          <a data-tour="indicadores">◔ Indicadores</a>
+          <a data-tour="relatorios">▦ Relatórios</a>
+          <a data-tour="auditoria">◎ Auditoria</a>
+          <a data-tour="atlas">⟷ Integração ATLAS</a>
+        </nav>
+        <a class="help nav" data-tour="ajuda" style="color:var(--app-side-ink)">? Como funciona o ORION</a>
+      </aside>
+      <div class="appmain">
+        <div class="bar">
+          <div class="search" data-tour="busca">⌕ Buscar produto, endereço, pedido… <span class="scan">▥ leitor</span></div>
+          <div class="user">Marina · CD Campinas</div>
+        </div>
+        <div class="content">
+          <div class="tile">Tarefas abertas<b>12</b></div>
+          <div class="tile">Recebimentos hoje<b>4</b></div>
+          <div class="tile" data-tour="rastreio">Rastreio do lote L-2611<b style="font-size:15px">3 movimentações</b></div>
+          <div class="tile task" data-tour="tarefa">
+            <div class="grow"><b style="font-size:15px">Separação #4521</b>Retirar 6 un. de SKU 10443 em A-03-02-1</div>
+            <button class="go" data-tour="confirmar">Confirmar e seguir ›</button>
+          </div>
+        </div>
+      </div>
+      <div id="overlay" hidden></div>
+    </div>
+  </section>
+
+  <section>
+    <h2>2. Como cada perfil fica</h2>
+    <table>
+      <thead><tr><th>Perfil</th><th>Passos</th><th>Observação da avaliação</th></tr></thead>
+      <tbody id="perfis"></tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>3. Novidades × Onboarding</h2>
+    <table>
+      <thead><tr><th></th><th>Novidades da versão</th><th>Onboarding (“Primeiros passos”)</th></tr></thead>
+      <tbody>
+        <tr><td>Quando</td><td>Quem já usa, a cada versão</td><td>Só no primeiro acesso</td></tr>
+        <tr><td>Visual</td><td>Janela escura com o anel girando</td><td>Tela escurecida com holofote sobre a parte real do sistema e balão claro</td></tr>
+        <tr><td>Progresso</td><td>Barrinhas</td><td>Rota de armazém: pontos ligados por linha tracejada</td></tr>
+        <tr><td>Abertura</td><td>Direto na novidade</td><td>“Bem-vindo ao ORION, [nome]”</td></tr>
+        <tr><td>Fim</td><td>“Pronto. Bom trabalho hoje.”</td><td>“Pronto para o primeiro turno”</td></tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>4. Avaliação</h2>
+    <div class="grid2">
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px">O que está bom</h3>
+        <ul>
+          <li><span class="tag t-ok">OK</span>A diferença visual em relação às Novidades é clara (holofote claro × janela escura, rota × barrinhas, frases de fim diferentes).</li>
+          <li><span class="tag t-ok">OK</span>Os perfis batem com <code>ROLES</code> em <code>src/lib/permissions.ts</code>: admin, supervisor, operator, auditor.</li>
+          <li><span class="tag t-ok">OK</span>“Não aparece no meio de uma tarefa” pode usar a função <code>emTarefaEmAndamento()</code>, que já existe em <code>src/lib/novidades.ts</code>.</li>
+          <li><span class="tag t-ok">OK</span>Três passos para o operador é o tamanho certo para quem aprende no coletor.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px">Decisões em aberto (resolver antes do visual)</h3>
+        <ul>
+          <li><span class="tag t-dec">Decidir</span><b>Quem é “novo”.</b> Hoje só existe <code>wms.release_notes_seen</code>. Sugestão: tabela <code>wms.onboarding_seen</code> e, ao concluir o tour, marcar a versão atual de Novidades como vista. No modo demonstração, um cookie, como o <code>NOVIDADES_COOKIE</code>.</li>
+          <li><span class="tag t-dec">Decidir</span><b>Prioridade entre as janelas.</b> <code>layout.tsx</code> sempre monta <code>&lt;Novidades&gt;</code>. Enquanto o onboarding estiver pendente, as Novidades não podem abrir sozinhas.</li>
+          <li><span class="tag t-dec">Decidir</span><b>“Rastreabilidade” do auditor.</b> Não há rota própria (existem <code>auditoria</code> e <code>relatorios</code>). Para onde o passo aponta?</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px">Riscos</h3>
+        <ul>
+          <li><span class="tag t-risk">Risco</span><b>Alvo do holofote ausente</b> (menu recolhido, celular, sem permissão). O passo deve virar balão centralizado ou ser pulado. Para ver isso no protótipo, marque “Comex desativado”.</li>
+          <li><span class="tag t-risk">Risco</span><b>Supervisor e admin não têm as mesmas permissões.</b> Monte os passos filtrando com <code>can(role, …)</code> e pelos módulos ativos da empresa.</li>
+          <li><span class="tag t-risk">Risco</span><b>“Como funciona o ORION” ainda não existe.</b> O último passo aponta para ela, então ela precisa sair junto (no menu do usuário ou em <code>/sobre</code>).</li>
+          <li><span class="tag t-risk">Risco</span><b>Passo do ATLAS:</b> usar o vínculo da empresa, não o <code>atlasUserId</code> do usuário.</li>
+        </ul>
+      </div>
+      <div class="card">
+        <h3 style="margin-top:0;font-size:15px">Para a implementação</h3>
+        <ol class="steps">
+          <li>Atributos <code>data-tour="…"</code> estáveis nos alvos reais.</li>
+          <li>Montar os passos a partir de perfil, permissões, módulos e ATLAS (função pura e testável).</li>
+          <li>Persistência + supressão das Novidades + bloqueio em tela de tarefa.</li>
+          <li>Acessibilidade: foco preso no balão, Esc = pular, setas navegam, <code>prefers-reduced-motion</code>.</li>
+          <li>Testes no padrão de <code>tests/identidade.test.ts</code>.</li>
+          <li>Entrada para rever o tour em “Como funciona o ORION”.</li>
+        </ol>
+      </div>
+    </div>
+  </section>
+</main>
+
+<script>
+const STEPS = {
+  tarefas:{t:"Suas tarefas",p:"Tudo o que é seu no turno aparece aqui, na ordem em que deve ser feito."},
+  busca:{t:"Leitor de código na busca",p:"Bipe a etiqueta do produto, do endereço ou do pedido direto na busca. Não precisa digitar."},
+  confirmar:{t:"Confirmar e seguir",p:"Ao terminar, confirme. O ORION já abre a próxima tarefa."},
+  entrada:{t:"Entrada",p:"Recebimentos, conferência e armazenagem do que chega nas docas."},
+  estoque:{t:"Estoque",p:"Saldo por produto, endereço e lote, com bloqueios e reposição."},
+  saida:{t:"Saída",p:"Ondas, separação, conferência e expedição."},
+  inventario:{t:"Inventário 3D",p:"Veja o armazém em três dimensões e abra contagens por área."},
+  indicadores:{t:"Indicadores",p:"Produtividade, ocupação e acurácia do turno e do mês."},
+  comex:{t:"Comex",p:"Importação e exportação ligadas aos recebimentos e embarques."},
+  ajuda:{t:"Rever o tour",p:"Este tour e as explicações ficam em “Como funciona o ORION”."},
+  relatorios:{t:"Relatórios",p:"Exporte movimentações, saldos e inventários por período."},
+  auditoria:{t:"Auditoria",p:"Quem fez o quê e quando, com antes e depois de cada alteração."},
+  rastreio:{t:"Rastreabilidade",p:"Siga um lote ou número de série da entrada até a saída. (Destino da rota a confirmar.)"},
+  atlas:{t:"ORION e ATLAS",p:"No ATLAS: cadastros, pedidos e notas. No ORION: tudo o que acontece dentro do armazém. Cadastros vindos do ATLAS aparecem com selo e não são editados aqui."}
+};
+const BY_ROLE = {
+  operator:["tarefas","busca","confirmar"],
+  supervisor:["entrada","estoque","saida","inventario","indicadores","comex","ajuda"],
+  admin:["entrada","estoque","saida","inventario","indicadores","comex","ajuda"],
+  auditor:["relatorios","auditoria","rastreio"]
+};
+const LABEL={operator:"Operador",supervisor:"Supervisor",admin:"Administrador",auditor:"Auditor"};
+let role="operator";
+const $=s=>document.querySelector(s);
+
+function plan(r){
+  let ids=[...BY_ROLE[r]];
+  if($("#atlas").checked){ const i=ids.indexOf("ajuda"); i>=0?ids.splice(i,0,"atlas"):ids.push("atlas"); }
+  return ids;
+}
+function routeSVG(n,cur){
+  const gap=n>1?Math.min(34,240/(n-1)):0, w=(n-1)*gap+16;
+  let s=`<svg class="route" width="${w}" height="16" viewBox="0 0 ${w} 16" aria-hidden="true">`;
+  s+=`<line x1="8" y1="8" x2="${w-8}" y2="8" stroke="#c4cad6" stroke-width="2" stroke-dasharray="4 4"/>`;
+  if(cur>0) s+=`<line x1="8" y1="8" x2="${8+cur*gap}" y2="8" stroke="#1f4fd8" stroke-width="2" stroke-dasharray="4 4"/>`;
+  for(let i=0;i<n;i++){const x=8+i*gap;
+    s+= i<cur?`<circle cx="${x}" cy="8" r="4.5" fill="#1f4fd8"/>`
+      : i===cur?`<circle cx="${x}" cy="8" r="6" fill="#fff" stroke="#1f4fd8" stroke-width="3"/>`
+      : `<circle cx="${x}" cy="8" r="4.5" fill="#fff" stroke="#c4cad6" stroke-width="2"/>`;}
+  return s+"</svg>";
+}
+function updateCount(){ const n=plan(role).length; $("#count").textContent=`${LABEL[role]}: ${n} passos${$("#atlas").checked?" (com ATLAS)":""}`; renderTable(); }
+
+let ids=[],idx=-1;
+const ov=$("#overlay"), stage=$("#stage");
+function start(){ ids=plan(role); idx=-1; show(); }
+function close(){ ov.hidden=true; ov.innerHTML=""; document.removeEventListener("keydown",onKey); }
+function onKey(e){ if(e.key==="Escape")close(); if(e.key==="ArrowRight")next(); if(e.key==="ArrowLeft"&&idx>0){idx--;show();} }
+function next(){ idx++; show(); }
+function show(){
+  ov.hidden=false; document.addEventListener("keydown",onKey);
+  const n=ids.length;
+  if(idx===-1){
+    ov.innerHTML=`<div class="veil"></div><div class="balloon center" role="dialog" aria-modal="true" aria-label="Primeiros passos">
+      <h3 style="font-size:20px">Bem-vindo ao ORION, Marina</h3>
+      <p>Uma volta rápida pelo que você vai usar como <b>${LABEL[role].toLowerCase()}</b>. São ${n} paradas.</p>
+      ${routeSVG(n,-1)}
+      <div class="acts" style="justify-content:center;gap:16px"><button class="linkish" data-x="close">Agora não</button><button class="btn primary" data-x="next">Começar</button></div></div>`;
+    return bind();
+  }
+  if(idx>=n){
+    ov.innerHTML=`<div class="veil"></div><div class="balloon center" role="dialog" aria-modal="true">
+      ${routeSVG(n,n)}
+      <h3 style="font-size:20px">Pronto para o primeiro turno</h3>
+      <p>Quando quiser rever, abra “Como funciona o ORION”.</p>
+      <div class="acts" style="justify-content:center"><button class="btn primary" data-x="close">Começar a trabalhar</button></div></div>`;
+    return bind();
+  }
+  const id=ids[idx], st=STEPS[id];
+  let target=stage.querySelector(`[data-tour="${id}"]`);
+  const missing = !target || (id==="comex"&&$("#comexOff").checked);
+  const head=`${routeSVG(n,idx)}<div style="font-size:12px;color:var(--muted);margin:-6px 0 6px">Parada ${idx+1} de ${n}</div>`;
+  const acts=`<div class="acts"><button class="linkish" data-x="close">Pular tour</button><span>${idx>0?'<button class="btn" data-x="prev">Voltar</button> ':''}<button class="btn primary" data-x="next">${idx===n-1?"Concluir":"Próximo"}</button></span></div>`;
+  if(missing){
+    ov.innerHTML=`<div class="veil"></div><div class="balloon center" role="dialog" aria-modal="true">${head}
+      <span class="fallbacktag">alvo indisponível → balão centralizado (ou pular o passo)</span>
+      <h3>${st.t}</h3><p>${st.p}</p>${acts}</div>`;
+    return bind();
+  }
+  const sr=stage.getBoundingClientRect(), r=target.getBoundingClientRect();
+  const x=r.left-sr.left, y=r.top-sr.top, pad=6;
+  ov.innerHTML=`<div class="spot" style="left:${x-pad}px;top:${y-pad}px;width:${r.width+pad*2}px;height:${r.height+pad*2}px"></div>
+    <div class="balloon" role="dialog" aria-modal="true" aria-label="${st.t}"><span class="arrow"></span>${head}<h3>${st.t}</h3><p>${st.p}</p>${acts}</div>`;
+  const b=ov.querySelector(".balloon"), a=ov.querySelector(".arrow"), bw=b.offsetWidth, bh=b.offsetHeight;
+  let bx,by;
+  if(x+r.width+pad+16+bw < sr.width){ bx=x+r.width+pad+16; by=Math.max(10,Math.min(y+r.height/2-bh/2,sr.height-bh-10)); a.style.left="-7px"; a.style.top=(y+r.height/2-by-7)+"px"; }
+  else if(y+r.height+pad+16+bh < sr.height){ by=y+r.height+pad+16; bx=Math.max(10,Math.min(x+r.width/2-bw/2,sr.width-bw-10)); a.style.top="-7px"; a.style.left=(x+r.width/2-bx-7)+"px"; }
+  else { by=y-pad-16-bh; bx=Math.max(10,Math.min(x+r.width/2-bw/2,sr.width-bw-10)); a.style.bottom="-7px"; a.style.left=(x+r.width/2-bx-7)+"px"; }
+  b.style.left=bx+"px"; b.style.top=by+"px";
+  bind();
+}
+function bind(){
+  ov.querySelectorAll("[data-x]").forEach(btn=>btn.onclick=()=>{const x=btn.dataset.x; if(x==="close")close(); if(x==="next")next(); if(x==="prev"){idx--;show();}});
+  const f=ov.querySelector(".btn.primary"); f&&f.focus();
+}
+function renderTable(){
+  const obs={operator:"Enxuto e prático. Conferir se o leitor na busca funciona no coletor e no desktop.",
+    supervisor:"7 passos é o limite. Comex deve sumir quando o módulo estiver desativado.",
+    admin:"Mesmos passos do supervisor, mas as permissões não são idênticas: filtrar com can().",
+    auditor:"Falta definir a rota de “rastreabilidade”."};
+  $("#perfis").innerHTML=Object.keys(BY_ROLE).map(r=>{const p=BY_ROLE[r].map(i=>STEPS[i].t);
+    return `<tr><td><b>${LABEL[r]}</b></td><td>${p.join(" → ")}${$("#atlas").checked?' <span class="tag t-dec">+ ORION e ATLAS</span>':''}</td><td>${obs[r]}</td></tr>`}).join("");
+}
+document.querySelectorAll(".seg button").forEach(b=>b.onclick=()=>{document.querySelectorAll(".seg button").forEach(o=>o.setAttribute("aria-pressed","false"));b.setAttribute("aria-pressed","true");role=b.dataset.role;close();updateCount();});
+$("#atlas").onchange=()=>{close();updateCount()}; $("#comexOff").onchange=()=>close();
+$("#start").onclick=start;
+addEventListener("resize",()=>{ if(!ov.hidden) show(); });
+updateCount();
+</script>
+</body>
+</html>
