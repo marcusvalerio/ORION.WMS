@@ -18,7 +18,7 @@ export default async function SobrePage() {
           <OrionRing size={900} bars={72} palette="interno" direction="ccw" className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 opacity-70" />
           <div className="relative flex flex-col items-center gap-4">
             <span className="font-mono text-xs tracking-[0.18em] text-ceu-400">UM SÓ ECOSSISTEMA</span>
-            <h2 className="font-display text-5xl font-black tracking-wide sm:text-7xl">ASTRAEUS</h2>
+            <h2 className="font-display text-5xl font-semibold tracking-wide sm:text-7xl">ASTRAEUS</h2>
             <div className="flex flex-wrap justify-center gap-2 text-sm font-semibold">
               <span className="rounded-full bg-creme-300 px-4 py-2 text-noite-900">ATLAS · ERP, MRP, MCN</span>
               <span className="rounded-full bg-ceu-400 px-4 py-2 text-noite-900">ORION · WMS</span>

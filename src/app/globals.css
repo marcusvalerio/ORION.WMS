@@ -7,6 +7,12 @@
   --font-display: var(--font-gabarito), "Gabarito", var(--font-inter), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), "Geist Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 
+  /* Raios do design system: selos/células 6 · campos 10 · cartões 18 · botões e selos em pílula (rounded-full).
+     Espaçamento: múltiplos de 4 px (escala padrão do Tailwind: 1 = 4 px). Contorno de 1 px no lugar de sombra. */
+  --radius-sm: 6px;
+  --radius-md: 10px;
+  --radius-lg: 18px;
+
   --color-noite-50: #EEF1FA;
   --color-noite-100: #D9DFF2;
   --color-noite-200: #B3BEE4;
@@ -156,7 +162,7 @@
     --action: #7DB7F0;
     --action-hover: #9DC7F4;
     --on-action: #060B2A;
-    --accent: #7DB7F0;
+    --accent: #FFF8E7;
     --accent-soft: #111C4A;
     --link: #9DC7F4;
     --focus: #9DC7F4;
@@ -185,7 +191,7 @@
   --action: #7DB7F0;
   --action-hover: #9DC7F4;
   --on-action: #060B2A;
-  --accent: #7DB7F0;
+  --accent: #FFF8E7;
   --accent-soft: #111C4A;
   --link: #9DC7F4;
   --focus: #9DC7F4;
@@ -213,9 +219,9 @@
   --action: #FFF8E7;
   --action-hover: #FDEFCB;
   --on-action: #060B2A;
-  --accent: #F8E2A6;
-  --accent-soft: #3A2D0E;
-  --link: #F8E2A6;
+  --accent: #7DB7F0;
+  --accent-soft: #111C4A;
+  --link: #9DC7F4;
   --focus: #F8E2A6;
   --on-solid: #060B2A;
   --ok-bg: #0B3A31; --ok-fg: #7FE0BF; --ok-line: color-mix(in oklab, #2CC593 40%, #0B3A31); --ok-solid: #2CC593;
@@ -256,7 +262,7 @@
 
 @layer components {
   .input {
-    @apply block w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-fg shadow-xs
+    @apply block w-full rounded-md border border-line-strong bg-surface px-3 py-2 text-sm text-fg
       placeholder:text-muted focus:border-focus focus:ring-2 focus:ring-focus/20 focus:outline-none
       disabled:cursor-not-allowed disabled:bg-subtle disabled:text-muted;
   }

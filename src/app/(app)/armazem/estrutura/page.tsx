@@ -42,7 +42,7 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
             key={w.id}
             href={`?wh=${w.id}`}
             className={cn(
-              "rounded-lg border bg-surface p-4 shadow-xs transition-colors",
+              "rounded-lg border bg-surface p-4 transition-colors",
               w.id === current?.id ? "border-focus ring-2 ring-focus" : "border-line hover:border-accent",
             )}
           >

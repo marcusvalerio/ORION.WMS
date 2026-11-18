@@ -22,7 +22,7 @@ export default async function ChangePasswordPage() {
           </span>
           <p className="font-display text-xl font-semibold tracking-tight text-fg">orion <span className="font-normal text-muted">wms</span></p>
         </div>
-        <div className="rounded-xl border border-line bg-surface p-6 shadow-sm">
+        <div className="rounded-xl border border-line bg-surface p-6">
           <h1 className="text-base font-semibold text-fg">{forced ? "Defina uma nova senha" : "Trocar senha"}</h1>
           <p className="mt-1 text-sm text-muted">
             {forced

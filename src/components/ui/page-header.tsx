@@ -36,7 +36,7 @@ export function PageHeader({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <div className="flex flex-wrap items-center gap-2">
-            <h1 className="text-xl font-semibold tracking-tight text-fg">{title}</h1>
+            <h1 className="text-2xl leading-[30px] font-semibold text-fg">{title}</h1>
             {badges}
           </div>
           {description ? <p className="mt-1 max-w-3xl text-sm text-muted">{description}</p> : null}

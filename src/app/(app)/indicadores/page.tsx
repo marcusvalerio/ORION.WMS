@@ -23,13 +23,13 @@ export default async function IndicatorsPage() {
         breadcrumbs={[{ label: "Gestão" }, { label: "Indicadores" }]}
       />
       {occupancy ? (
-        <div className="mb-3 rounded-lg border border-line bg-surface p-4 shadow-xs">
+        <div className="mb-3 rounded-lg border border-line bg-surface p-4">
           <GlyphGauge value={occupancy.value} label={occupancy.label} detail={`${occupancy.hint} · ${occupancy.definition}`} size={96} />
         </div>
       ) : null}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-3">
         {performance.map((p) => (
-          <div key={p.label} className="rounded-lg border border-line bg-surface p-4 shadow-xs">
+          <div key={p.label} className="rounded-lg border border-line bg-surface p-4">
             <p className="text-xs font-medium text-muted">{p.label}</p>
             <p className="mt-1 text-2xl font-semibold text-fg tabular-nums">
               {p.value === null ? "—" : p.unit === "%" ? fmtPct(p.value) : `${fmtQty(Math.round(p.value * 10) / 10)}${p.unit ? ` ${p.unit}` : ""}`}

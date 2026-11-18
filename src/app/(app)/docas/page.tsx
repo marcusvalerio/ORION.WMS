@@ -279,7 +279,7 @@ function Block({ a, top, h }: { a: AppointmentRow; top: number; h: number }) {
   return (
     <Link
       href={`/docas/${a.id}`}
-      className={cn("absolute inset-x-1 overflow-hidden rounded border px-1.5 py-1 text-[11px] leading-tight shadow-xs hover:z-10 hover:shadow", TONE_BG[a.status])}
+      className={cn("absolute inset-x-1 overflow-hidden rounded border px-1.5 py-1 text-[11px] leading-tight hover:z-10 hover:shadow", TONE_BG[a.status])}
       style={{ top, height: Math.max(h, 22) }}
       title={`${a.code} · ${a.local_start}–${a.local_end} · ${STATUS.appointment[a.status]?.label ?? a.status}`}
     >

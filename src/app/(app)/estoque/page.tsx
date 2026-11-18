@@ -69,7 +69,7 @@ export default async function StockPage({ searchParams }: { searchParams: Search
           ["Bloqueado", total.blocked, "text-warn-fg"],
           ["Disponível", total.available, "text-ok-fg"],
         ].map(([label, value, color]) => (
-          <div key={label as string} className="rounded-lg border border-line bg-surface px-4 py-3 shadow-xs">
+          <div key={label as string} className="rounded-lg border border-line bg-surface px-4 py-3">
             <p className="text-xs text-muted">{label}</p>
             <p className={`mt-0.5 text-xl font-semibold tabular-nums ${color}`}>{fmtQty(value as number)}</p>
           </div>
