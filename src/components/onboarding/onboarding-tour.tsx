@@ -1,34 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
-import { usePathname, useRouter } from "next/navigation";
+import { useCallback, useEffect, useRef, useState, useTransition } from "react";
+import { usePathname } from "next/navigation";
 import { Compass } from "lucide-react";
-import { cn } from "@/components/ui/cn";
 import { emTarefaEmAndamento } from "@/lib/novidades";
 import { ONBOARDING_OPEN_EVENT, type OnboardingPasso } from "@/lib/onboarding";
 import { concluirOnboardingAction } from "@/server/actions/onboarding";
+import { CENAS, N_BARRAS, SIMBOLO, TEXTO_IMERSIVO } from "./cenas";
 
-type Rect = { top: number; left: number; width: number; height: number };
-const PAD = 6;
-const BALLOON_W = 340;
-
-/** Primeiro elemento visível com data-tour=alvo (desktop e celular têm cópias). */
-function findTarget(alvo: string | undefined): HTMLElement | null {
-  if (!alvo) return null;
-  for (const el of document.querySelectorAll<HTMLElement>(`[data-tour="${CSS.escape(alvo)}"]`)) {
-    const r = el.getBoundingClientRect();
-    if (r.width > 0 && r.height > 0 && getComputedStyle(el).visibility !== "hidden") return el;
-  }
-  return null;
-}
-
-function measure(el: HTMLElement): Rect | null {
-  const r = el.getBoundingClientRect();
-  if (r.width <= 0 || r.height <= 0 || r.bottom < 0 || r.top > window.innerHeight) return null;
-  return { top: r.top - PAD, left: r.left - PAD, width: r.width + PAD * 2, height: r.height + PAD * 2 };
-}
-
-/** Botão "Como funciona o ORION" (menu do usuário) — reabre o tour. */
+/** Botão "Como funciona o ORION" (menu do usuário) — reabre o onboarding. */
 export function OnboardingReopen() {
   return (
     <button
@@ -44,57 +24,44 @@ export function OnboardingReopen() {
   );
 }
 
-/** Trilha de progresso desenhada como rota de armazém: pontos ligados por linha tracejada. */
-function Rota({ total, atual }: { total: number; atual: number }) {
-  const gap = total > 1 ? Math.min(22, 150 / (total - 1)) : 0;
-  const w = gap * (total - 1) + 16;
+export interface OnboardingTourProps {
+  nome: string;
+  passos: OnboardingPasso[];
+  pendente: boolean;
+  /** Versão atual das Novidades: marcada como vista junto com o onboarding (modo demonstração). */
+  versaoNovidades?: string;
+}
+
+/** Progresso no próprio símbolo: os 14 trechos acendem a cada passo. */
+function Progresso({ feitos, total }: { feitos: number; total: number }) {
+  const acesos = total ? Math.round((14 * feitos) / total) : 0;
   return (
-    <svg width={w} height={16} viewBox={`0 0 ${w} 16`} aria-hidden className="shrink-0">
-      <line x1={8} y1={8} x2={w - 8} y2={8} stroke="#7E8BA2" strokeWidth={1.5} strokeDasharray="3 3" />
-      {Array.from({ length: total }, (_, i) => (
-        <circle
-          key={i}
-          cx={8 + i * gap}
-          cy={8}
-          r={i === atual ? 6 : 4}
-          fill={i === atual ? "#EFCF79" : i < atual ? "#5263AE" : "#F7F9FC"}
-          stroke="#060B2A"
-          strokeWidth={i === atual ? 1.5 : 1}
-        />
+    <svg width={44} height={44} viewBox="-1 -1 2 2" role="img" aria-label={`Progresso: ${feitos} de ${total}`} className="shrink-0">
+      {SIMBOLO.map(([cx, cy, w, h], i) => (
+        <rect key={i} x={cx - w / 2} y={cy - h / 2} width={w} height={h} className="onb-glyph" fill={i < acesos ? "#FFF8E7" : "#22306F"} />
       ))}
     </svg>
   );
 }
 
-export interface OnboardingTourProps {
-  nome: string;
-  passos: OnboardingPasso[];
-  pendente: boolean;
-  /** Versão atual das Novidades: marcada como vista junto com o tour (modo demonstração). */
-  versaoNovidades?: string;
-}
-
 /**
- * Tour de primeiros passos: escurece a tela, recorta um buraco sobre o elemento
- * real (data-tour) e mostra um balão claro com seta. Abre sozinho só no
- * primeiro acesso e nunca em telas de tarefa/contagem em andamento.
+ * Onboarding imersivo: tela escura, as barras do cinturão se reorganizam em cada
+ * passo (doca, porta-paletes, fluxo de saída, mapa do inventário…) e se fecham
+ * no símbolo. Abre sozinho só no primeiro acesso e nunca em telas de
+ * tarefa/contagem em andamento.
  */
-export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: OnboardingTourProps) {
+export function OnboardingTour({ nome, passos: todos, pendente, versaoNovidades }: OnboardingTourProps) {
   const pathname = usePathname();
-  const router = useRouter();
   const [open, setOpen] = useState(() => pendente && !emTarefaEmAndamento(pathname));
-  // -1 = boas-vindas; passos.length = final
+  const passos = todos.filter((p) => p.id !== "ajuda");
+  const total = passos.length;
+  // -1 = boas-vindas; total = final
   const [step, setStep] = useState(-1);
-  const [rect, setRect] = useState<Rect | null>(null);
-  const [vw, setVw] = useState(1280);
-  const [vh, setVh] = useState(800);
   const [done, setDone] = useState(!pendente);
   const [, startTransition] = useTransition();
   const dialogRef = useRef<HTMLDialogElement>(null);
+  const stageRef = useRef<HTMLDivElement>(null);
   const primaryRef = useRef<HTMLButtonElement>(null);
-
-  const total = passos.length;
-  const passo = step >= 0 && step < total ? passos[step] : null;
   const primeiroNome = nome.trim().split(/\s+/)[0] ?? nome;
 
   const finish = useCallback(
@@ -125,28 +92,50 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
     return () => window.removeEventListener(ONBOARDING_OPEN_EVENT, h);
   }, []);
 
-  // Mede o alvo do passo atual e acompanha rolagem/redimensionamento.
-  useLayoutEffect(() => {
-    if (!open) return;
-    const update = () => {
-      setVw(window.innerWidth);
-      setVh(window.innerHeight);
-      const el = findTarget(passo?.alvo);
-      setRect(el ? measure(el) : null);
+  const passo = step >= 0 && step < total ? passos[step] : null;
+  const imersivo = passo ? TEXTO_IMERSIVO[passo.id] : undefined;
+  const cena = step < 0 ? "cinturao" : step >= total ? "final" : (imersivo?.cena ?? "cinturao");
+
+  // Cria as barras uma vez por abertura e move cada uma para a cena do passo.
+  useEffect(() => {
+    const stage = stageRef.current;
+    if (!open || !stage) return;
+    if (stage.childElementCount !== N_BARRAS) {
+      stage.replaceChildren();
+      for (let i = 0; i < N_BARRAS; i++) {
+        const el = document.createElement("div");
+        el.className = "onb-bar";
+        const inner = document.createElement("div");
+        inner.className = "onb-bar-in";
+        inner.style.setProperty("--d", `${(-(i / N_BARRAS) * 6).toFixed(2)}s`);
+        el.appendChild(inner);
+        stage.appendChild(el);
+      }
+    }
+    const apply = () => {
+      const alvo = CENAS[cena](N_BARRAS);
+      const girando = cena === "cinturao";
+      stage.classList.toggle("onb-spin", girando);
+      const S = stage.getBoundingClientRect().width / 100;
+      const estreita = window.innerWidth < 760;
+      const k = girando ? 1 : estreita ? 0.9 : 0.55;
+      const cx = girando || estreita ? 50 : cena === "final" ? 64 : 48;
+      Array.from(stage.children).forEach((node, i) => {
+        const el = node as HTMLElement;
+        const [x, y, w, h, rot, cor, op] = alvo[i];
+        const px = cx + (x - 50) * k;
+        const py = 50 + (y - 50) * k;
+        el.style.width = `${w * k * S}px`;
+        el.style.height = `${h * k * S}px`;
+        el.style.transform = `translate(${px * S - (w * k * S) / 2}px, ${py * S - (h * k * S) / 2}px) rotate(${rot}deg)`;
+        el.style.backgroundColor = cor;
+        el.style.opacity = String(op);
+      });
     };
-    const el = findTarget(passo?.alvo);
-    const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    el?.scrollIntoView({ block: "nearest", behavior: reduce ? "auto" : "smooth" });
-    update();
-    const t = setTimeout(update, 350);
-    window.addEventListener("resize", update);
-    window.addEventListener("scroll", update, true);
-    return () => {
-      clearTimeout(t);
-      window.removeEventListener("resize", update);
-      window.removeEventListener("scroll", update, true);
-    };
-  }, [open, passo, pathname]);
+    apply();
+    window.addEventListener("resize", apply);
+    return () => window.removeEventListener("resize", apply);
+  }, [open, cena]);
 
   useEffect(() => {
     if (open) primaryRef.current?.focus();
@@ -165,172 +154,74 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
     }
   }
 
-  const mobile = vw < 640;
-  const target = passo ? rect : null;
-
-  // Posição do balão: à direita de itens do menu lateral, abaixo dos itens do topo.
-  let balloonStyle: React.CSSProperties | undefined;
-  let arrow: "left" | "up" | null = null;
-  let arrowOffset = 24;
-  if (target && !mobile) {
-    const w = Math.min(BALLOON_W, vw - 32);
-    if (target.left + target.width < vw / 2 && target.left + target.width + 16 + w < vw) {
-      const top = Math.max(16, Math.min(target.top + target.height / 2 - 40, vh - 260));
-      balloonStyle = { top, left: target.left + target.width + 16, width: w };
-      arrow = "left";
-      arrowOffset = Math.max(14, Math.min(target.top + target.height / 2 - top - 7, 220));
-    } else {
-      const left = Math.max(16, Math.min(target.left + target.width / 2 - w / 2, vw - w - 16));
-      balloonStyle = { top: target.top + target.height + 14, left, width: w };
-      arrow = "up";
-      arrowOffset = Math.max(14, Math.min(target.left + target.width / 2 - left - 7, w - 28));
-    }
+  let rotulo: string;
+  let palavra: string;
+  let linha: string;
+  if (step < 0) {
+    rotulo = "PRIMEIROS PASSOS";
+    palavra = `Olá, ${primeiroNome}.`;
+    linha = `Este é o ORION. Em ${total} movimentos você vê como o armazém inteiro anda.`;
+  } else if (!passo) {
+    rotulo = "PRONTO";
+    palavra = "Primeiro turno.";
+    linha = "Para rever, toque na bússola “Como funciona o ORION”, no topo.";
+  } else {
+    rotulo = imersivo?.rotulo ?? passo.titulo.toUpperCase();
+    palavra = imersivo?.palavra ?? passo.titulo;
+    linha = imersivo?.linha ?? passo.texto;
   }
-
-  const titleId = "onboarding-title";
-  const descId = "onboarding-desc";
 
   return (
     <dialog
       ref={dialogRef}
-      aria-labelledby={titleId}
-      aria-describedby={descId}
+      aria-labelledby="onboarding-title"
+      aria-describedby="onboarding-desc"
       onCancel={(e) => {
         e.preventDefault();
         finish(true);
       }}
       onKeyDown={onKeyDown}
-      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden bg-transparent p-0 text-noite-900 backdrop:bg-transparent"
+      className="fixed inset-0 m-0 h-dvh max-h-none w-screen max-w-none overflow-hidden bg-transparent p-0 text-creme-100 backdrop:bg-noite-900"
     >
       {open ? (
-        <>
-          {/* escurece a tela; com alvo, recorta o buraco iluminado */}
-          {target ? (
-            <div
-              aria-hidden
-              className="pointer-events-none fixed rounded-lg ring-2 ring-ceu-400 motion-safe:transition-all motion-safe:duration-300"
-              style={{ ...target, boxShadow: "0 0 0 9999px rgba(6, 11, 42, 0.66)" }}
-            />
-          ) : (
-            <div aria-hidden className="fixed inset-0 bg-noite-900/66" />
-          )}
+        <div className={`onb-scene${cena === "inventario" ? " onb-dim" : ""}`}>
+          <div ref={stageRef} className="onb-stage" aria-hidden />
 
-          <p className="sr-only" aria-live="polite">
-            {step < 0 ? "Boas-vindas" : passo ? `Passo ${step + 1} de ${total}: ${passo.titulo}` : "Fim do tour"}
-          </p>
+          <section key={step} className="onb-copy" aria-live="polite">
+            <p className="onb-rotulo onb-enter">{rotulo}</p>
+            <h2 id="onboarding-title" className="onb-palavra onb-enter onb-d1">
+              {palavra}
+            </h2>
+            <p id="onboarding-desc" className="onb-linha onb-enter onb-d2">
+              {linha}
+            </p>
+          </section>
 
-          {step < 0 || step >= total ? (
-            <div className="fixed inset-0 grid place-items-center p-4">
-              <div className="w-full max-w-md rounded-lg border-2 border-ceu-400 bg-gelo-50 p-6">
-                <p className="text-xs font-semibold tracking-wider text-ceu-900 uppercase">Primeiros passos</p>
-                {step < 0 ? (
-                  <>
-                    <h2 id={titleId} className="mt-2 font-display text-2xl font-semibold">
-                      Bem-vindo ao ORION, {primeiroNome}
-                    </h2>
-                    <p id={descId} className="mt-2 text-sm text-gelo-800">
-                      Em {total} passos rápidos você vê onde fica cada coisa no armazém. Dá para pular quando quiser.
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <h2 id={titleId} className="mt-2 font-display text-2xl font-semibold">
-                      Pronto para o primeiro turno
-                    </h2>
-                    <p id={descId} className="mt-2 text-sm text-gelo-800">
-                      Para rever, use “Como funciona o ORION” no topo da tela.
-                    </p>
-                  </>
-                )}
-                <div className="mt-5 flex items-center justify-between gap-2">
-                  <TourButton variant="ghost" onClick={step < 0 ? () => finish(true) : back}>
-                    {step < 0 ? "Pular" : "Voltar"}
-                  </TourButton>
-                  <TourButton ref={primaryRef} onClick={step < 0 ? next : () => finish(false)}>
-                    {step < 0 ? "Começar" : "Concluir"}
-                  </TourButton>
-                </div>
-              </div>
-            </div>
-          ) : passo ? (
-            <div
-              className={cn(
-                "fixed rounded-md border-2 border-ceu-400 bg-gelo-50 p-4 motion-safe:transition-all motion-safe:duration-300",
-                mobile ? "inset-x-3 bottom-3" : !balloonStyle && "top-1/2 left-1/2 w-[min(340px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2",
-              )}
-              style={mobile ? undefined : balloonStyle}
+          <div className="onb-base">
+            <Progresso feitos={Math.max(0, Math.min(step + 1, total))} total={total} />
+            <span className="onb-n">{step >= 0 ? `${Math.min(step + 1, total)} de ${total}` : ""}</span>
+            <span className="flex-1" />
+            {step < total ? (
+              <button type="button" className="onb-pular" onClick={() => finish(true)}>
+                Pular
+              </button>
+            ) : null}
+            {step >= 0 ? (
+              <button type="button" className="onb-btn onb-ghost" onClick={back}>
+                Voltar
+              </button>
+            ) : null}
+            <button
+              type="button"
+              ref={primaryRef}
+              className="onb-btn"
+              onClick={step >= total ? () => finish(false) : next}
             >
-              {arrow ? (
-                <span
-                  aria-hidden
-                  className={cn(
-                    "absolute size-3.5 rotate-45 border-ceu-400 bg-gelo-50",
-                    arrow === "left" ? "-left-[9px] border-b-2 border-l-2" : "-top-[9px] border-t-2 border-l-2",
-                  )}
-                  style={arrow === "left" ? { top: arrowOffset } : { left: arrowOffset }}
-                />
-              ) : null}
-              <div className="flex items-center justify-between gap-3">
-                <p className="text-[11px] font-semibold tracking-wider whitespace-nowrap text-ceu-900 uppercase">Primeiros passos</p>
-                <span className="flex items-center gap-2 text-[11px] text-gelo-700">
-                  <Rota total={total} atual={step} />
-                  {step + 1}/{total}
-                </span>
-              </div>
-              <h2 id={titleId} className="mt-2 font-display text-lg font-semibold">
-                {passo.titulo}
-              </h2>
-              <p id={descId} className="mt-1 text-sm text-gelo-800">
-                {passo.texto}
-              </p>
-              {passo.href ? (
-                <button
-                  type="button"
-                  onClick={() => router.push(passo.href!)}
-                  className="mt-2 text-sm font-medium text-cobalto-700 underline underline-offset-2 hover:text-noite-900"
-                >
-                  Ir para a tela
-                </button>
-              ) : null}
-              <div className="mt-4 flex items-center justify-between gap-2">
-                <TourButton variant="ghost" onClick={() => finish(true)}>
-                  Pular
-                </TourButton>
-                <span className="flex gap-2">
-                  <TourButton variant="outline" onClick={back}>
-                    Voltar
-                  </TourButton>
-                  <TourButton ref={primaryRef} onClick={next}>
-                    Próximo
-                  </TourButton>
-                </span>
-              </div>
-            </div>
-          ) : null}
-        </>
+              {step < 0 ? "Começar" : step >= total ? "Entrar no ORION" : step === total - 1 ? "Concluir" : "Próximo"}
+            </button>
+          </div>
+        </div>
       ) : null}
     </dialog>
-  );
-}
-
-function TourButton({
-  variant = "primary",
-  className,
-  ref,
-  ...props
-}: React.ButtonHTMLAttributes<HTMLButtonElement> & { variant?: "primary" | "outline" | "ghost"; ref?: React.Ref<HTMLButtonElement> }) {
-  return (
-    <button
-      type="button"
-      ref={ref}
-      className={cn(
-        "inline-flex h-9 items-center rounded-md px-3 text-sm font-semibold focus-visible:ring-2 focus-visible:ring-cobalto-600 focus-visible:ring-offset-2 focus-visible:outline-none",
-        variant === "primary" && "bg-noite-900 text-gelo-50 hover:bg-noite-700",
-        variant === "outline" && "border border-gelo-400 text-noite-900 hover:bg-gelo-100",
-        variant === "ghost" && "text-gelo-700 hover:bg-gelo-100 hover:text-noite-900",
-        className,
-      )}
-      {...props}
-    />
   );
 }
