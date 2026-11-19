@@ -5,20 +5,31 @@ import type { Kpi } from "@/server/services/dashboard";
 import { cn } from "./cn";
 import { BarSpark } from "@/components/charts/bar-spark";
 
-const toneBar: Record<NonNullable<Kpi["tone"]>, string> = {
-  default: "bg-accent",
-  warning: "bg-warn-solid",
-  danger: "bg-crit-solid",
-  success: "bg-ok-solid",
+/** Situação do indicador: selo com rótulo (nunca só cor), só quando pede atenção. */
+const toneBadge: Partial<Record<NonNullable<Kpi["tone"]>, { label: string; cls: string }>> = {
+  warning: { label: "Atenção", cls: "bg-warn-bg text-warn-fg before:bg-warn-solid" },
+  danger: { label: "Crítico", cls: "bg-crit-bg text-crit-fg before:bg-crit-solid" },
 };
 
 export function KpiCard({ kpi }: { kpi: Kpi }) {
   const value = kpi.format === "percent" ? fmtPct(kpi.value) : fmtQty(kpi.value);
+  const badge = kpi.tone ? toneBadge[kpi.tone] : undefined;
   const body = (
-    <div className="relative h-full overflow-hidden rounded-lg border border-line bg-surface p-3.5 transition-colors hover:border-accent">
-      <span className={cn("absolute inset-y-0 left-0 w-1", toneBar[kpi.tone ?? "default"])} aria-hidden />
+    <div className="h-full rounded-lg border border-line bg-surface p-3.5 transition-colors hover:border-accent">
       <div className="flex items-start justify-between gap-2">
-        <p className="text-xs font-medium text-muted">{kpi.label}</p>
+        <div className="flex min-w-0 flex-wrap items-center gap-1.5">
+          <p className="text-xs font-medium text-muted">{kpi.label}</p>
+          {badge ? (
+            <span
+              className={cn(
+                "inline-flex items-center gap-1 rounded-full px-2 text-[11px] leading-5 font-medium before:size-1.5 before:rounded-full",
+                badge.cls,
+              )}
+            >
+              {badge.label}
+            </span>
+          ) : null}
+        </div>
         <span title={kpi.definition} className="text-muted hover:text-muted">
           <Info className="size-3.5" aria-label={`Definição: ${kpi.definition}`} />
         </span>
