@@ -100,15 +100,15 @@ export default function SitePage() {
         </div>
       </div>
 
-      {/* Hero: espaço profundo, o cinturão de Órion em três anéis e a tela real do ORION subindo a partir de 2/5 */}
+      {/* Hero: espaço profundo, um O gigante e a tela real do ORION subindo a partir de 2/5 */}
       <section className="relative flex flex-col overflow-hidden bg-[#03061A]">
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {/* nebulosas: só degradês, sem pontos de estrela */}
           <div className="absolute inset-0 bg-[radial-gradient(60%_45%_at_18%_12%,rgba(45,119,204,0.28)_0%,rgba(3,6,26,0)_70%),radial-gradient(45%_40%_at_85%_30%,rgba(125,183,240,0.18)_0%,rgba(3,6,26,0)_70%),radial-gradient(70%_50%_at_50%_100%,rgba(34,48,111,0.55)_0%,rgba(3,6,26,0)_75%)]" />
-          {/* o cinturão: três anéis alinhados na diagonal, como Alnitak, Alnilam e Mintaka */}
-          <OrionRing size="var(--rs)" bars={60} barWidth={170} barLength={300} spinSeconds={220} className="absolute top-[-120px] left-[-160px] opacity-90 [--rs:640px] max-sm:top-[-90px] max-sm:left-[-200px] max-sm:[--rs:380px]" />
-          <OrionRing size="var(--rs)" bars={84} palette="interno" direction="ccw" spinSeconds={260} barWidth={200} barLength={340} className="absolute top-[-40px] left-[calc(50%-450px)] opacity-70 [--rs:900px] max-sm:hidden" />
-          <OrionRing size="var(--rs)" bars={60} barWidth={170} barLength={300} spinSeconds={200} className="absolute top-[60px] right-[-170px] opacity-90 [--rs:660px] max-sm:top-[160px] max-sm:right-[-230px] max-sm:[--rs:400px]" />
+          {/* um só O gigante atrás do título, girando com a onda */}
+          <div className="site-ring absolute top-[34%] left-1/2">
+            <OrionRing size="var(--rs)" bars={96} barWidth={200} barLength={360} spinSeconds={240} className="opacity-80 [--rs:1500px] max-sm:[--rs:820px]" />
+          </div>
           <div className="absolute inset-0 bg-[radial-gradient(42%_30%_at_50%_28%,rgba(3,6,26,0.78)_0%,rgba(3,6,26,0.25)_65%,rgba(3,6,26,0)_100%)]" />
         </div>
 
@@ -121,9 +121,6 @@ export default function SitePage() {
             <a href="#inventario" className="text-ceu-300 hover:text-creme-100 max-sm:hidden">
               Inventário
             </a>
-            <a href="#astraeus" className="text-ceu-300 hover:text-creme-100 max-sm:hidden">
-              ASTRAEUS
-            </a>
             <Link href="/login" className="text-ceu-300 hover:text-creme-100">
               Entrar
             </Link>
@@ -134,17 +131,17 @@ export default function SitePage() {
         </nav>
 
         <div className={`relative mx-auto flex max-w-[1080px] flex-col items-center gap-5 pt-[clamp(8px,2.5vw,36px)] text-center ${PAD}`}>
-          <span className="rounded-full border border-noite-600 bg-[#03061A]/60 px-3.5 py-2 font-mono text-xs tracking-[0.12em] text-creme-300">
+          <span className="site-in rounded-full border border-noite-600 bg-[#03061A]/60 px-3.5 py-2 font-mono text-xs tracking-[0.12em] text-creme-300">
             TURMA DE IMPLANTAÇÃO {TURMA_ATUAL.ano} · VAGAS LIMITADAS
           </span>
-          <h1 className="font-display text-[clamp(44px,6vw,92px)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
+          <h1 className="site-in site-d1 font-display text-[clamp(44px,6vw,92px)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
             O armazém que os outros <span className="text-ceu-400">vão copiar.</span>
           </h1>
-          <p className="max-w-[640px] text-[clamp(17px,1.5vw,21px)] leading-[1.5] text-[#C9D6E4]">
+          <p className="site-in site-d2 max-w-[640px] text-[clamp(17px,1.5vw,21px)] leading-[1.5] text-[#C9D6E4]">
             Enquanto o seu concorrente ainda confere palete na prancheta, quem está no ORION já sabe onde está cada caixa, quem contou e quanto falta para a doca.
           </p>
-          <div className="flex flex-wrap items-center justify-center gap-3.5">
-            <a href="#vaga" className="rounded-full bg-creme-100 px-8 py-4 text-base font-semibold text-noite-900 hover:bg-white">
+          <div className="site-in site-d3 flex flex-wrap items-center justify-center gap-3.5">
+            <a href="#vaga" className="site-cta rounded-full bg-creme-100 px-8 py-4 text-base font-semibold text-noite-900 hover:bg-white">
               Quero o meu CD no ORION
             </a>
             <a href="#inventario" className="rounded-full border border-noite-600 bg-[#03061A]/60 px-7 py-4 text-base hover:border-ceu-400">
@@ -164,7 +161,7 @@ export default function SitePage() {
 
         {/* a tela real, entrando por baixo com leve perspectiva */}
         <div className={`relative mt-[clamp(28px,3.5vw,48px)] ${PAD}`} style={{ perspective: "2200px" }}>
-          <figure className="mx-auto w-full max-w-[1180px] origin-top overflow-hidden rounded-lg border border-white/30 bg-white [transform:rotateX(14deg)] max-sm:[transform:none]">
+          <figure className="mx-auto w-full max-w-[1180px] origin-top overflow-hidden site-tilt rounded-lg border border-white/30 bg-white [transform:rotateX(14deg)] max-sm:[transform:none]">
             <div className="flex items-center gap-2 border-b border-gelo-200 bg-gelo-50 px-4 py-2.5">
               <span className="size-2.5 rounded-full bg-gelo-200" />
               <span className="size-2.5 rounded-full bg-gelo-200" />
@@ -187,7 +184,7 @@ export default function SitePage() {
       </section>
 
       {/* Sem × Com */}
-      <section id="antes" className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]">
+      <section id="antes" className="site-reveal grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]">
         <div className={`flex flex-col gap-[22px] bg-[#C9D0DA] py-[clamp(56px,7vw,112px)] text-[#3A4256] ${PAD}`}>
           <span className="font-mono text-[13px] tracking-[0.14em]">SEM ORION</span>
           <p className="font-display text-[clamp(40px,5vw,84px)] leading-[1.02] font-semibold tracking-[-0.03em] line-through decoration-4">
@@ -217,7 +214,7 @@ export default function SitePage() {
       </section>
 
       {/* Modo inventário */}
-      <section id="inventario" className={`flex flex-wrap items-center gap-12 bg-[#03061A] py-[clamp(64px,8vw,128px)] ${PAD}`}>
+      <section id="inventario" className={`site-reveal flex flex-wrap items-center gap-12 bg-[#03061A] py-[clamp(64px,8vw,128px)] ${PAD}`}>
         <div className="flex flex-[1_1_380px] flex-col gap-[22px]">
           <span className={`${MONO_KICKER} text-ceu-400`}>MODO INVENTÁRIO</span>
           <h2 className="font-display text-[clamp(44px,6.5vw,108px)] leading-[1.02] font-semibold tracking-[-0.03em]">O CD apaga a luz. A contagem acende.</h2>
@@ -236,7 +233,7 @@ export default function SitePage() {
       </section>
 
       {/* KPIs */}
-      <section aria-labelledby="kpi-t" className={`flex flex-col gap-10 bg-noite-800 py-[clamp(64px,8vw,128px)] ${PAD}`}>
+      <section aria-labelledby="kpi-t" className={`site-reveal flex flex-col gap-10 bg-noite-800 py-[clamp(64px,8vw,128px)] ${PAD}`}>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 id="kpi-t" className="max-w-[900px] font-display text-[clamp(40px,5.5vw,88px)] leading-[1.02] font-semibold tracking-[-0.03em]">
             Números que têm a cara do seu armazém.
@@ -244,7 +241,7 @@ export default function SitePage() {
           <p className="max-w-[400px] text-[17px] leading-relaxed text-ceu-300">Cada gráfico do ORION nasce das barras do símbolo. Bonito de olhar, rápido de ler.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          <div className="flex flex-col gap-3.5 rounded-[22px] bg-creme-100 p-[26px] text-noite-900">
+          <div className="flex flex-col gap-3.5 site-card rounded-lg bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Pedidos expedidos hoje</span>
             <div className="flex items-end justify-between gap-4">
               <span className="font-display text-[72px] leading-[1.02] font-semibold tracking-[-0.03em]">186</span>
@@ -256,7 +253,7 @@ export default function SitePage() {
             </div>
             <span className="text-[13px] text-ok-fg">▲ acima da média dos últimos 14 dias</span>
           </div>
-          <div className="flex flex-col items-center gap-2.5 rounded-[22px] bg-noite-900 p-[26px]">
+          <div className="flex flex-col items-center gap-2.5 site-card rounded-lg bg-noite-900 p-[26px]">
             <span className="self-start text-sm font-medium text-ceu-300">Ocupação do CD</span>
             <svg role="img" aria-label="Ocupação 71%" width="170" height="170" viewBox="-1 -1 2 2">
               {GLYPH.map(([x, w, y, h], i) => (
@@ -265,7 +262,7 @@ export default function SitePage() {
             </svg>
             <span className="font-display text-5xl leading-none font-semibold">71%</span>
           </div>
-          <div className="flex flex-col gap-3.5 rounded-[22px] bg-ceu-400 p-[26px] text-noite-900">
+          <div className="flex flex-col gap-3.5 site-card rounded-lg bg-ceu-400 p-[26px] text-noite-900">
             <span className="text-sm font-semibold">Armazenado × expedido</span>
             <div role="img" aria-label="Colunas diárias divididas em armazenado e expedido" className="flex h-[150px] items-end gap-1.5">
               {SPLIT_A.map((v, i) => (
@@ -279,7 +276,7 @@ export default function SitePage() {
               ▇ armazenado · <span className="text-creme-100">▇</span> expedido
             </span>
           </div>
-          <div className="flex flex-col gap-3.5 rounded-[22px] bg-white p-[26px] text-noite-900">
+          <div className="flex flex-col gap-3.5 site-card rounded-lg bg-white p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Ocupação por zona</span>
             {ZONES.map(([n, pct]) => {
               let acc = 0;
@@ -300,7 +297,7 @@ export default function SitePage() {
               );
             })}
           </div>
-          <div className="flex flex-col gap-3.5 rounded-[22px] border border-noite-600 bg-[#03061A] p-[26px]">
+          <div className="flex flex-col gap-3.5 site-card rounded-lg border border-noite-600 bg-[#03061A] p-[26px]">
             <span className="text-sm font-medium text-ceu-300">Tarefas por tipo</span>
             <div role="img" aria-label="Tarefas concluídas, em execução e pendentes por tipo" className="flex h-[150px] items-end gap-3.5">
               {STACK.map(([t, p, e, c]) => (
@@ -316,7 +313,7 @@ export default function SitePage() {
               <span className="text-[#2CC593]">■</span> concluída · <span className="text-cobalto-600">■</span> em execução · <span className="text-[#4A5578]">■</span> pendente
             </span>
           </div>
-          <div className="flex flex-col justify-between gap-2.5 rounded-[22px] bg-creme-100 p-[26px] text-noite-900">
+          <div className="flex flex-col justify-between gap-2.5 site-card rounded-lg bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Acuracidade do inventário</span>
             <span className="font-display text-[96px] leading-[1.02] font-semibold tracking-[-0.03em]">
               98,4<span className="text-[0.45em]">%</span>
@@ -327,17 +324,17 @@ export default function SitePage() {
       </section>
 
       {/* Funcionalidades */}
-      <section className={`flex flex-col gap-12 bg-gelo-50 py-[clamp(64px,8vw,128px)] text-noite-900 ${PAD}`}>
+      <section className={`site-reveal flex flex-col gap-12 bg-gelo-50 py-[clamp(64px,8vw,128px)] text-noite-900 ${PAD}`}>
         <h2 className="max-w-[1000px] font-display text-[clamp(40px,5.5vw,88px)] leading-[1.02] font-semibold tracking-[-0.03em]">Tudo entre a nota que chega e o caminhão que sai.</h2>
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map(([n, t, d, bg, fg]) => (
             <article
               key={n}
-              className="flex min-h-[280px] flex-col justify-end gap-3.5 rounded-3xl p-8"
+              className="site-card flex min-h-[280px] flex-col justify-end gap-3.5 rounded-lg p-8"
               style={{ background: bg, color: fg, border: bg === "#FFFFFF" ? "1px solid #DCE8F3" : undefined } as CSSProperties}
             >
               <span className="font-mono text-[13px] opacity-70">{n}</span>
-              <h3 className="font-display text-[30px] leading-[1.05] font-bold tracking-[-0.02em]">{t}</h3>
+              <h3 className="font-display text-[30px] leading-[1.05] font-semibold tracking-[-0.02em]">{t}</h3>
               <p className="text-[15px] leading-relaxed opacity-80">{d}</p>
             </article>
           ))}
@@ -345,7 +342,7 @@ export default function SitePage() {
       </section>
 
       {/* Clientes */}
-      <section className={`flex flex-col gap-9 bg-noite-900 py-[clamp(56px,7vw,112px)] ${PAD}`}>
+      <section className={`site-reveal flex flex-col gap-9 bg-noite-900 py-[clamp(56px,7vw,112px)] ${PAD}`}>
         <span className={`${MONO_KICKER} text-ceu-400`}>QUEM JÁ ESTÁ EM ÓRBITA</span>
         <ul className="grid grid-cols-[repeat(auto-fit,minmax(min(160px,100%),1fr))] gap-3">
           {CLIENTES.map((c) => (
@@ -363,27 +360,8 @@ export default function SitePage() {
         <p className="text-xs text-gelo-500">Clientes e depoimento ilustrativos.</p>
       </section>
 
-      {/* ASTRAEUS */}
-      <section id="astraeus" className={`relative flex flex-col items-center gap-7 overflow-hidden bg-[#03061A] py-[clamp(80px,10vw,160px)] text-center ${PAD}`}>
-        <svg aria-hidden viewBox="-1400 -1400 2800 2800" className="pointer-events-none absolute top-1/2 left-1/2 size-[1500px] max-w-none -translate-x-1/2 -translate-y-1/2 opacity-55">
-          <g className="orion-ring-cw" style={{ animationDuration: "300s" }}>
-            <circle r="1180" fill="none" stroke="#22306F" strokeWidth="6" />
-            <circle r="820" fill="none" stroke="#2D77CC" strokeWidth="6" />
-            <circle r="480" fill="none" stroke="#22306F" strokeWidth="6" strokeDasharray="30 30" />
-          </g>
-        </svg>
-        <span className={`relative ${MONO_KICKER} text-ceu-400`}>UM SÓ ECOSSISTEMA</span>
-        <h2 className="relative font-display text-[clamp(56px,14vw,240px)] leading-[1.02] font-semibold tracking-[0.01em]">ASTRAEUS</h2>
-        <div className="relative flex flex-wrap justify-center gap-3 font-semibold">
-          <span className="rounded-full bg-creme-300 px-[22px] py-3.5 text-noite-900">ATLAS · ERP, MRP, MCN</span>
-          <span className="rounded-full bg-ceu-400 px-[22px] py-3.5 text-noite-900">ORION · WMS</span>
-          <span className="rounded-full border border-dashed border-ceu-300 px-[22px] py-3.5 text-ceu-300">TMS · em breve</span>
-        </div>
-        <p className="relative max-w-[620px] text-lg leading-relaxed text-ceu-300">O ERP planeja, o WMS guarda e separa, o TMS leva. Um dado digitado uma vez vale para todos.</p>
-      </section>
-
       {/* CTA final */}
-      <section id="vaga" className={`relative flex flex-col items-center gap-9 overflow-hidden bg-creme-100 py-[clamp(96px,12vw,200px)] text-center text-noite-900 ${PAD}`}>
+      <section id="vaga" className={`site-reveal relative flex flex-col items-center gap-9 overflow-hidden bg-creme-100 py-[clamp(96px,12vw,200px)] text-center text-noite-900 ${PAD}`}>
         <OrionRing size={1800} bars={96} barWidth={200} barLength={360} palette="tinta" spinSeconds={260} className="absolute top-[calc(50%-900px)] left-[calc(50%-900px)] opacity-[0.16]" />
         <h2 className="relative max-w-[1200px] font-display text-[clamp(48px,9vw,156px)] leading-[1.02] font-semibold tracking-[-0.03em]">
           Entre nesta órbita
@@ -404,7 +382,7 @@ export default function SitePage() {
 
       <footer className={`flex flex-wrap justify-between gap-4 border-t border-noite-700 bg-[#03061A] py-8 text-[13px] text-ceu-300 ${PAD}`}>
         <span>
-          <b className="font-display text-lg font-bold text-creme-100">orion</b> · um produto do ecossistema ASTRAEUS
+          <b className="font-display text-lg font-semibold text-creme-100">orion</b> · ORION é do universo <b className="font-display font-semibold tracking-[0.12em] text-creme-100">ASTRAEUS</b>
         </span>
         <span className="font-mono">contato@astraeus.com.br · Belo Horizonte, MG</span>
       </footer>
