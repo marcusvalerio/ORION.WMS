@@ -7,7 +7,7 @@ export default function NotFound() {
       <p className="text-sm font-semibold text-link">404</p>
       <h1 className="text-xl font-semibold text-fg">Página ou registro não encontrado</h1>
       <p className="max-w-md text-sm text-muted">O endereço pode estar incorreto ou o registro não pertence à sua empresa.</p>
-      <Link href="/" className={buttonClass("primary")}>
+      <Link href="/painel" className={buttonClass("primary")}>
         Voltar ao dashboard
       </Link>
     </div>

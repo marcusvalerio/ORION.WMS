@@ -14,7 +14,7 @@ export const dynamic = "force-dynamic";
 export const metadata = { title: "Entrar" };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<Record<string, string | string[] | undefined>> }) {
-  if (await getLoggedUser()) redirect("/");
+  if (await getLoggedUser()) redirect("/painel");
   const sp = await searchParams;
   const code = typeof sp.sso_error === "string" ? sp.sso_error : null;
   const ssoError = code ? (SSO_ERROR_MESSAGES[code] ?? SSO_ERROR_MESSAGES.default) : null;
@@ -51,7 +51,7 @@ export default async function LoginPage({ searchParams }: { searchParams: Promis
         {isDemoMode() ? (
           <p className="text-center text-xs text-ceu-300">
             Modo demonstração: sem login, o sistema abre como administradora.{" "}
-            <Link href="/" className="font-medium text-ceu-400 underline-offset-2 hover:text-creme-100 hover:underline">
+            <Link href="/painel" className="font-medium text-ceu-400 underline-offset-2 hover:text-creme-100 hover:underline">
               Voltar ao sistema
             </Link>
           </p>

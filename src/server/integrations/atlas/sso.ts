@@ -103,7 +103,7 @@ export async function verifyLaunchToken(token: string, o: VerifyOptions): Promis
   if (!parsed.success) throw new SsoError("invalid_claims", "Claims do token incompletas ou inválidas.");
   const claims = parsed.data;
   if (claims.exp - claims.iat > 120) throw new SsoError("invalid_claims", "Validade do token acima de 120 segundos.");
-  const returnTo = claims.return_to == null || claims.return_to === "" ? "/" : safeReturnTo(claims.return_to);
+  const returnTo = claims.return_to == null || claims.return_to === "" ? "/painel" : safeReturnTo(claims.return_to);
   if (!returnTo) throw new SsoError("invalid_return_to", "Destino (return_to) inválido.", 400);
   // Token com state (fluxo iniciado no ORION) exige o mesmo valor no cookie; sem state é o fluxo iniciado no ATLAS.
   if (claims.state && (!o.expectedState || !safeEqual(claims.state, o.expectedState))) {

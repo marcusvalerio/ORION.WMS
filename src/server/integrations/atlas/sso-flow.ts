@@ -51,6 +51,6 @@ export function buildAuthorizeRedirect(returnTo: unknown, env: AtlasEnv = atlasE
   const state = randomBytes(32).toString("base64url");
   const target = new URL(`${env.url}/api/integrations/orion/v1/sso/authorize`);
   target.searchParams.set("state", state);
-  target.searchParams.set("return_to", safeReturnTo(returnTo) ?? "/");
+  target.searchParams.set("return_to", safeReturnTo(returnTo) ?? "/painel");
   return { url: target.toString(), state };
 }
