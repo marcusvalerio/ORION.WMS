@@ -304,6 +304,13 @@
   .num {
     @apply text-right tabular-nums;
   }
+  /* Códigos (endereço, SKU, lote, documento) não quebram no meio dentro de tabelas:
+     no celular a tabela rola de lado, e o código continua legível numa linha só. */
+  .table-base td .font-mono,
+  .table-base td.font-mono,
+  .table-base td .code {
+    white-space: nowrap;
+  }
   .code {
     @apply font-mono text-xs text-fg-2;
   }
