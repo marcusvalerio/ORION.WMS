@@ -46,6 +46,7 @@ const RECEIPT_CARGO_SQL = `
 
 export interface CargoSummary {
   container_type: string | null;
+  pallet_type: string | null;
   m3: number;
   kg: number;
   missing: number;
@@ -54,7 +55,7 @@ export interface CargoSummary {
 /** Carga de um recebimento de importação (para o painel do contêiner). */
 export async function receiptCargo(ctx: Ctx, receiptId: string): Promise<CargoSummary | null> {
   const [row] = await ctx.db.query<CargoSummary>(
-    `select r.container_type, cg.m3, cg.kg, cg.missing
+    `select r.container_type, r.pallet_type, cg.m3, cg.kg, cg.missing
      from wms.receipts r cross join lateral (${RECEIPT_CARGO_SQL}) cg
      where r.id = $1 and r.company_id = $2`,
     [receiptId, ctx.user.companyId],
@@ -91,6 +92,7 @@ export interface ImportProcessRow {
   created_at: string;
   expected_total: number;
   container_type: string | null;
+  pallet_type: string | null;
   cargo_m3: number;
   cargo_kg: number;
   /** itens sem dimensões ou peso no cadastro do produto */
@@ -113,7 +115,7 @@ export async function listImportProcesses(ctx: Ctx, f: ImportFilters = {}): Prom
               r.import_registered_on::text as import_registered_on, r.customs_cleared_on::text as customs_cleared_on,
               r.checked_at::text as checked_at, r.completed_at::text as completed_at, r.created_at::text as created_at, r.is_demo,
               coalesce((select sum(i.expected_qty) from wms.receipt_items i where i.receipt_id = r.id), 0)::float8 as expected_total,
-              r.container_type, cg.m3 as cargo_m3, cg.kg as cargo_kg, cg.missing as cargo_missing,
+              r.container_type, r.pallet_type, cg.m3 as cargo_m3, cg.kg as cargo_kg, cg.missing as cargo_missing,
               r.supplier_id
        from wms.receipts r
        join erp.suppliers s on s.id = r.supplier_id
@@ -232,6 +234,7 @@ export interface ExportOrderRow {
   packages: number;
   gross_weight_kg: number;
   container_type: string | null;
+  pallet_type: string | null;
   cargo_m3: number;
   packed_at: string | null;
   stuffed_at: string | null;
@@ -252,7 +255,7 @@ export async function listExportOrders(ctx: Ctx, f: ExportFilters = {}): Promise
               o.export_incoterm, o.destination_country, o.commercial_invoice, o.export_declaration, o.container_number, o.seal_number,
               (select count(*) from wms.export_packages p where p.order_id = o.id)::int as packages,
               coalesce((select sum(p.gross_weight_kg) from wms.export_packages p where p.order_id = o.id), 0)::float8 as gross_weight_kg,
-              o.container_type,
+              o.container_type, o.pallet_type,
               coalesce((select sum(p.length_cm * p.width_cm * p.height_cm) / 1000000 from wms.export_packages p where p.order_id = o.id), 0)::float8 as cargo_m3,
               o.packed_at::text as packed_at, o.stuffed_at::text as stuffed_at, o.shipped_at::text as shipped_at,
               o.created_at::text as created_at, o.is_demo

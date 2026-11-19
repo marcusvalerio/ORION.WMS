@@ -6,7 +6,8 @@ import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../ac
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText } from "../validation";
 import { audit, runOperation, type OpOptions } from "./common";
-import { AREA_KINDS, AREA_KIND_SPECS, LIMITS, aisleSlots, planLayout, type WizardArea } from "@/lib/layout-wizard";
+import { AREA_KINDS, AREA_KIND_SPECS, LIMITS, PALLET_AREAS, aisleSlots, planLayout, type WizardArea } from "@/lib/layout-wizard";
+import { PALLET_TYPES } from "@/lib/pallets";
 
 // -----------------------------------------------------------------------------
 // Depósitos
@@ -338,6 +339,7 @@ const wizardAreaSchema = z.object({
   levels: z.coerce.number().int().min(1).max(LIMITS.levels),
   positions: z.coerce.number().int().min(1).max(LIMITS.positions),
   capacity: z.coerce.number().positive("Capacidade deve ser maior que zero."),
+  palletType: z.enum(PALLET_TYPES, { error: "Tipo de palete inválido." }).nullish(),
 });
 
 const wizardSchema = z.object({
@@ -411,10 +413,10 @@ export async function buildLayout(ctx: Ctx, input: unknown, opts?: OpOptions) {
       const slots = aisleSlots(pa);
       const rows = await tx.query<{ id: string }>(
         `insert into wms.locations (company_id, warehouse_id, zone_id, aisle, bay, level, position, code,
-                                    location_type, storage_class, capacity_units, created_by)
+                                    location_type, storage_class, capacity_units, created_by, pallet_type)
          select $1, $2, $3, $4, s.bay, s.level, s.position,
                 $5 || '/RUA-' || $4 || '/MOD-' || s.bay || '/NIV-' || s.level || '/POS-' || s.position,
-                $6, $7, $8, $9
+                $6, $7, $8, $9, $13
          from unnest($10::text[], $11::text[], $12::text[]) as s(bay, level, position)
          on conflict do nothing
          returning id`,
@@ -431,13 +433,14 @@ export async function buildLayout(ctx: Ctx, input: unknown, opts?: OpOptions) {
           slots.map((x) => x.bay),
           slots.map((x) => x.level),
           slots.map((x) => x.position),
+          PALLET_AREAS.includes(area.kind) ? (area.palletType ?? null) : null,
         ],
       );
       created += rows.length;
     }
     const skipped = plan.total - created;
     await audit(tx, ctx, "layout.built", "warehouse", d.warehouseId, wh.code, {
-      areas: areas.map((a) => ({ kind: a.kind, code: a.code, aisles: a.aisles, bays: a.bays, levels: a.levels, positions: a.positions })),
+      areas: areas.map((a) => ({ kind: a.kind, code: a.code, aisles: a.aisles, bays: a.bays, levels: a.levels, positions: a.positions, pallet: a.palletType ?? null })),
       zonesCreated,
       created,
       skipped,

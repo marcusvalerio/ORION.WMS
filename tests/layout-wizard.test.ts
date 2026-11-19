@@ -59,3 +59,34 @@ describe("Montar armazém (assistente)", () => {
     await expect(buildLayout(env.as("operator"), { warehouseId: whId, areas: JSON.stringify([newArea("rack")]) })).rejects.toThrow();
   });
 });
+
+describe("Tipos de palete", () => {
+  it("encaixe por camada nos contêineres", async () => {
+    const { palletsPerLayer } = await import("@/lib/pallets");
+    const { CONTAINERS } = await import("@/lib/container");
+    const c20 = CONTAINERS["20DC"];
+    const c40 = CONTAINERS["40DC"];
+    // referências de mercado (estimativa conservadora, sem arranjos mistos complexos)
+    expect(palletsPerLayer("PBR", c20.length, c20.width)).toBeGreaterThanOrEqual(9);
+    expect(palletsPerLayer("PBR", c40.length, c40.width)).toBeGreaterThanOrEqual(20);
+    expect(palletsPerLayer("EUR", c40.length, c40.width)).toBeGreaterThanOrEqual(20);
+    expect(palletsPerLayer("HALF", c20.length, c20.width)).toBeGreaterThan(palletsPerLayer("PBR", c20.length, c20.width));
+  });
+
+  it("o assistente grava o palete nos endereços de porta-palete", async () => {
+    const { createTestEnv } = await import("./helpers");
+    const env = await createTestEnv();
+    const ctx = env.as("admin");
+    const wh = await createWarehouse(ctx, { code: "CD-PAL", name: "Paletes" });
+    await buildLayout(ctx, {
+      warehouseId: wh.id,
+      areas: JSON.stringify([{ ...newArea("rack"), aisles: 1, bays: 1, levels: 1, palletType: "EUR" }, newArea("shipping")]),
+    });
+    const rows = await env.db.query<{ location_type: string; pallet_type: string | null }>(
+      `select location_type, pallet_type from wms.locations where warehouse_id = $1 order by location_type`,
+      [wh.id],
+    );
+    expect(rows.find((r) => r.location_type === "rack")?.pallet_type).toBe("EUR");
+    expect(rows.find((r) => r.location_type === "dock")?.pallet_type).toBeNull();
+  });
+});

@@ -1,4 +1,5 @@
 import { CONTAINERS, type ContainerLoad, type ContainerSpec } from "@/lib/container";
+import { PALLETS, isPalletType, palletsPerLayer, type PalletType } from "@/lib/pallets";
 import { fmtQty } from "@/lib/format";
 import { cn } from "@/components/ui/cn";
 
@@ -27,9 +28,12 @@ export function ContainerIso({
   compact = false,
   className,
   title,
+  pallet = "PBR",
 }: {
   spec: ContainerSpec;
   pct: number;
+  /** palete da carga: define o tamanho de cada bloco no desenho */
+  pallet?: PalletType;
   level?: ContainerLoad["level"];
   compact?: boolean;
   className?: string;
@@ -48,16 +52,19 @@ export function ContainerIso({
   const right = keep([P(L, 0, 0, u), P(L, W, 0, u), P(L, W, H, u), P(L, 0, H, u)]);
   const roof = keep([P(0, 0, H, u), P(L, 0, H, u), P(L, W, H, u), P(0, W, H, u)]);
 
-  // carga: paletes de 1,2 m do fundo para a porta, 2 na largura, empilhados até caber na altura
-  const PL = 1.2;
-  const PW = W / 2;
+  // carga: paletes do tipo escolhido, do fundo para a porta, quantos couberem na largura,
+  // empilhados até caber na altura
+  const pal = PALLETS[pallet];
+  const across = Math.max(1, Math.floor(W / pal.width));
+  const PL = pal.length;
+  const PW = W / across;
   const PH = Math.min(1.15, H / 2 - 0.04);
   const cols = Math.floor(L / PL);
   const levels = Math.max(1, Math.floor(H / (PH + 0.04)));
-  const total = cols * 2 * levels;
+  const total = cols * across * levels;
   const n = Math.round((Math.min(Math.max(pct, 0), 100) / 100) * total);
   const order: [number, number, number][] = [];
-  for (let c = 0; c < cols; c++) for (let z = 0; z < levels; z++) for (let r = 0; r < 2; r++) order.push([c, r, z]);
+  for (let c = 0; c < cols; c++) for (let z = 0; z < levels; z++) for (let r = 0; r < across; r++) order.push([c, r, z]);
   const [cTop, cFront, cSide] = TONES[level];
   const boxes = order
     .slice(0, n)
@@ -147,7 +154,8 @@ function Blocks({ pct, level }: { pct: number; level: ContainerLoad["level"] }) 
 const pctText = (n: number) => `${Math.round(n)}%`;
 
 /** Painel do processo: desenho grande e os números de volume e peso. */
-export function ContainerPanel({ load, packages }: { load: ContainerLoad | null; packages?: number }) {
+export function ContainerPanel({ load, packages, pallet }: { load: ContainerLoad | null; packages?: number; pallet?: string | null }) {
+  const pt = isPalletType(pallet) ? pallet : null;
   if (!load) {
     return (
       <div className="flex items-center gap-4 rounded-lg border border-dashed border-line-strong p-4">
@@ -161,7 +169,7 @@ export function ContainerPanel({ load, packages }: { load: ContainerLoad | null;
   const cap = load.spec.length * load.spec.width * load.spec.height;
   return (
     <div className="grid gap-4 sm:grid-cols-[3fr_2fr] sm:items-center">
-      <ContainerIso spec={load.spec} pct={load.pct} level={load.level} className="max-h-64" />
+      <ContainerIso spec={load.spec} pct={load.pct} level={load.level} pallet={pt ?? "PBR"} className="max-h-64" />
       <div className="space-y-3">
         <div>
           <p className="text-xs font-medium text-muted">Ocupação do contêiner</p>
@@ -185,6 +193,11 @@ export function ContainerPanel({ load, packages }: { load: ContainerLoad | null;
           {fmtQty(Math.round(load.kg))} kg de {fmtQty(load.spec.payloadKg)} kg
           {packages ? ` · ${packages} volume${packages === 1 ? "" : "s"}` : ""}
         </p>
+        {pt ? (
+          <p className="text-xs text-fg-2">
+            Palete {PALLETS[pt].label}: cabem {palletsPerLayer(pt, load.spec.length, load.spec.width)} por camada no {load.spec.label}.
+          </p>
+        ) : null}
         {load.missing > 0 ? (
           <p className="text-xs text-warn-fg">
             {load.missing} item{load.missing === 1 ? "" : "s"} sem dimensões ou peso no cadastro: a ocupação real é maior.
@@ -196,11 +209,11 @@ export function ContainerPanel({ load, packages }: { load: ContainerLoad | null;
 }
 
 /** Versão compacta para a primeira coluna da lista do Comex. */
-export function ContainerMini({ load }: { load: ContainerLoad | null }) {
+export function ContainerMini({ load, pallet }: { load: ContainerLoad | null; pallet?: string | null }) {
   if (!load) return <span className="text-xs text-muted">sem tipo</span>;
   return (
     <span className="flex w-24 flex-col gap-0.5" title={`${load.spec.label} · ${pctText(load.pct)} (limite: ${load.limit === "volume" ? "volume" : "peso"})`}>
-      <ContainerIso spec={load.spec} pct={load.pct} level={load.level} compact />
+      <ContainerIso spec={load.spec} pct={load.pct} level={load.level} pallet={isPalletType(pallet) ? pallet : "PBR"} compact />
       <span className="flex items-baseline justify-between text-xs">
         <span className="text-muted">{load.spec.label}</span>
         <span className={cn("font-medium tabular-nums", load.level === "over" ? "text-crit-fg" : load.level === "warning" ? "text-warn-fg" : "text-fg")}>

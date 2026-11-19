@@ -3,6 +3,7 @@ import { getReceiptImport } from "@/server/services/comex";
 import { receiptCargo } from "@/server/services/comex-panel";
 import { ContainerPanel } from "@/components/comex/container-iso";
 import { CONTAINER_TYPES, CONTAINERS, containerLoad } from "@/lib/container";
+import { PALLET_TYPES, palletLabel } from "@/lib/pallets";
 import { clearCustomsAction, saveReceiptImportAction } from "@/server/actions/comex";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
@@ -50,7 +51,7 @@ export async function ReceiptImportCard({
       />
       <CardBody className="space-y-4">
         {hasData && cargo ? (
-          <ContainerPanel load={containerLoad({ type: cargo.container_type, m3: cargo.m3, kg: cargo.kg, missing: cargo.missing })} />
+          <ContainerPanel load={containerLoad({ type: cargo.container_type, m3: cargo.m3, kg: cargo.kg, missing: cargo.missing })} pallet={cargo.pallet_type} />
         ) : null}
         {hasData ? (
           <DefinitionList
@@ -136,6 +137,14 @@ export async function ReceiptImportCard({
                     defaultValue={info.container_type ?? ""}
                     placeholder="—"
                     options={CONTAINER_TYPES.map((t) => ({ value: t, label: CONTAINERS[t].label }))}
+                  />
+                </Field>
+                <Field label="Palete da carga" hint="Usado no encaixe dentro do contêiner">
+                  <Select
+                    name="palletType"
+                    defaultValue={info.pallet_type ?? ""}
+                    placeholder="—"
+                    options={PALLET_TYPES.map((t) => ({ value: t, label: palletLabel(t) }))}
                   />
                 </Field>
                 <Field label="Lacre">

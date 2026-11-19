@@ -8,10 +8,12 @@ import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { Card, CardBody, CardHeader } from "@/components/ui/card";
 import { cn } from "@/components/ui/cn";
 import { fmtQty } from "@/lib/format";
+import { PALLETS, PALLET_TYPES, palletLabel, type PalletType } from "@/lib/pallets";
 import {
   AREA_KINDS,
   AREA_KIND_SPECS,
   LIMITS,
+  PALLET_AREAS,
   TEMPLATES,
   newArea,
   planLayout,
@@ -225,6 +227,18 @@ function AreaEditor({ area, count, onChange, onRemove }: { area: WizardArea; cou
             <NumberField label="Níveis" value={area.levels} min={1} max={LIMITS.levels} onChange={(v) => onChange({ levels: v })} />
           </>
         )}
+        {PALLET_AREAS.includes(area.kind) ? (
+          <label className="col-span-2 block min-w-0 sm:col-span-5">
+            <span className="label">Palete</span>
+            <select className="input" value={area.palletType ?? "PBR"} onChange={(e) => onChange({ palletType: e.target.value as PalletType })}>
+              {PALLET_TYPES.map((t) => (
+                <option key={t} value={t}>
+                  {palletLabel(t)} — {PALLETS[t].origin}
+                </option>
+              ))}
+            </select>
+          </label>
+        ) : null}
         <NumberField label="Posições por nível" value={area.positions} min={1} max={LIMITS.positions} onChange={(v) => onChange({ positions: v })} />
         <NumberField label="Capacidade (un)" value={area.capacity} min={1} max={10_000_000} onChange={(v) => onChange({ capacity: v })} />
       </div>

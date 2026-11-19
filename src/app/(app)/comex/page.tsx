@@ -260,7 +260,7 @@ function ImportTable({ rows }: { rows: ImportProcessRow[] }) {
             return (
               <tr key={r.id}>
                 <td>
-                  <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.cargo_kg, missing: r.cargo_missing })} />
+                  <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.cargo_kg, missing: r.cargo_missing })} pallet={r.pallet_type} />
                 </td>
                 <td>
                   <Link href={`/recebimentos/${r.id}`} className="link font-mono">
@@ -477,7 +477,7 @@ function ExportTable({ rows }: { rows: ExportOrderRow[] }) {
                 ) : null}
               </td>
               <td>
-                <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.gross_weight_kg })} />
+                <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.gross_weight_kg })} pallet={r.pallet_type} />
               </td>
               <td>
                 <Link href={`/separacao/${r.id}`} className="link font-mono">

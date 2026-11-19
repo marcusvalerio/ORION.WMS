@@ -393,14 +393,14 @@ export async function seedComexShowcase(db: Db): Promise<void> {
   const r1 = await newReceipt(COMEX_MARKER, shenzhen, 21000, 38.5);
   await comex.saveReceiptImport(sup, r1, {
     incoterm: "FOB", originCountry: "CN", transportMode: "sea", transportDoc: "MEDUSZ4471203", commercialInvoice: "SZP-2026-1187",
-    containerNumber: container("MSCU771204"), containerType: "40HC", sealNumber: "ML-552190", shippedOn: day(-12), etaOn: day(9),
+    containerNumber: container("MSCU771204"), containerType: "40HC", palletType: "PBR", sealNumber: "ML-552190", shippedOn: day(-12), etaOn: day(9),
   });
 
   // 2. Chegou, DUIMP registrada no canal amarelo, aguardando desembaraço (armazenagem bloqueada)
   const r2 = await newReceipt("PC-IMP-0002", shenzhen, 10000, 52);
   await comex.saveReceiptImport(sup, r2, {
     importDocType: "DUIMP", importDocNumber: "26BR0004417730", incoterm: "CIF", originCountry: "CN", transportMode: "sea",
-    transportDoc: "COSU6290017781", commercialInvoice: "SZP-2026-1102", containerNumber: container("CSQU305512"), containerType: "20DC", sealNumber: "CS-118204",
+    transportDoc: "COSU6290017781", commercialInvoice: "SZP-2026-1102", containerNumber: container("CSQU305512"), containerType: "20DC", palletType: "ASIA", sealNumber: "CS-118204",
     shippedOn: day(-34), etaOn: day(-4), registeredOn: day(-2), customsChannel: "yellow", holdForClearance: "on",
   });
   await count(r2, 10000, "IMP-CN-2611");
@@ -446,13 +446,13 @@ export async function seedComexShowcase(db: Db): Promise<void> {
   });
   try {
     const a = await exportOrder("Importadora Andes Ltda. (demo)", 6, {
-      incoterm: "FCA", destinationCountry: "CL", commercialInvoice: "INV-2026-0107", exportDeclaration: "26BR0001093374", containerType: "20DC",
+      incoterm: "FCA", destinationCountry: "CL", commercialInvoice: "INV-2026-0107", exportDeclaration: "26BR0001093374", containerType: "20DC", palletType: "PBR",
     });
     await comex.addExportPackage(op, a.id, pkg(a.lineId, 3));
     await comex.addExportPackage(op, a.id, pkg(a.lineId, 3));
     await comex.finishPacking(op, a.id);
     await comex.stuffContainer(op, a.id, { containerNumber: container("MSCU561230"), sealNumber: "EXP-30021" });
-    const b = await exportOrder("Distribuidora Rio de la Plata S.A. (demo)", 4, { incoterm: "CPT", destinationCountry: "AR", commercialInvoice: "INV-2026-0112", containerType: "40DC" });
+    const b = await exportOrder("Distribuidora Rio de la Plata S.A. (demo)", 4, { incoterm: "CPT", destinationCountry: "AR", commercialInvoice: "INV-2026-0112", containerType: "40DC", palletType: "EUR" });
     await comex.addExportPackage(op, b.id, pkg(b.lineId, 2));
   } catch {
     // sem saldo suficiente de CHP-004 neste banco: a vitrine de importação já basta

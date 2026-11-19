@@ -1,3 +1,5 @@
+import type { PalletType } from "./pallets";
+
 /**
  * Assistente "Montar armazém": a pessoa descreve o CD por áreas (porta-palete,
  * picking, câmara fria, docas…) com ruas × módulos × níveis × posições, e o
@@ -86,6 +88,8 @@ export const AREA_KIND_SPECS: Record<AreaKind, AreaKindSpec> = {
 
 export interface WizardArea {
   kind: AreaKind;
+  /** palete que o endereço recebe (porta-palete, câmara fria, blocado) */
+  palletType?: PalletType | null;
   code: string;
   name: string;
   aisles: number;
@@ -97,8 +101,11 @@ export interface WizardArea {
 
 export const LIMITS = { aisles: 40, bays: 99, levels: 20, positions: 10, total: 6000 } as const;
 
+/** Áreas que guardam paletes e, portanto, têm tipo de palete. */
+export const PALLET_AREAS: readonly AreaKind[] = ["rack", "cold", "floor"];
+
 export function newArea(kind: AreaKind): WizardArea {
-  return { kind, ...AREA_KIND_SPECS[kind].defaults };
+  return { kind, ...AREA_KIND_SPECS[kind].defaults, palletType: PALLET_AREAS.includes(kind) ? "PBR" : null };
 }
 
 export const TEMPLATES: { id: string; label: string; hint: string; areas: AreaKind[] }[] = [

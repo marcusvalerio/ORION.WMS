@@ -22,6 +22,7 @@ import { fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { ContainerPanel } from "@/components/comex/container-iso";
 import { CONTAINER_TYPES, CONTAINERS, containerLoad } from "@/lib/container";
+import { PALLET_TYPES, palletLabel } from "@/lib/pallets";
 
 /** Exportação do pedido: dados, volumes (packing list), fechamento e estufagem. */
 export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }) {
@@ -62,6 +63,7 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
           <ContainerPanel
             load={containerLoad({ type: order.container_type, m3: Number(totals.volumeM3), kg: totals.grossWeightKg })}
             packages={totals.packages}
+            pallet={order.pallet_type}
           />
         ) : null}
         {order.is_export ? (
@@ -104,6 +106,14 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
                   defaultValue={order.container_type ?? ""}
                   placeholder="—"
                   options={CONTAINER_TYPES.map((t) => ({ value: t, label: CONTAINERS[t].label }))}
+                />
+              </Field>
+              <Field label="Palete da carga" hint="Usado no encaixe dentro do contêiner">
+                <Select
+                  name="palletType"
+                  defaultValue={order.pallet_type ?? ""}
+                  placeholder="—"
+                  options={PALLET_TYPES.map((t) => ({ value: t, label: palletLabel(t) }))}
                 />
               </Field>
               <div className="sm:col-span-2">
