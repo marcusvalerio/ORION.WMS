@@ -258,6 +258,23 @@
   :focus-visible {
     @apply outline-2 outline-offset-2 outline-focus;
   }
+  /* Safari no iPhone dá aos campos de data e hora uma largura mínima própria e
+     altura maior quando vazios: dois campos lado a lado se sobrepunham. */
+  input[type="date"],
+  input[type="time"],
+  input[type="datetime-local"],
+  input[type="month"] {
+    -webkit-appearance: none;
+    appearance: none;
+    min-width: 0;
+    max-width: 100%;
+  }
+  input[type="date"]::-webkit-date-and-time-value,
+  input[type="time"]::-webkit-date-and-time-value,
+  input[type="datetime-local"]::-webkit-date-and-time-value {
+    min-height: 1.25rem;
+    text-align: left;
+  }
 }
 
 @layer components {
