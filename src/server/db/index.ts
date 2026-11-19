@@ -13,6 +13,11 @@ const g = globalThis as GlobalWithDb;
 
 async function init(): Promise<Db> {
   const url = process.env.DATABASE_URL;
+  // Produção sem banco configurado: falha com mensagem clara. O banco temporário
+  // (PGlite em /tmp) perde os dados e não é compartilhado entre instâncias.
+  if (!url && !isDemoMode() && (process.env.VERCEL || process.env.NODE_ENV === "production") && process.env.WMS_ALLOW_LOCAL_DB !== "true") {
+    throw new Error("DATABASE_URL não configurada: defina a conexão do banco (Neon/PostgreSQL) nas variáveis de ambiente.");
+  }
   const db = url
     ? await createPostgresDb(url)
     : await createPgliteDb(process.env.PGLITE_DATA_DIR ?? defaultPgliteDir());
@@ -22,7 +27,8 @@ async function init(): Promise<Db> {
     const { applyDeterministicDemoIds } = await import("./demo-ids");
     await applyDeterministicDemoIds(db);
   }
-  if (process.env.WMS_AUTO_SEED !== "false") {
+  const autoSeed = url ? process.env.WMS_AUTO_SEED === "true" : process.env.WMS_AUTO_SEED !== "false";
+  if (autoSeed) {
     const { seedDemoIfEmpty } = await import("../seed/demo");
     const seeded = await seedDemoIfEmpty(db);
     // banco de demonstração anterior à vitrine do inventário: completa (idempotente)

@@ -48,8 +48,8 @@ Veja [`.env.example`](.env.example). Nenhuma é obrigatória em desenvolvimento.
 | `DATABASE_URL` | Conexão Postgres/Supabase **somente no servidor**. Sem ela, usa PGlite. |
 | `PGLITE_DATA_DIR` | Diretório do banco embarcado (padrão `.data/pglite`). |
 | `SESSION_SECRET` | Segredo (≥ 32 caracteres) do cookie de sessão. **Obrigatório em produção.** Em desenvolvimento, um segredo aleatório é gerado em `.data/session-secret`. |
-| `WMS_AUTO_SEED` | `false` desliga a carga automática dos dados de demonstração. |
-| `WMS_DEMO_MODE` | `true`: abre sem login, como a administradora de demonstração, com banco PGlite temporário e sem `SESSION_SECRET`. Sem a variável, liga sozinho na **Vercel** (preview e produção) quando não há `DATABASE_URL`; `false` desliga. Os dados voltam ao inicial quando o servidor reinicia. |
+| `WMS_AUTO_SEED` | Banco local (PGlite): carrega a demonstração no primeiro acesso, salvo `false`. Banco real (`DATABASE_URL`): só carrega com `true`. |
+| `WMS_DEMO_MODE` | `true`: abre sem login, como a administradora de demonstração, com banco PGlite temporário e sem `SESSION_SECRET`. **Só liga quando definida como `true`.** Em produção (Vercel), sem `DATABASE_URL` o sistema não abre: configure o banco. |
 | `ATLAS_DATABASE_URL` | Conexão Postgres **somente leitura** com o banco do ATLAS.ERP, **legado (aposentado)**: importação manual dos dados da empresa. Continua funcionando para empresas *sem* vínculo pela API do ATLAS; empresas vinculadas recebem `company.upserted`. Só no servidor. Sem ela, os dados são editados manualmente. |
 | `ATLAS_URL` | Base do ATLAS.ERP (ex.: `https://atlas.exemplo.com.br`). Habilita o botão “Entrar com ATLAS” e o envio da outbox ao ATLAS. |
 | `ATLAS_ISSUER` / `ATLAS_SSO_ISSUER` | `iss` exigido no token de SSO (padrão `ATLAS_URL`). |

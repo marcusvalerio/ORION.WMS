@@ -6,26 +6,18 @@ import { createTestEnv, type TestEnv } from "./helpers";
 describe("Modo demonstração", () => {
   afterEach(() => vi.unstubAllEnvs());
 
-  it("liga sozinho na Vercel sem DATABASE_URL", () => {
+  it("não liga sozinho: nem na Vercel sem DATABASE_URL", () => {
     vi.stubEnv("WMS_DEMO_MODE", "");
     vi.stubEnv("DATABASE_URL", "");
-    vi.stubEnv("VERCEL_ENV", "preview");
-    expect(isDemoMode()).toBe(true);
-    vi.stubEnv("DATABASE_URL", "postgres://banco-real");
-    expect(isDemoMode()).toBe(false);
-    vi.stubEnv("DATABASE_URL", "");
     vi.stubEnv("VERCEL_ENV", "production");
-    expect(isDemoMode()).toBe(true);
-    vi.stubEnv("VERCEL_ENV", "");
+    expect(isDemoMode()).toBe(false);
+    vi.stubEnv("VERCEL_ENV", "preview");
     expect(isDemoMode()).toBe(false);
   });
 
-  it("WMS_DEMO_MODE decide quando definida", () => {
-    vi.stubEnv("VERCEL_ENV", "preview");
-    vi.stubEnv("DATABASE_URL", "");
+  it("só WMS_DEMO_MODE=true liga", () => {
     vi.stubEnv("WMS_DEMO_MODE", "false");
     expect(isDemoMode()).toBe(false);
-    vi.stubEnv("VERCEL_ENV", "");
     vi.stubEnv("WMS_DEMO_MODE", "true");
     expect(isDemoMode()).toBe(true);
   });
