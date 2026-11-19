@@ -164,16 +164,16 @@ export default function SitePage() {
 
         {/* a tela real, entrando por baixo com leve perspectiva */}
         <div className={`relative mt-[clamp(28px,3.5vw,48px)] ${PAD}`} style={{ perspective: "2200px" }}>
-          <figure className="mx-auto w-full max-w-[1180px] origin-top overflow-hidden rounded-lg border border-noite-600 bg-noite-900 [transform:rotateX(14deg)] max-sm:[transform:none]">
-            <div className="flex items-center gap-2 border-b border-noite-600 px-4 py-2.5">
-              <span className="size-2.5 rounded-full bg-noite-600" />
-              <span className="size-2.5 rounded-full bg-noite-600" />
-              <span className="size-2.5 rounded-full bg-noite-600" />
-              <span className="ml-3 font-mono text-[11px] text-ceu-300">orion.astraeus.com.br</span>
+          <figure className="mx-auto w-full max-w-[1180px] origin-top overflow-hidden rounded-lg border border-white/30 bg-white [transform:rotateX(14deg)] max-sm:[transform:none]">
+            <div className="flex items-center gap-2 border-b border-gelo-200 bg-gelo-50 px-4 py-2.5">
+              <span className="size-2.5 rounded-full bg-gelo-200" />
+              <span className="size-2.5 rounded-full bg-gelo-200" />
+              <span className="size-2.5 rounded-full bg-gelo-200" />
+              <span className="ml-3 font-mono text-[11px] text-gelo-700">orion.astraeus.com.br</span>
             </div>
             <Image
-              src="/site/painel-orion.webp"
-              alt="Painel do ORION: indicadores do armazém, recebimentos e expedições dos últimos 14 dias e ocupação no traço do símbolo"
+              src="/site/painel-orion-claro.webp"
+              alt="Painel do ORION no tema claro: indicadores do armazém, recebimentos e expedições dos últimos 14 dias e ocupação no traço do símbolo"
               width={2880}
               height={1800}
               priority
