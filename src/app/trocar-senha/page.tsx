@@ -34,7 +34,7 @@ export default async function ChangePasswordPage() {
         </div>
         <div className="mt-4 flex items-center justify-center gap-4 text-xs text-muted">
           {!forced ? (
-            <Link href="/" className="font-medium text-link hover:underline">
+            <Link href="/painel" className="font-medium text-link hover:underline">
               Voltar ao sistema
             </Link>
           ) : null}

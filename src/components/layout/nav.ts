@@ -12,7 +12,7 @@ export interface NavItem {
 }
 
 export const NAV: { section: string; items: NavItem[] }[] = [
-  { section: "Visão geral", items: [{ label: "Dashboard", href: "/", icon: "LayoutDashboard" }] },
+  { section: "Visão geral", items: [{ label: "Dashboard", href: "/painel", icon: "LayoutDashboard" }] },
   {
     section: "Armazém",
     items: [

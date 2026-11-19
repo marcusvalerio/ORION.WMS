@@ -35,7 +35,7 @@ export default async function CollectorHome() {
           </span>
         </Link>
       ))}
-      <Link href="/" className="flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 text-lg font-semibold text-fg-2 underline">
+      <Link href="/painel" className="flex min-h-14 items-center justify-center gap-2 rounded-xl px-4 text-lg font-semibold text-fg-2 underline">
         <Monitor className="size-5" aria-hidden />
         Abrir o sistema completo
       </Link>
