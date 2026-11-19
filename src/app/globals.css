@@ -364,12 +364,25 @@
 @keyframes nv-press { 0%, 8% { transform: scale(1); } 12% { transform: scale(0.88); } 18%, 100% { transform: scale(1); } }
 @keyframes nv-codein { 0%, 14% { opacity: 0; transform: translateY(6px); } 20%, 52% { opacity: 1; transform: none; } 60%, 100% { opacity: 0; } }
 @keyframes nv-laser { 0%, 20% { top: 6px; } 36% { top: 46px; } 48%, 100% { top: 6px; } }
+.nv-cx-line { width: 0; animation: nv-cx-line 6s ease-in-out infinite; }
+.nv-cx-dot { animation: nv-cx-dot 6s ease-in-out infinite; animation-delay: calc(var(--i) * 0.7s); }
+.nv-cx-chip-a { animation: nv-cx-a 6s ease-in-out infinite; }
+.nv-cx-chip-b { opacity: 0; animation: nv-cx-b 6s ease-in-out infinite; }
+@keyframes nv-cx-line { 0%, 6% { width: 0; } 80%, 94% { width: 84%; } 100% { width: 0; } }
+@keyframes nv-cx-dot { 0%, 4% { background: #060B2A; border-color: #22306F; } 12%, 94% { background: #7DB7F0; border-color: #7DB7F0; } 100% { background: #060B2A; border-color: #22306F; } }
+@keyframes nv-cx-a { 0%, 46% { opacity: 1; } 52%, 94% { opacity: 0; } 100% { opacity: 1; } }
+@keyframes nv-cx-b { 0%, 46% { opacity: 0; } 52%, 94% { opacity: 1; } 100% { opacity: 0; } }
 @keyframes nv-type { 0%, 48% { width: 0; } 62%, 94% { width: 12ch; } 100% { width: 0; } }
 @keyframes nv-res { 0%, 62% { opacity: 0; transform: translateY(8px); } 70%, 94% { opacity: 1; transform: none; } 100% { opacity: 0; } }
 
 @media (prefers-reduced-motion: reduce) {
   .orion-ring-cw, .orion-ring-ccw, .orion-ring-wave, .orion-spin, .orion-load-bar, .orion-in, .orion-marquee, .collector-laser,
-  .nv-rack, .nv-cell, .nv-cursor, .nv-tag72, .nv-bar, .nv-type, .nv-scan, .nv-code, .nv-laser, .nv-res { animation: none !important; }
+  .nv-rack, .nv-cell, .nv-cursor, .nv-tag72, .nv-bar, .nv-type, .nv-scan, .nv-code, .nv-laser, .nv-res,
+  .nv-cx-line, .nv-cx-dot, .nv-cx-chip-a, .nv-cx-chip-b { animation: none !important; }
+  .nv-cx-line { width: 84%; }
+  .nv-cx-dot { background: #7DB7F0; border-color: #7DB7F0; }
+  .nv-cx-chip-a { opacity: 0; }
+  .nv-cx-chip-b { opacity: 1; }
   .nv-cell.sel::after { animation: none; height: 72%; }
   .nv-cursor { display: none; }
   .nv-type { width: 12ch; }
