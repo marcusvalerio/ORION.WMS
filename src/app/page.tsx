@@ -6,6 +6,7 @@ import { Link2, MapPinned, PackageCheck, ScanBarcode, Ship, Waves } from "lucide
 import { OrionRing } from "@/components/brand/orion-ring";
 import { TURMA_ATUAL } from "@/server/services/site-leads";
 import { LeadForm } from "./site/lead-form";
+import { SiteMotion } from "./site/motion";
 
 /**
  * Página pública de vendas do ORION (fora da área logada: não passa por
@@ -92,6 +93,7 @@ export default function LandingPage() {
   const totalZone = ZONE_W.reduce((a, b) => a + b, 0);
   return (
     <div className="w-full overflow-x-hidden bg-[#03061A] font-sans text-creme-100" style={{ colorScheme: "dark" }}>
+      <SiteMotion />
       {/* Letreiro */}
       <div className="overflow-hidden bg-creme-100 py-2.5 font-mono text-[13px] font-medium whitespace-nowrap text-noite-900">
         <div className="orion-marquee inline-flex gap-12 pl-6" aria-label={MARQUEE.join(" · ")}>
@@ -247,7 +249,7 @@ export default function LandingPage() {
           <div className="flex flex-col gap-3.5 site-card rounded-lg bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Pedidos expedidos hoje</span>
             <div className="flex items-end justify-between gap-4">
-              <span className="font-display text-[72px] leading-[1.02] font-semibold tracking-[-0.03em]">186</span>
+              <span className="font-display text-[72px] leading-[1.02] font-semibold tracking-[-0.03em] tabular-nums" data-count="186">186</span>
               <div role="img" aria-label="Últimos 14 dias, hoje em destaque" className="site-grow flex h-[70px] min-w-0 items-end gap-[3px]">
                 {SPARK.map((v, i) => (
                   <div key={i} className="rounded-[2px]" style={{ width: Math.round(SPARK_W[i] * 0.7), height: Math.round(v * 70), background: i === 13 ? "#2563EB" : "#C9D6E4" }} />
@@ -263,7 +265,7 @@ export default function LandingPage() {
                 <rect key={i} x={x} y={y} width={w} height={h} fill={i < 10 ? "#7DB7F0" : "#22306F"} />
               ))}
             </svg>
-            <span className="font-display text-5xl leading-none font-semibold">71%</span>
+            <span className="font-display text-5xl leading-none font-semibold tabular-nums"><span data-count="71">71</span>%</span>
           </div>
           <div className="flex flex-col gap-3.5 site-card rounded-lg bg-ceu-400 p-[26px] text-noite-900">
             <span className="text-sm font-semibold">Armazenado × expedido</span>
@@ -319,7 +321,7 @@ export default function LandingPage() {
           <div className="flex flex-col justify-between gap-2.5 site-card rounded-lg bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Acuracidade do inventário</span>
             <span className="font-display text-[96px] leading-[1.02] font-semibold tracking-[-0.03em]">
-              98,4<span className="text-[0.45em]">%</span>
+              <span className="tabular-nums" data-count="98.4" data-decimals="1">98,4</span><span className="text-[0.45em]">%</span>
             </span>
             <span className="self-start rounded-full bg-[#E8F7F1] px-3 py-1.5 text-[13px] font-semibold text-[#0B6B4F]">+1,2 pp vs. ciclo anterior</span>
           </div>
