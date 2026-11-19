@@ -98,8 +98,12 @@
 - Rodear a marca de estrelas, brilhos ou partículas.
 
 ### Cinturão
-- No ORION, o **cinturão é o próprio símbolo em O**: as sete colunas de barras.
-- Círculos, órbitas e pontos soltos **não fazem parte da marca**.
+- O cinturão é o O aberto em círculo: as **barras das sete colunas**, com as mesmas larguras, alturas e cortes, repetidas em volta de um anel (componente `<OrionRing />`).
+- Tem de **84 a 96 barras** e **gira devagar**: 70 s por volta no topo do site, 240–260 s quando está ao fundo.
+- **Onda:** a cada 4–6 s, uma onda percorre o anel afinando as barras e devolvendo a espessura.
+- O centro fica livre para o título, um número ou o símbolo. Pode sangrar pela borda; não use abaixo de 240 px.
+- **Paletas:** externo (céu, cobalto, noite e um toque de creme), interno (mais escuro), céu e tinta (marca d’água no claro).
+- Órbitas de linha fina e pontos soltos **não** fazem parte da marca: o círculo do ORION é sempre feito de barras.
 
 ---
 
@@ -281,7 +285,7 @@ O produto nasce no tema claro.
 | Sair | 120 ms | Só opacidade |
 | Números (KPI) | 1,4 s | Contam até o valor |
 | Ícones / cards | +60 ms cada | Em cascata |
-| Símbolo | 40 ms por barra | As barras surgem de baixo para cima |
+| Cinturão | 70 s (topo) / 240–260 s (fundo) | Uma volta; onda de 4–6 s nas barras |
 
 - **Curva:** `cubic-bezier(.2,.7,.2,1)`.
 - Com `prefers-reduced-motion`, tudo aparece pronto e não há animação.
@@ -315,7 +319,7 @@ Três elementos saem do símbolo. Use no máximo dois por peça.
 
 - **Símbolo recortado:** o O gigante, sangrando para fora da peça. Nunca inteiro e pequeno no meio.
 - **Coluna acesa:** uma das sete colunas em Céu e as outras em tom sobre tom. Marca o item em foco.
-- **Cinturão:** o símbolo em O, inteiro. É a assinatura sem palavras.
+- **Cinturão:** as barras do símbolo em volta de um círculo, girando devagar. É a assinatura sem palavras.
 - **Padrão de barras:** as colunas do símbolo repetidas, como prateleiras.
 
 ### Redes sociais
@@ -329,11 +333,11 @@ Três elementos saem do símbolo. Use no máximo dois por peça.
 
 - **Três famílias de post:**
   - **Novidade:** fundo Noite, símbolo recortado ao fundo e etiqueta Creme;
-  - **Número:** um indicador real do dashboard (ex.: 45,9% de ocupação), com o símbolo-medidor aceso atrás;
+  - **Número:** um indicador real do dashboard (ex.: 45,9% de ocupação) dentro do cinturão, com o símbolo-medidor acima;
   - **Dica:** fundo Gelo com padrão de barras e um passo por coluna.
-- **Story:** o símbolo ocupa a tela inteira, cortado pelas bordas.
+- **Story:** o cinturão ocupa a tela, cortado pelas bordas.
 - **Carrossel:** o símbolo gigante atravessa os cards e só se completa no último.
-- **Perfil:** só o símbolo. **Capa do LinkedIn:** o padrão de barras cruza a peça.
+- **Perfil:** só o símbolo. **Capa do LinkedIn:** o cinturão entra cortado pela direita.
 - Cada post diz uma coisa só. A assinatura fica pequena, embaixo à esquerda.
 - **Carrossel:** o primeiro card promete e o último assina. O contador de páginas vai em Geist Mono (`01/03`).
 - **Foto de perfil:** só o símbolo, em Gelo sobre Noite.

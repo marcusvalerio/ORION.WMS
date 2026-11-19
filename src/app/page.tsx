@@ -3,7 +3,7 @@ import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Link2, MapPinned, PackageCheck, ScanBarcode, Ship, Waves } from "lucide-react";
-import { OrionMark } from "@/components/brand/orion-mark";
+import { OrionRing } from "@/components/brand/orion-ring";
 import { TURMA_ATUAL } from "@/server/services/site-leads";
 import { LeadForm } from "./site/lead-form";
 import { SiteMotion } from "./site/motion";
@@ -110,9 +110,9 @@ export default function LandingPage() {
         <div aria-hidden className="pointer-events-none absolute inset-0">
           {/* nebulosas: só degradês, sem pontos de estrela */}
           <div className="absolute inset-0 bg-[radial-gradient(60%_45%_at_18%_12%,rgba(45,119,204,0.28)_0%,rgba(3,6,26,0)_70%),radial-gradient(45%_40%_at_85%_30%,rgba(125,183,240,0.18)_0%,rgba(3,6,26,0)_70%),radial-gradient(70%_50%_at_50%_100%,rgba(34,48,111,0.55)_0%,rgba(3,6,26,0)_75%)]" />
-          {/* um só O gigante atrás do título: o próprio símbolo */}
+          {/* um só O gigante atrás do título, girando com a onda */}
           <div className="site-ring absolute top-[34%] left-1/2">
-            <OrionMark size={1100} color="#2D77CC" className="opacity-[0.22] max-sm:h-[640px] max-sm:w-[640px]" />
+            <OrionRing size="var(--rs)" bars={96} barWidth={200} barLength={360} spinSeconds={70} waveSeconds={4} className="opacity-80 [--rs:1500px] max-sm:[--rs:820px]" />
           </div>
           <div className="absolute inset-0 bg-[radial-gradient(42%_30%_at_50%_28%,rgba(3,6,26,0.78)_0%,rgba(3,6,26,0.25)_65%,rgba(3,6,26,0)_100%)]" />
         </div>
@@ -373,7 +373,7 @@ export default function LandingPage() {
 
       {/* CTA final */}
       <section id="vaga" className={`site-reveal relative flex flex-col items-center gap-9 overflow-hidden bg-creme-100 py-[clamp(96px,12vw,200px)] text-center text-noite-900 ${PAD}`}>
-        <OrionMark size={1100} color="#060B2A" className="absolute top-[calc(50%-550px)] left-[calc(50%-550px)] opacity-[0.07]" />
+        <OrionRing size={1800} bars={96} barWidth={200} barLength={360} palette="tinta" spinSeconds={260} className="absolute top-[calc(50%-900px)] left-[calc(50%-900px)] opacity-[0.16]" />
         <h2 className="relative max-w-[1200px] font-display text-[clamp(48px,9vw,156px)] leading-[1.02] font-semibold tracking-[-0.03em]">
           Entre nesta órbita
           <br />
