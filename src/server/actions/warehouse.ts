@@ -97,3 +97,13 @@ export async function togglePackagingAction(_: ActionState, fd: FormData) {
     return "Unidade logística atualizada.";
   });
 }
+
+export async function buildLayoutAction(_: ActionState, fd: FormData) {
+  return runAction(fd, async ({ ctx, data, key }) => {
+    const r = await wh.buildLayout(ctx, data, { idempotencyKey: key });
+    const parts = [`${r.created} endereço(s) criado(s)`];
+    if (r.zonesCreated) parts.push(`${r.zonesCreated} zona(s) nova(s)`);
+    if (r.skipped) parts.push(`${r.skipped} já existente(s) mantido(s)`);
+    return { message: `${parts.join(", ")}.`, redirectTo: `/armazem/estrutura?wh=${data.warehouseId}` };
+  });
+}

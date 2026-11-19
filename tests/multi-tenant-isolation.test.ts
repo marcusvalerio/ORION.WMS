@@ -318,6 +318,7 @@ const READS = [
     "listLocations#filtroY": (x, y) => warehouse.listLocations(adm(x), { warehouseId: y.warehouseId } as never),
     getLocation: (x, y) => warehouse.getLocation(adm(x), y.locations[LOC(1, 1)]),
     getStructureTree: (x, y) => warehouse.getStructureTree(adm(x), y.warehouseId),
+    layoutStartAisle: (x, y) => warehouse.layoutStartAisle(adm(x), y.warehouseId),
   }),
   ...reg("waves", {
     listWaves: (x) => waves.listWaves(adm(x)),
@@ -346,6 +347,10 @@ const WRITES = [
     }),
     generateLocations: (x, y) => warehouse.generateLocations(adm(x), {
       zoneId: y.zones.ARM, aisle: "08", bayFrom: 1, bayTo: 1, levelFrom: 1, levelTo: 1, positions: 1, locationType: "rack", capacityUnits: 10,
+    }),
+    buildLayout: (x, y) => warehouse.buildLayout(adm(x), {
+      warehouseId: y.warehouseId,
+      areas: JSON.stringify([{ kind: "rack", code: "HACK", name: "Invasão", aisles: 1, bays: 1, levels: 1, positions: 1, capacity: 1 }]),
     }),
     updateLocation: (x, y) => warehouse.updateLocation(adm(x), y.locations[LOC(4, 2)], { locationType: "rack", capacityUnits: 1 }),
     setLocationStatus: (x, y) => warehouse.setLocationStatus(adm(x), y.locations[LOC(4, 2)], { status: "blocked", reason: "invasão" }),

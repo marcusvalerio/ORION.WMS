@@ -6,6 +6,7 @@ import { assertWarehouseAccess, hasWarehouseAccess, warehouseScope } from "../ac
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText } from "../validation";
 import { audit, runOperation, type OpOptions } from "./common";
+import { AREA_KINDS, AREA_KIND_SPECS, LIMITS, aisleSlots, planLayout, type WizardArea } from "@/lib/layout-wizard";
 
 // -----------------------------------------------------------------------------
 // Depósitos
@@ -321,6 +322,127 @@ export async function generateLocations(ctx: Ctx, input: unknown, opts?: OpOptio
     }
     await audit(tx, ctx, "location.generated", "zone", d.zoneId, null, { ...d, created, skipped });
     return { created, skipped };
+  });
+}
+
+// -----------------------------------------------------------------------------
+// Assistente "Montar armazém": várias áreas e ruas de uma vez
+// -----------------------------------------------------------------------------
+
+const wizardAreaSchema = z.object({
+  kind: z.enum(AREA_KINDS, { error: "Tipo de área inválido." }),
+  code: z.string().trim().toUpperCase().min(1, "Informe o código da zona.").max(20),
+  name: z.string().trim().min(2, "Informe o nome da área.").max(80),
+  aisles: z.coerce.number().int().min(1).max(LIMITS.aisles),
+  bays: z.coerce.number().int().min(1).max(LIMITS.bays),
+  levels: z.coerce.number().int().min(1).max(LIMITS.levels),
+  positions: z.coerce.number().int().min(1).max(LIMITS.positions),
+  capacity: z.coerce.number().positive("Capacidade deve ser maior que zero."),
+});
+
+const wizardSchema = z.object({
+  warehouseId: uuid("Depósito"),
+  areas: z.preprocess(
+    (v) => (typeof v === "string" ? JSON.parse(v) : v),
+    z.array(wizardAreaSchema).min(1, "Adicione ao menos uma área.").max(20, "No máximo 20 áreas por montagem."),
+  ),
+});
+
+/** Próxima rua numérica livre no depósito (as ruas do assistente continuam a numeração). */
+async function nextNumericAisle(q: { query: Ctx["db"]["query"] }, companyId: string, warehouseId: string): Promise<number> {
+  const [r] = await q.query<{ n: number }>(
+    `select coalesce(max(aisle::int), 0)::int as n from wms.locations
+     where company_id = $1 and warehouse_id = $2 and aisle ~ '^[0-9]{1,6}$'`,
+    [companyId, warehouseId],
+  );
+  return r.n + 1;
+}
+
+export async function layoutStartAisle(ctx: Ctx, warehouseId: string): Promise<number> {
+  assertWarehouseAccess(ctx, warehouseId);
+  const [wh] = await ctx.db.query(`select id from wms.warehouses where id = $1 and company_id = $2`, [warehouseId, ctx.user.companyId]);
+  if (!wh) throw new NotFoundError("Depósito");
+  return nextNumericAisle(ctx.db, ctx.user.companyId, warehouseId);
+}
+
+/**
+ * Cria as zonas (ou reaproveita a de mesmo código) e todos os endereços do plano
+ * numa transação só: ou monta tudo, ou nada. Endereços que já existem são
+ * mantidos e contados como ignorados.
+ */
+export async function buildLayout(ctx: Ctx, input: unknown, opts?: OpOptions) {
+  assertCan(ctx, "warehouse.manage");
+  const d = parse(wizardSchema, input);
+  assertWarehouseAccess(ctx, d.warehouseId);
+  return runOperation(ctx, "layout.build", opts, async (tx) => {
+    const [wh] = await tx.query<{ code: string }>(
+      `select code from wms.warehouses where id = $1 and company_id = $2 for update`,
+      [d.warehouseId, ctx.user.companyId],
+    );
+    if (!wh) throw new NotFoundError("Depósito");
+    const areas = d.areas as WizardArea[];
+    const plan = planLayout(areas, await nextNumericAisle(tx, ctx.user.companyId, d.warehouseId));
+    if (plan.errors.length) throw new DomainError(plan.errors[0], "VALIDATION");
+
+    const zoneIds: string[] = [];
+    let zonesCreated = 0;
+    for (const a of areas) {
+      const spec = AREA_KIND_SPECS[a.kind];
+      const [existing] = await tx.query<{ id: string }>(
+        `select id from wms.zones where warehouse_id = $1 and code = $2`,
+        [d.warehouseId, a.code],
+      );
+      if (existing) {
+        zoneIds.push(existing.id);
+        continue;
+      }
+      const [z] = await tx.query<{ id: string }>(
+        `insert into wms.zones (company_id, warehouse_id, code, name, zone_type) values ($1,$2,$3,$4,$5) returning id`,
+        [ctx.user.companyId, d.warehouseId, a.code, a.name, spec.zoneType],
+      );
+      zoneIds.push(z.id);
+      zonesCreated++;
+    }
+
+    let created = 0;
+    for (const pa of plan.aisles) {
+      const area = areas[pa.areaIndex];
+      const spec = AREA_KIND_SPECS[area.kind];
+      const slots = aisleSlots(pa);
+      const rows = await tx.query<{ id: string }>(
+        `insert into wms.locations (company_id, warehouse_id, zone_id, aisle, bay, level, position, code,
+                                    location_type, storage_class, capacity_units, created_by)
+         select $1, $2, $3, $4, s.bay, s.level, s.position,
+                $5 || '/RUA-' || $4 || '/MOD-' || s.bay || '/NIV-' || s.level || '/POS-' || s.position,
+                $6, $7, $8, $9
+         from unnest($10::text[], $11::text[], $12::text[]) as s(bay, level, position)
+         on conflict do nothing
+         returning id`,
+        [
+          ctx.user.companyId,
+          d.warehouseId,
+          zoneIds[pa.areaIndex],
+          pa.aisle,
+          wh.code,
+          spec.locationType,
+          spec.storageClass,
+          area.capacity,
+          ctx.user.id,
+          slots.map((x) => x.bay),
+          slots.map((x) => x.level),
+          slots.map((x) => x.position),
+        ],
+      );
+      created += rows.length;
+    }
+    const skipped = plan.total - created;
+    await audit(tx, ctx, "layout.built", "warehouse", d.warehouseId, wh.code, {
+      areas: areas.map((a) => ({ kind: a.kind, code: a.code, aisles: a.aisles, bays: a.bays, levels: a.levels, positions: a.positions })),
+      zonesCreated,
+      created,
+      skipped,
+    });
+    return { zonesCreated, created, skipped };
   });
 }
 

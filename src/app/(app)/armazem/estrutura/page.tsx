@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Plus } from "lucide-react";
+import { Plus, Wand2 } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { getStructureTree, listWarehouses, listZones, ZONE_TYPES, LOCATION_TYPES, STORAGE_CLASSES } from "@/server/services/warehouse";
 import { createWarehouseAction, createZoneAction, generateLocationsAction, toggleWarehouseAction, toggleZoneAction } from "@/server/actions/warehouse";
@@ -11,6 +11,7 @@ import { EmptyState } from "@/components/ui/empty-state";
 import { Disclosure } from "@/components/ui/disclosure";
 import { Field, Input, Select } from "@/components/ui/fields";
 import { TableWrap } from "@/components/ui/table";
+import { ButtonLink } from "@/components/ui/button";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { LOCATION_TYPE_LABELS, STORAGE_CLASS_LABELS, ZONE_TYPE_LABELS } from "@/lib/labels";
 import { can } from "@/lib/permissions";
@@ -34,6 +35,13 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
         title="Estrutura física"
         description="Depósitos, zonas operacionais, ruas e endereços. A ocupação considera o estoque físico frente à capacidade em unidades de cada endereço."
         breadcrumbs={[{ label: "Armazém" }, { label: "Estrutura física" }]}
+        actions={
+          manage && current ? (
+            <ButtonLink href={`/armazem/estrutura/montar?wh=${current.id}`}>
+              <Wand2 className="size-4" aria-hidden /> Montar armazém
+            </ButtonLink>
+          ) : null
+        }
       />
 
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 xl:grid-cols-4">
@@ -131,7 +139,11 @@ export default async function StructurePage({ searchParams }: { searchParams: Se
                 ))}
               </div>
             ) : (
-              <EmptyState title="Nenhuma zona cadastrada" description="Cadastre zonas (armazenagem, expedição, quarentena…) para criar endereços." />
+              <EmptyState
+                title="Nenhuma zona cadastrada"
+                description="Use o assistente para criar zonas e endereços de uma vez, ou cadastre zona a zona abaixo."
+                action={manage ? <ButtonLink href={`/armazem/estrutura/montar?wh=${current.id}`}>Montar armazém</ButtonLink> : null}
+              />
             )}
           </Card>
 
