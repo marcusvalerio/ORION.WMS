@@ -79,7 +79,7 @@ function Blocks({ value, total }: { value: number; total: number }) {
 
 function Tile({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div className="flex min-w-0 flex-col gap-1.5 rounded-2xl border border-line bg-surface p-3.5">
+    <div className="flex min-w-0 flex-col gap-1.5 rounded-lg border border-line bg-surface p-3.5">
       <span className="text-xs text-fg-2">{title}</span>
       {children}
     </div>
@@ -90,7 +90,7 @@ function Tile({ title, children }: { title: string; children: React.ReactNode })
 export function InventoryKpiPanel({ k }: { k: InventoryKpis }) {
   return (
     <div className="flex flex-col gap-3.5 p-4 sm:p-5">
-      <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface p-4">
+      <div className="flex flex-col gap-3 rounded-lg border border-line bg-surface p-4">
         <span className="text-[13px] font-medium text-fg-2">Acuracidade do inventário</span>
         {k.blind ? (
           <p className="text-sm text-fg-2">Oculta durante a contagem cega — aparece para o supervisor e após a submissão.</p>
@@ -153,7 +153,7 @@ export function InventoryKpiPanel({ k }: { k: InventoryKpis }) {
         </Tile>
       </div>
 
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4">
+      <div className="flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-4">
         <span className="text-xs text-fg-2">Acuracidade por zona</span>
         {k.zones.map((z) => {
           const blocks = blockLayout(10, 100, 3);
