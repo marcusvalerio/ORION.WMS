@@ -112,6 +112,7 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      data-tour={`nav:${item.href}`}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
                       className={cn(
