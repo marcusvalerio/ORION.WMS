@@ -139,7 +139,7 @@ export default function SitePage() {
           <span className="self-start rounded-full border border-noite-600 px-3.5 py-2 font-mono text-xs tracking-[0.12em] text-creme-300">
             TURMA DE IMPLANTAÇÃO {TURMA_ATUAL.ano} · VAGAS LIMITADAS
           </span>
-          <h1 className="font-display text-[clamp(56px,10vw,176px)] leading-[0.86] font-black tracking-[-0.055em]">
+          <h1 className="font-display text-[clamp(56px,10vw,176px)] leading-[1.02] font-semibold tracking-[-0.03em]">
             O armazém
             <br />
             que os outros
@@ -173,7 +173,7 @@ export default function SitePage() {
       <section id="antes" className="grid grid-cols-[repeat(auto-fit,minmax(min(320px,100%),1fr))]">
         <div className={`flex flex-col gap-[22px] bg-[#C9D0DA] py-[clamp(56px,7vw,112px)] text-[#3A4256] ${PAD}`}>
           <span className="font-mono text-[13px] tracking-[0.14em]">SEM ORION</span>
-          <p className="font-display text-[clamp(40px,5vw,84px)] leading-[0.92] font-extrabold tracking-[-0.04em] line-through decoration-4">
+          <p className="font-display text-[clamp(40px,5vw,84px)] leading-[1.02] font-semibold tracking-[-0.03em] line-through decoration-4">
             Planilha.
             <br />
             Prancheta.
@@ -186,7 +186,7 @@ export default function SitePage() {
         </div>
         <div className={`flex flex-col gap-[22px] bg-noite-900 py-[clamp(56px,7vw,112px)] ${PAD}`}>
           <span className="font-mono text-[13px] tracking-[0.14em] text-ceu-400">COM ORION</span>
-          <p className="font-display text-[clamp(40px,5vw,84px)] leading-[0.92] font-extrabold tracking-[-0.04em]">
+          <p className="font-display text-[clamp(40px,5vw,84px)] leading-[1.02] font-semibold tracking-[-0.03em]">
             Leu.
             <br />
             Achou.
@@ -203,7 +203,7 @@ export default function SitePage() {
       <section id="inventario" className={`flex flex-wrap items-center gap-12 bg-[#03061A] py-[clamp(64px,8vw,128px)] ${PAD}`}>
         <div className="flex flex-[1_1_380px] flex-col gap-[22px]">
           <span className={`${MONO_KICKER} text-ceu-400`}>MODO INVENTÁRIO</span>
-          <h2 className="font-display text-[clamp(44px,6.5vw,108px)] leading-[0.9] font-extrabold tracking-[-0.045em]">O CD apaga a luz. A contagem acende.</h2>
+          <h2 className="font-display text-[clamp(44px,6.5vw,108px)] leading-[1.02] font-semibold tracking-[-0.03em]">O CD apaga a luz. A contagem acende.</h2>
           <p className="max-w-[520px] text-lg leading-relaxed text-ceu-300">
             O armazém aparece em 3D e cada posição se acende pela situação da contagem. Escolheu o endereço? A câmera para de frente para ele e mostra o quanto ele está cheio.
           </p>
@@ -221,16 +221,16 @@ export default function SitePage() {
       {/* KPIs */}
       <section aria-labelledby="kpi-t" className={`flex flex-col gap-10 bg-noite-800 py-[clamp(64px,8vw,128px)] ${PAD}`}>
         <div className="flex flex-wrap items-end justify-between gap-6">
-          <h2 id="kpi-t" className="max-w-[900px] font-display text-[clamp(40px,5.5vw,88px)] leading-[0.92] font-extrabold tracking-[-0.04em]">
+          <h2 id="kpi-t" className="max-w-[900px] font-display text-[clamp(40px,5.5vw,88px)] leading-[1.02] font-semibold tracking-[-0.03em]">
             Números que têm a cara do seu armazém.
           </h2>
           <p className="max-w-[400px] text-[17px] leading-relaxed text-ceu-300">Cada gráfico do ORION nasce das barras do símbolo. Bonito de olhar, rápido de ler.</p>
         </div>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(300px,100%),1fr))] gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex flex-col gap-3.5 rounded-[22px] bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Pedidos expedidos hoje</span>
             <div className="flex items-end justify-between gap-4">
-              <span className="font-display text-[72px] leading-[0.85] font-extrabold tracking-[-0.05em]">186</span>
+              <span className="font-display text-[72px] leading-[1.02] font-semibold tracking-[-0.03em]">186</span>
               <div role="img" aria-label="Últimos 14 dias, hoje em destaque" className="flex h-[70px] min-w-0 items-end gap-[3px]">
                 {SPARK.map((v, i) => (
                   <div key={i} className="rounded-[2px]" style={{ width: Math.round(SPARK_W[i] * 0.7), height: Math.round(v * 70), background: i === 13 ? "#2563EB" : "#C9D6E4" }} />
@@ -246,7 +246,7 @@ export default function SitePage() {
                 <rect key={i} x={x} y={y} width={w} height={h} fill={i < 10 ? "#7DB7F0" : "#22306F"} />
               ))}
             </svg>
-            <span className="font-display text-5xl leading-none font-extrabold">71%</span>
+            <span className="font-display text-5xl leading-none font-semibold">71%</span>
           </div>
           <div className="flex flex-col gap-3.5 rounded-[22px] bg-ceu-400 p-[26px] text-noite-900">
             <span className="text-sm font-semibold">Armazenado × expedido</span>
@@ -301,7 +301,7 @@ export default function SitePage() {
           </div>
           <div className="flex flex-col justify-between gap-2.5 rounded-[22px] bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Acuracidade do inventário</span>
-            <span className="font-display text-[96px] leading-[0.85] font-extrabold tracking-[-0.05em]">
+            <span className="font-display text-[96px] leading-[1.02] font-semibold tracking-[-0.03em]">
               98,4<span className="text-[0.45em]">%</span>
             </span>
             <span className="self-start rounded-full bg-[#E8F7F1] px-3 py-1.5 text-[13px] font-semibold text-[#0B6B4F]">+1,2 pp vs. ciclo anterior</span>
@@ -311,8 +311,8 @@ export default function SitePage() {
 
       {/* Funcionalidades */}
       <section className={`flex flex-col gap-12 bg-gelo-50 py-[clamp(64px,8vw,128px)] text-noite-900 ${PAD}`}>
-        <h2 className="max-w-[1000px] font-display text-[clamp(40px,5.5vw,88px)] leading-[0.92] font-extrabold tracking-[-0.04em]">Tudo entre a nota que chega e o caminhão que sai.</h2>
-        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(280px,100%),1fr))] gap-4">
+        <h2 className="max-w-[1000px] font-display text-[clamp(40px,5.5vw,88px)] leading-[1.02] font-semibold tracking-[-0.03em]">Tudo entre a nota que chega e o caminhão que sai.</h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {FEATURES.map(([n, t, d, bg, fg]) => (
             <article
               key={n}
@@ -356,7 +356,7 @@ export default function SitePage() {
           </g>
         </svg>
         <span className={`relative ${MONO_KICKER} text-ceu-400`}>UM SÓ ECOSSISTEMA</span>
-        <h2 className="relative font-display text-[clamp(56px,14vw,240px)] leading-[0.82] font-black tracking-[0.01em]">ASTRAEUS</h2>
+        <h2 className="relative font-display text-[clamp(56px,14vw,240px)] leading-[1.02] font-semibold tracking-[0.01em]">ASTRAEUS</h2>
         <div className="relative flex flex-wrap justify-center gap-3 font-semibold">
           <span className="rounded-full bg-creme-300 px-[22px] py-3.5 text-noite-900">ATLAS · ERP, MRP, MCN</span>
           <span className="rounded-full bg-ceu-400 px-[22px] py-3.5 text-noite-900">ORION · WMS</span>
@@ -368,7 +368,7 @@ export default function SitePage() {
       {/* CTA final */}
       <section id="vaga" className={`relative flex flex-col items-center gap-9 overflow-hidden bg-creme-100 py-[clamp(96px,12vw,200px)] text-center text-noite-900 ${PAD}`}>
         <OrionRing size={1800} bars={96} barWidth={200} barLength={360} palette="tinta" spinSeconds={260} className="absolute top-[calc(50%-900px)] left-[calc(50%-900px)] opacity-[0.16]" />
-        <h2 className="relative max-w-[1200px] font-display text-[clamp(48px,9vw,156px)] leading-[0.86] font-black tracking-[-0.055em]">
+        <h2 className="relative max-w-[1200px] font-display text-[clamp(48px,9vw,156px)] leading-[1.02] font-semibold tracking-[-0.03em]">
           Entre nesta órbita
           <br />
           ou espere a próxima.
