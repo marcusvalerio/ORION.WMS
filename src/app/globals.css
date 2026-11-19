@@ -388,10 +388,10 @@
   .nv-type { width: 12ch; }
 }
 
-/* Landing /site: movimento. Tudo visível sem animação; com rolagem, as seções surgem e o painel endireita. */
-@keyframes site-rise { from { opacity: 0; transform: translateY(64px); } to { opacity: 1; transform: none; } }
-@keyframes site-flat { from { transform: rotateX(20deg) scale(0.94); } to { transform: rotateX(0deg) scale(1); } }
+/* Landing: movimento. Sem JS (ou com "reduzir movimento") tudo aparece completo. Com JS, .motion-ready
+   esconde os blocos até entrarem na tela; o componente SiteMotion marca data-in e o CSS anima. */
 @keyframes site-glow { 0%, 100% { box-shadow: 0 0 0 0 rgba(255, 248, 231, 0); } 50% { box-shadow: 0 0 0 10px rgba(255, 248, 231, 0.10); } }
+@keyframes site-icon-in { 0% { opacity: 0; transform: scale(0.4) rotate(-20deg); } 70% { opacity: 1; transform: scale(1.12) rotate(4deg); } 100% { opacity: 1; transform: none; } }
 .site-ring { transform: translate(-50%, -50%); }
 @keyframes site-ring-in { from { opacity: 0; transform: translate(-50%, -50%) scale(0.86); } to { opacity: 1; transform: translate(-50%, -50%) scale(1); } }
 @media (prefers-reduced-motion: no-preference) {
@@ -401,26 +401,48 @@
   .site-cta { animation: site-glow 3.2s ease-in-out 1.5s infinite; }
   .site-card { transition: translate 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease; }
   .site-card:hover { translate: 0 -6px; }
-  @supports (animation-timeline: view()) {
-    .site-reveal { animation: site-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 85%; }
-    .site-tilt { animation: site-flat linear both; animation-timeline: view(); animation-range: entry 30% cover 55%; }
-  }
-}
 
-/* Landing: cascata, ícones que surgem, barras que crescem, símbolo que acende */
-@keyframes site-pop { from { opacity: 0; transform: translateY(40px) scale(0.94); } to { opacity: 1; transform: none; } }
-@keyframes site-icon-in { 0% { opacity: 0; transform: scale(0.4) rotate(-20deg); } 70% { transform: scale(1.12) rotate(4deg); } 100% { opacity: 1; transform: none; } }
-@keyframes site-bar-up { from { transform: scaleY(0); } to { transform: scaleY(1); } }
-@keyframes site-bar-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
-@keyframes site-glyph-in { from { opacity: 0.15; } to { opacity: 1; } }
-@media (prefers-reduced-motion: no-preference) {
-  @supports (animation-timeline: view()) {
-    .site-stagger > * { animation: site-pop linear both; animation-timeline: view(); animation-range: entry 0% entry 75%; }
-    .site-stagger > :nth-child(3n + 2) { animation-range: entry 8% entry 85%; }
-    .site-stagger > :nth-child(3n + 3) { animation-range: entry 16% entry 95%; }
-    .site-icon { animation: site-icon-in linear both; animation-timeline: view(); animation-range: entry 20% cover 35%; }
-    .site-grow > * { transform-origin: bottom; animation: site-bar-up linear both; animation-timeline: view(); animation-range: entry 30% cover 40%; }
-    .site-fill > * { transform-origin: left; animation: site-bar-x linear both; animation-timeline: view(); animation-range: entry 30% cover 40%; }
-    .site-glyph rect { animation: site-glyph-in linear both; animation-timeline: view(); animation-range: entry 20% cover 45%; }
-  }
+  /* seções surgem */
+  .motion-ready .site-reveal { transition: opacity 0.9s ease, transform 0.9s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .motion-ready .site-reveal:not([data-in]) { opacity: 0; transform: translateY(64px); }
+  /* painel endireita */
+  .motion-ready .site-tilt { transition: transform 1.4s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .motion-ready .site-tilt:not([data-in]) { transform: rotateX(24deg) scale(0.92); }
+  .motion-ready .site-tilt[data-in] { transform: rotateX(4deg); }
+  /* cartões em cascata */
+  .motion-ready .site-stagger > * { transition: opacity 0.7s ease, transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .motion-ready .site-stagger:not([data-in]) > * { opacity: 0; transform: translateY(40px) scale(0.94); }
+  .motion-ready .site-stagger > :nth-child(2) { transition-delay: 0.09s; }
+  .motion-ready .site-stagger > :nth-child(3) { transition-delay: 0.18s; }
+  .motion-ready .site-stagger > :nth-child(4) { transition-delay: 0.27s; }
+  .motion-ready .site-stagger > :nth-child(5) { transition-delay: 0.36s; }
+  .motion-ready .site-stagger > :nth-child(6) { transition-delay: 0.45s; }
+  /* ícones das funcionalidades */
+  .motion-ready .site-stagger:not([data-in]) .site-icon { opacity: 0; }
+  .motion-ready .site-stagger[data-in] .site-icon { animation: site-icon-in 0.8s cubic-bezier(0.2, 0.7, 0.2, 1) both; animation-delay: 0.35s; }
+  .motion-ready .site-stagger[data-in] > :nth-child(2) .site-icon { animation-delay: 0.45s; }
+  .motion-ready .site-stagger[data-in] > :nth-child(3) .site-icon { animation-delay: 0.55s; }
+  .motion-ready .site-stagger[data-in] > :nth-child(4) .site-icon { animation-delay: 0.65s; }
+  .motion-ready .site-stagger[data-in] > :nth-child(5) .site-icon { animation-delay: 0.75s; }
+  .motion-ready .site-stagger[data-in] > :nth-child(6) .site-icon { animation-delay: 0.85s; }
+  /* barras crescem, uma a uma */
+  .motion-ready .site-grow > * { transform-origin: bottom; transition: transform 0.7s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .motion-ready .site-grow:not([data-in]) > * { transform: scaleY(0); }
+  .motion-ready .site-fill > * { transform-origin: left; transition: transform 0.6s cubic-bezier(0.2, 0.7, 0.2, 1); }
+  .motion-ready .site-fill:not([data-in]) > * { transform: scaleX(0); }
+  .motion-ready .site-glyph rect { transition: opacity 0.5s ease; }
+  .motion-ready .site-glyph:not([data-in]) rect { opacity: 0.12; }
+  .motion-ready .site-grow > :nth-child(2), .motion-ready .site-fill > :nth-child(2), .motion-ready .site-glyph rect:nth-child(2) { transition-delay: 0.05s; }
+  .motion-ready .site-grow > :nth-child(3), .motion-ready .site-fill > :nth-child(3), .motion-ready .site-glyph rect:nth-child(3) { transition-delay: 0.10s; }
+  .motion-ready .site-grow > :nth-child(4), .motion-ready .site-fill > :nth-child(4), .motion-ready .site-glyph rect:nth-child(4) { transition-delay: 0.15s; }
+  .motion-ready .site-grow > :nth-child(5), .motion-ready .site-fill > :nth-child(5), .motion-ready .site-glyph rect:nth-child(5) { transition-delay: 0.20s; }
+  .motion-ready .site-grow > :nth-child(6), .motion-ready .site-fill > :nth-child(6), .motion-ready .site-glyph rect:nth-child(6) { transition-delay: 0.25s; }
+  .motion-ready .site-grow > :nth-child(7), .motion-ready .site-fill > :nth-child(7), .motion-ready .site-glyph rect:nth-child(7) { transition-delay: 0.30s; }
+  .motion-ready .site-grow > :nth-child(8), .motion-ready .site-fill > :nth-child(8), .motion-ready .site-glyph rect:nth-child(8) { transition-delay: 0.35s; }
+  .motion-ready .site-grow > :nth-child(9), .motion-ready .site-fill > :nth-child(9), .motion-ready .site-glyph rect:nth-child(9) { transition-delay: 0.40s; }
+  .motion-ready .site-grow > :nth-child(10), .motion-ready .site-fill > :nth-child(10), .motion-ready .site-glyph rect:nth-child(10) { transition-delay: 0.45s; }
+  .motion-ready .site-grow > :nth-child(11), .motion-ready .site-fill > :nth-child(11), .motion-ready .site-glyph rect:nth-child(11) { transition-delay: 0.50s; }
+  .motion-ready .site-grow > :nth-child(12), .motion-ready .site-fill > :nth-child(12), .motion-ready .site-glyph rect:nth-child(12) { transition-delay: 0.55s; }
+  .motion-ready .site-grow > :nth-child(13), .motion-ready .site-fill > :nth-child(13), .motion-ready .site-glyph rect:nth-child(13) { transition-delay: 0.60s; }
+  .motion-ready .site-grow > :nth-child(14), .motion-ready .site-fill > :nth-child(14), .motion-ready .site-glyph rect:nth-child(14) { transition-delay: 0.65s; }
 }
