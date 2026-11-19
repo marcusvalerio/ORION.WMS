@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { Link2, MapPinned, PackageCheck, ScanBarcode, Ship, Waves } from "lucide-react";
 import { OrionRing } from "@/components/brand/orion-ring";
+import { OrionMark } from "@/components/brand/orion-mark";
 import { TURMA_ATUAL } from "@/server/services/site-leads";
 import { LeadForm } from "./site/lead-form";
 import { SiteMotion } from "./site/motion";
@@ -118,7 +119,10 @@ export default function LandingPage() {
         </div>
 
         <nav aria-label="Principal" className={`relative flex flex-wrap items-center gap-6 py-7 ${PAD}`}>
-          <span className="font-display text-[28px] font-semibold tracking-[-0.03em]">orion</span>
+          <span className="inline-flex items-center gap-2.5 text-creme-100" aria-label="ORION">
+            <OrionMark size={40} color="currentColor" />
+            <span className="font-display text-[27px] leading-none font-semibold tracking-tight lowercase">orion</span>
+          </span>
           <div className="ml-auto flex flex-wrap items-center gap-6 text-sm">
             <a href="#antes" className="text-ceu-300 hover:text-creme-100 max-sm:hidden">
               Por que agora
@@ -393,7 +397,7 @@ export default function LandingPage() {
 
       <footer className={`flex flex-wrap justify-between gap-4 border-t border-noite-700 bg-[#03061A] py-8 text-[13px] text-ceu-300 ${PAD}`}>
         <span>
-          <b className="font-display text-lg font-semibold text-creme-100">orion</b> · ORION é do universo <b className="font-display font-semibold tracking-[0.12em] text-creme-100">ASTRAEUS</b>
+          <b className="inline-flex items-center gap-1.5 align-middle font-display text-lg font-semibold tracking-tight text-creme-100"><OrionMark size={26} color="currentColor" />orion</b> · ORION é do universo <b className="font-display font-semibold tracking-[0.12em] text-creme-100">ASTRAEUS</b>
         </span>
         <span className="font-mono">contato@astraeus.com.br · Belo Horizonte, MG</span>
       </footer>
