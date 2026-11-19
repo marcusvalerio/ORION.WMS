@@ -2,6 +2,7 @@
 
 > Resumo prático do livro de marca. O livro completo está em
 > [`livro-de-marca-orion.pdf`](./livro-de-marca-orion.pdf) e em [`livro-de-marca-orion.html`](./livro-de-marca-orion.html).
+> Arquivos do logo (SVG com o nome em curvas e PNG transparente) em [`arquivos/`](./arquivos/).
 > Os tokens de verdade vivem em `src/app/globals.css`. Se este arquivo e o código discordarem, o código vale.
 
 **Conceito:** Céu de inverno. Órion é a constelação que se acha sem esforço, e o armazém pede o mesmo: cada caixa no lugar certo, e você sabe onde.
@@ -370,6 +371,18 @@ A etiqueta “Novo” sai depois de 30 dias.
 - **A cor das barras indica a função:** Céu para operação, Creme para liderança de turno, Gelo para visitante.
 - Nome em Gabarito, função em caixa alta espaçada e código em Geist Mono. O cordão é Noite, com as barras em Céu.
 
+### Coletor
+- Barra superior Noite com o símbolo e a palavra **Coletor**.
+- Três ações grandes em cartões com contorno: **Minhas tarefas**, **Contagem de inventário** e **Consulta rápida**.
+- Ícone à esquerda, título em Gabarito e contagem logo abaixo.
+- Alvo de toque mínimo de 56 px.
+- Sem gráficos e sem cor decorativa.
+
+### Etiqueta de endereço (como o sistema gera)
+- Depósito, zona e tipo no topo, em texto pequeno.
+- Rua · Módulo · Nível · Posição em Geist Mono grande, com o rótulo acima de cada par.
+- Code 128 do endereço completo, com uma seta indicando se o nível fica acima ou abaixo.
+
 ### Papelaria e apresentações
 Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela para o O.
 
@@ -404,6 +417,18 @@ Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela 
 Nos materiais do ORION, o ecossistema aparece só como assinatura discreta no rodapé: **“ORION é do universo ASTRAEUS”**.
 
 ---
+
+## Arquivos da marca (`docs/marca/arquivos/`)
+| Arquivo | Formatos | Uso |
+|---|---|---|
+| `orion-logo-horizontal-noite` | SVG · PNG | Principal, sobre fundos claros |
+| `orion-logo-horizontal-branco` | SVG · PNG | Negativa, sobre Noite e fotos |
+| `orion-logo-horizontal-preto` | SVG · PNG | Monocromática |
+| `orion-logo-vertical-{noite,branco,preto}` | SVG · PNG | Peças quadradas e estreitas |
+| `orion-simbolo-{noite,branco,preto,ceu}` | SVG · PNG 1024 | Elemento-síntese |
+| `orion-icone-app` | SVG · PNG 32/180/512/1024 | Ícone do app e favicon |
+
+No código, use os componentes `<OrionLogo />` e `<OrionMark />`.
 
 ## Checklist antes de publicar
 
