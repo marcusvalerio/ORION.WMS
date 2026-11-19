@@ -137,7 +137,7 @@ export function Novidades({ view }: { view: NovidadesView }) {
           if (e.key === "ArrowRight" && step < last) setStep(step + 1);
           if (e.key === "ArrowLeft" && step > 0) setStep(step - 1);
         }}
-        className="m-auto h-[min(600px,calc(100dvh-32px))] w-[min(1040px,calc(100%-32px))] max-w-none overflow-hidden rounded-[28px] bg-white p-0 text-noite-900 shadow-[0_40px_100px_rgba(3,6,26,.45)] backdrop:bg-[rgba(3,6,26,.62)] max-md:h-[min(720px,calc(100dvh-32px))]"
+        className="m-auto h-[min(600px,calc(100dvh-32px))] w-[min(1040px,calc(100%-32px))] max-w-none overflow-hidden rounded-lg bg-white p-0 text-noite-900 border border-line backdrop:bg-[rgba(3,6,26,.62)] max-md:h-[min(720px,calc(100dvh-32px))]"
       >
         {open ? (
           <div className="relative flex h-full max-md:flex-col">
@@ -160,7 +160,7 @@ export function Novidades({ view }: { view: NovidadesView }) {
                 className="absolute top-[-70px] left-[-190px] [--ring-size:740px] max-md:top-[-160px] max-md:right-[-160px] max-md:left-auto max-md:[--ring-size:420px]"
               />
               <span className="relative self-start rounded-md bg-[#03061A]/85 px-2 py-1 font-mono text-xs tracking-[0.14em] text-ceu-400">VERSÃO {view.versao}</span>
-              <div className="relative flex flex-col gap-1 self-start rounded-xl bg-[#03061A]/85 px-3 py-2 max-md:flex-row max-md:items-baseline max-md:gap-2">
+              <div className="relative flex flex-col gap-1 self-start rounded-md bg-[#03061A]/85 px-3 py-2 max-md:flex-row max-md:items-baseline max-md:gap-2">
                 <b className="font-display text-[72px] leading-[0.9] font-extrabold tracking-[-0.04em] max-md:text-[40px]">{pad(Math.min(step + 1, total))}</b>
                 <span className="text-[13px] text-ceu-300">
                   de {total} {total === 1 ? "novidade" : "novidades"}
@@ -190,7 +190,7 @@ export function Novidades({ view }: { view: NovidadesView }) {
                   <p id="novidades-texto" className="leading-relaxed text-gelo-700">
                     Você pode rever as novidades quando quiser pelo ícone de presente no topo.
                   </p>
-                  {view.doAtlas ? <p className="mt-1 rounded-[14px] bg-ceu-50 px-4 py-3.5 text-sm text-ceu-800">{view.doAtlas}</p> : null}
+                  {view.doAtlas ? <p className="mt-1 rounded-md bg-ceu-50 px-4 py-3.5 text-sm text-ceu-800">{view.doAtlas}</p> : null}
                 </div>
               )}
 
@@ -244,7 +244,7 @@ export function Novidades({ view }: { view: NovidadesView }) {
       {toastOpen ? (
         <div
           role="status"
-          className="orion-in fixed right-6 bottom-6 z-40 flex w-[min(360px,calc(100%-32px))] items-center gap-3.5 rounded-[18px] bg-noite-900 px-[18px] py-4 text-creme-100 shadow-[0_20px_50px_rgba(3,6,26,.3)] max-sm:right-4 max-sm:bottom-4"
+          className="orion-in fixed right-6 bottom-6 z-40 flex w-[min(360px,calc(100%-32px))] items-center gap-3.5 rounded-lg bg-noite-900 px-[18px] py-4 text-creme-100 border border-noite-600 max-sm:right-4 max-sm:bottom-4"
         >
           <OrionMark size={34} color="#7DB7F0" />
           <div className="flex flex-1 flex-col gap-0.5">

@@ -53,7 +53,7 @@ export function ConfirmDialog({
       onClick={(e) => {
         if (e.target === e.currentTarget) onCancel();
       }}
-      className="m-auto w-[min(380px,calc(100%-32px))] rounded-2xl bg-surface p-0 text-fg shadow-2xl backdrop:bg-noite-900/55"
+      className="m-auto w-[min(380px,calc(100%-32px))] rounded-lg border border-line bg-surface p-0 text-fg backdrop:bg-noite-900/55"
     >
       <div className="flex flex-col gap-3 p-6">
         <h2 id="confirm-title" className="font-display text-xl font-semibold">

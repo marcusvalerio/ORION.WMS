@@ -25,7 +25,7 @@ export async function loginAction(_: ActionState, formData: FormData): Promise<A
     `insert into wms.audit_log (company_id, user_id, action, entity_type, entity_id, entity_code) values ($1, $2, 'auth.login', 'user', $2, $3)`,
     [user.companyId, user.id, user.email],
   );
-  redirect("/");
+  redirect("/painel");
 }
 
 export async function logoutAction(): Promise<void> {

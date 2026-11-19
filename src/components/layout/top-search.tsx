@@ -19,6 +19,7 @@ export function TopSearch({ className }: { className?: string }) {
         />
         <Link
           href="/coletor"
+          data-tour="leitor"
           title="Abrir o coletor (leitura de código de barras)"
           aria-label="Abrir o coletor (leitura de código de barras)"
           className="absolute top-1/2 right-1 flex size-8 -translate-y-1/2 items-center justify-center rounded text-muted hover:bg-subtle hover:text-link"

@@ -74,14 +74,14 @@ const ICONS: Record<string, LucideIcon> = {
 };
 
 function isActive(pathname: string, href: string, match?: string[]) {
-  if (href === "/") return pathname === "/";
+  if (href === "/painel") return pathname === "/painel";
   if (href === "/estoque") return pathname === "/estoque" || (match ?? []).some((m) => pathname.startsWith(m));
   return pathname === href || pathname.startsWith(`${href}/`) || (match ?? []).some((m) => pathname.startsWith(m));
 }
 
 function Brand() {
   return (
-    <Link href="/" className="flex items-center gap-2 px-2">
+    <Link href="/painel" className="flex items-center gap-2 px-2">
       <span className="flex size-8 items-center justify-center rounded-md bg-ceu-400 text-noite-900">
         <OrionMark size={26} />
       </span>
@@ -112,6 +112,7 @@ export function Sidebar({ allowed }: { allowed: string[] }) {
                   <li key={item.href}>
                     <Link
                       href={item.href}
+                      data-tour={`nav:${item.href}`}
                       onClick={() => setOpen(false)}
                       aria-current={active ? "page" : undefined}
                       className={cn(

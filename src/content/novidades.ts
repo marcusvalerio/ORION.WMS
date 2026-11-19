@@ -8,7 +8,7 @@ import type { Role } from "@/lib/permissions";
  * as novidades dos perfis dele. Versões `leve: true` não abrem a janela: só um
  * aviso discreto no canto ("N novidades nesta versão · Ver").
  */
-export type DemoKind = "inventario3d" | "barras14" | "coletorBusca" | "nenhuma";
+export type DemoKind = "inventario3d" | "barras14" | "coletorBusca" | "comexLinha" | "nenhuma";
 
 export interface NovidadeItem {
   id: string;
@@ -38,7 +38,6 @@ export const RELEASES: Release[] = [
   {
     versao: "2026.12",
     data: "2026-11-16",
-    leve: true,
     itens: [
       {
         id: "aba-comex",
@@ -46,7 +45,8 @@ export const RELEASES: Release[] = [
         titulo: "Comex: importação e exportação em uma aba",
         texto: "Processos de importação do embarque à armazenagem (DI/DUIMP, canal, desembaraço) e pedidos de exportação com packing list e DU-E.",
         rota: "/comex",
-        demo: "nenhuma",
+        demo: "comexLinha",
+        demoDescricao: "Animação: um processo de importação avança do embarque à armazenagem, o canal fica verde no desembaraço e a situação muda para armazenado",
       },
     ],
   },

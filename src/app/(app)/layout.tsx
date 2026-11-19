@@ -17,6 +17,9 @@ import { RELEASES } from "@/content/novidades";
 import { NOVIDADES_COOKIE, novidadesDoUsuario, parseVistas } from "@/lib/novidades";
 import { versoesVistas } from "@/server/services/novidades";
 import { isDemoMode } from "@/server/demo-mode";
+import { OnboardingReopen, OnboardingTour } from "@/components/onboarding/onboarding-tour";
+import { ONBOARDING_COOKIE, onboardingVistoNoCookie, passosOnboarding } from "@/lib/onboarding";
+import { empresaVinculadaAtlas, prepararPrimeiroAcesso } from "@/server/services/onboarding";
 
 export const dynamic = "force-dynamic";
 
@@ -28,8 +31,14 @@ export default async function AppLayout({ children }: { children: React.ReactNod
   const cookieStore = await cookies();
   const theme = parseTheme(cookieStore.get(THEME_COOKIE)?.value);
   // Novidades: "visto" fica no banco por usuário; no modo demonstração, em cookie.
-  const vistas = isDemoMode() ? parseVistas(cookieStore.get(NOVIDADES_COOKIE)?.value) : await versoesVistas({ db, user });
-  const novidades = novidadesDoUsuario(RELEASES, user.role, vistas);
+  // Primeiros passos: só no primeiro acesso; enquanto pendente, as Novidades não abrem.
+  const demo = isDemoMode();
+  const primeiro = demo
+    ? { pendente: !onboardingVistoNoCookie(cookieStore.get(ONBOARDING_COOKIE)?.value), vinculadaAtlas: await empresaVinculadaAtlas({ db, user }) }
+    : await prepararPrimeiroAcesso({ db, user }, RELEASES[0]?.versao);
+  const vistas = demo ? parseVistas(cookieStore.get(NOVIDADES_COOKIE)?.value) : await versoesVistas({ db, user });
+  const novidadesBase = novidadesDoUsuario(RELEASES, user.role, vistas);
+  const novidades = novidadesBase && primeiro.pendente ? { ...novidadesBase, pendente: false } : novidadesBase;
   const gift = novidades ? <NovidadesGift pendente={novidades.pendente} total={novidades.itens.length} /> : null;
   const allowed = (Object.keys(PERMISSIONS) as Permission[]).filter((p) => can(user.role, p));
   return (
@@ -73,6 +82,12 @@ export default async function AppLayout({ children }: { children: React.ReactNod
       </div>
       <Toaster />
       {novidades ? <Novidades view={novidades} /> : null}
+      <OnboardingTour
+        nome={user.name}
+        passos={passosOnboarding(user.role, primeiro.vinculadaAtlas)}
+        pendente={primeiro.pendente}
+        versaoNovidades={RELEASES[0]?.versao}
+      />
     </div>
   );
 }
@@ -86,6 +101,7 @@ function UserMenu({ name, role, theme, compact }: { name: string; role: string; 
         {!compact ? <p className="text-xs text-muted">{role}</p> : null}
       </div>
       <ThemeSwitcher initial={theme} />
+      <OnboardingReopen />
       <Link href="/trocar-senha" className="rounded-md p-2 text-muted hover:bg-subtle hover:text-fg" title="Trocar senha" aria-label="Trocar senha">
         <KeyRound className="size-4" />
       </Link>
@@ -103,6 +119,7 @@ function CollectorLink() {
   return (
     <Link
       href="/coletor"
+      data-tour="coletor"
       className="inline-flex h-9 items-center gap-1.5 rounded-md bg-action px-3 text-sm font-semibold text-on-action hover:bg-action-hover"
     >
       <Smartphone className="size-4" aria-hidden />
