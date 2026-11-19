@@ -399,10 +399,28 @@
   .site-d1 { animation-delay: 0.12s; } .site-d2 { animation-delay: 0.24s; } .site-d3 { animation-delay: 0.36s; }
   .site-ring { animation: site-ring-in 1.6s cubic-bezier(0.2, 0.7, 0.2, 1) both; }
   .site-cta { animation: site-glow 3.2s ease-in-out 1.5s infinite; }
-  .site-card { transition: transform 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease; }
-  .site-card:hover { transform: translateY(-6px); }
+  .site-card { transition: translate 0.35s cubic-bezier(0.2, 0.7, 0.2, 1), border-color 0.35s ease; }
+  .site-card:hover { translate: 0 -6px; }
   @supports (animation-timeline: view()) {
     .site-reveal { animation: site-rise linear both; animation-timeline: view(); animation-range: entry 0% entry 85%; }
     .site-tilt { animation: site-flat linear both; animation-timeline: view(); animation-range: entry 30% cover 55%; }
+  }
+}
+
+/* Landing: cascata, ícones que surgem, barras que crescem, símbolo que acende */
+@keyframes site-pop { from { opacity: 0; transform: translateY(40px) scale(0.94); } to { opacity: 1; transform: none; } }
+@keyframes site-icon-in { 0% { opacity: 0; transform: scale(0.4) rotate(-20deg); } 70% { transform: scale(1.12) rotate(4deg); } 100% { opacity: 1; transform: none; } }
+@keyframes site-bar-up { from { transform: scaleY(0); } to { transform: scaleY(1); } }
+@keyframes site-bar-x { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes site-glyph-in { from { opacity: 0.15; } to { opacity: 1; } }
+@media (prefers-reduced-motion: no-preference) {
+  @supports (animation-timeline: view()) {
+    .site-stagger > * { animation: site-pop linear both; animation-timeline: view(); animation-range: entry 0% entry 75%; }
+    .site-stagger > :nth-child(3n + 2) { animation-range: entry 8% entry 85%; }
+    .site-stagger > :nth-child(3n + 3) { animation-range: entry 16% entry 95%; }
+    .site-icon { animation: site-icon-in linear both; animation-timeline: view(); animation-range: entry 20% cover 35%; }
+    .site-grow > * { transform-origin: bottom; animation: site-bar-up linear both; animation-timeline: view(); animation-range: entry 30% cover 40%; }
+    .site-fill > * { transform-origin: left; animation: site-bar-x linear both; animation-timeline: view(); animation-range: entry 30% cover 40%; }
+    .site-glyph rect { animation: site-glyph-in linear both; animation-timeline: view(); animation-range: entry 20% cover 45%; }
   }
 }

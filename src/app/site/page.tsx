@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import type { CSSProperties } from "react";
 import Image from "next/image";
 import Link from "next/link";
+import { Link2, MapPinned, PackageCheck, ScanBarcode, Ship, Waves } from "lucide-react";
 import { OrionRing } from "@/components/brand/orion-ring";
 import { TURMA_ATUAL } from "@/server/services/site-leads";
 import { LeadForm } from "./lead-form";
@@ -27,6 +28,8 @@ const MARQUEE = [
   "ATLAS + ORION",
   "CONTAGEM CEGA",
 ];
+
+const FEATURE_ICONS = [PackageCheck, MapPinned, Waves, ScanBarcode, Ship, Link2];
 
 const FEATURES: [string, string, string, string, string][] = [
   ["01", "Recebimento sem papel", "Agenda de docas, NF-e em XML e conferência parcial.", "#060B2A", "#FFF8E7"],
@@ -107,7 +110,7 @@ export default function SitePage() {
           <div className="absolute inset-0 bg-[radial-gradient(60%_45%_at_18%_12%,rgba(45,119,204,0.28)_0%,rgba(3,6,26,0)_70%),radial-gradient(45%_40%_at_85%_30%,rgba(125,183,240,0.18)_0%,rgba(3,6,26,0)_70%),radial-gradient(70%_50%_at_50%_100%,rgba(34,48,111,0.55)_0%,rgba(3,6,26,0)_75%)]" />
           {/* um só O gigante atrás do título, girando com a onda */}
           <div className="site-ring absolute top-[34%] left-1/2">
-            <OrionRing size="var(--rs)" bars={96} barWidth={200} barLength={360} spinSeconds={240} className="opacity-80 [--rs:1500px] max-sm:[--rs:820px]" />
+            <OrionRing size="var(--rs)" bars={96} barWidth={200} barLength={360} spinSeconds={70} waveSeconds={4} className="opacity-80 [--rs:1500px] max-sm:[--rs:820px]" />
           </div>
           <div className="absolute inset-0 bg-[radial-gradient(42%_30%_at_50%_28%,rgba(3,6,26,0.78)_0%,rgba(3,6,26,0.25)_65%,rgba(3,6,26,0)_100%)]" />
         </div>
@@ -240,12 +243,12 @@ export default function SitePage() {
           </h2>
           <p className="max-w-[400px] text-[17px] leading-relaxed text-ceu-300">Cada gráfico do ORION nasce das barras do símbolo. Bonito de olhar, rápido de ler.</p>
         </div>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+        <div className="site-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           <div className="flex flex-col gap-3.5 site-card rounded-lg bg-creme-100 p-[26px] text-noite-900">
             <span className="text-sm font-medium text-gelo-700">Pedidos expedidos hoje</span>
             <div className="flex items-end justify-between gap-4">
               <span className="font-display text-[72px] leading-[1.02] font-semibold tracking-[-0.03em]">186</span>
-              <div role="img" aria-label="Últimos 14 dias, hoje em destaque" className="flex h-[70px] min-w-0 items-end gap-[3px]">
+              <div role="img" aria-label="Últimos 14 dias, hoje em destaque" className="site-grow flex h-[70px] min-w-0 items-end gap-[3px]">
                 {SPARK.map((v, i) => (
                   <div key={i} className="rounded-[2px]" style={{ width: Math.round(SPARK_W[i] * 0.7), height: Math.round(v * 70), background: i === 13 ? "#2563EB" : "#C9D6E4" }} />
                 ))}
@@ -255,7 +258,7 @@ export default function SitePage() {
           </div>
           <div className="flex flex-col items-center gap-2.5 site-card rounded-lg bg-noite-900 p-[26px]">
             <span className="self-start text-sm font-medium text-ceu-300">Ocupação do CD</span>
-            <svg role="img" aria-label="Ocupação 71%" width="170" height="170" viewBox="-1 -1 2 2">
+            <svg role="img" aria-label="Ocupação 71%" width="170" height="170" viewBox="-1 -1 2 2" className="site-glyph">
               {GLYPH.map(([x, w, y, h], i) => (
                 <rect key={i} x={x} y={y} width={w} height={h} fill={i < 10 ? "#7DB7F0" : "#22306F"} />
               ))}
@@ -264,7 +267,7 @@ export default function SitePage() {
           </div>
           <div className="flex flex-col gap-3.5 site-card rounded-lg bg-ceu-400 p-[26px] text-noite-900">
             <span className="text-sm font-semibold">Armazenado × expedido</span>
-            <div role="img" aria-label="Colunas diárias divididas em armazenado e expedido" className="flex h-[150px] items-end gap-1.5">
+            <div role="img" aria-label="Colunas diárias divididas em armazenado e expedido" className="site-grow flex h-[150px] items-end gap-1.5">
               {SPLIT_A.map((v, i) => (
                 <div key={i} className="flex flex-1 flex-col gap-1">
                   <div className="rounded-[3px] bg-noite-900" style={{ height: Math.round(v * 90) }} />
@@ -286,7 +289,7 @@ export default function SitePage() {
                     <span>{n}</span>
                     <b className="font-semibold">{pct}%</b>
                   </div>
-                  <div className="flex h-3.5 gap-1" aria-hidden>
+                  <div className="site-fill flex h-3.5 gap-1" aria-hidden>
                     {ZONE_W.map((w, i) => {
                       acc += w;
                       const on = acc / totalZone <= pct / 100 + 0.001;
@@ -299,7 +302,7 @@ export default function SitePage() {
           </div>
           <div className="flex flex-col gap-3.5 site-card rounded-lg border border-noite-600 bg-[#03061A] p-[26px]">
             <span className="text-sm font-medium text-ceu-300">Tarefas por tipo</span>
-            <div role="img" aria-label="Tarefas concluídas, em execução e pendentes por tipo" className="flex h-[150px] items-end gap-3.5">
+            <div role="img" aria-label="Tarefas concluídas, em execução e pendentes por tipo" className="site-grow flex h-[150px] items-end gap-3.5">
               {STACK.map(([t, p, e, c]) => (
                 <div key={t} className="flex flex-1 flex-col items-stretch gap-1">
                   <div className="rounded-[3px] bg-[#4A5578]" style={{ height: Math.round(p * 120) }} />
@@ -326,18 +329,24 @@ export default function SitePage() {
       {/* Funcionalidades */}
       <section className={`site-reveal flex flex-col gap-12 bg-gelo-50 py-[clamp(64px,8vw,128px)] text-noite-900 ${PAD}`}>
         <h2 className="max-w-[1000px] font-display text-[clamp(40px,5.5vw,88px)] leading-[1.02] font-semibold tracking-[-0.03em]">Tudo entre a nota que chega e o caminhão que sai.</h2>
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {FEATURES.map(([n, t, d, bg, fg]) => (
+        <div className="site-stagger grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          {FEATURES.map(([n, t, d, bg, fg], i) => {
+            const Icon = FEATURE_ICONS[i];
+            return (
             <article
               key={n}
               className="site-card flex min-h-[280px] flex-col justify-end gap-3.5 rounded-lg p-8"
               style={{ background: bg, color: fg, border: bg === "#FFFFFF" ? "1px solid #DCE8F3" : undefined } as CSSProperties}
             >
+              <span className="site-icon mb-auto inline-flex size-14 items-center justify-center rounded-md border border-current/20">
+                <Icon className="size-7" strokeWidth={1.75} aria-hidden />
+              </span>
               <span className="font-mono text-[13px] opacity-70">{n}</span>
               <h3 className="font-display text-[30px] leading-[1.05] font-semibold tracking-[-0.02em]">{t}</h3>
               <p className="text-[15px] leading-relaxed opacity-80">{d}</p>
             </article>
-          ))}
+            );
+          })}
         </div>
       </section>
 
