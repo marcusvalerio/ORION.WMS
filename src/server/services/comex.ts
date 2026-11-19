@@ -1,4 +1,5 @@
 import "server-only";
+import { CONTAINER_TYPES } from "@/lib/container";
 import { z } from "zod";
 import type { Queryable } from "../db/types";
 import type { Ctx } from "../context";
@@ -57,6 +58,9 @@ const shortText = (label: string, max: number) =>
 // Importação (recebimento)
 // -----------------------------------------------------------------------------
 
+/** Tipo do contêiner (define a capacidade usada no desenho de ocupação). */
+const containerType = z.preprocess(blankToNull, z.enum(CONTAINER_TYPES, { error: "Tipo de contêiner inválido." }).nullish());
+
 const importSchema = z.object({
   importDocType: z.preprocess(blankToNull, z.enum(["DI", "DUIMP"], { error: "Tipo de declaração inválido (DI ou DUIMP)." }).nullish()),
   importDocNumber: z.preprocess(
@@ -66,6 +70,7 @@ const importSchema = z.object({
   incoterm,
   originCountry: country("País de origem"),
   containerNumber: containerField,
+  containerType,
   sealNumber: shortText("Lacre", 30),
   transportMode: z.preprocess(blankToNull, z.enum(TRANSPORT_MODES, { error: "Modal inválido." }).nullish()),
   transportDoc: z.preprocess(
@@ -138,11 +143,12 @@ export async function saveReceiptImport(ctx: Ctx, receiptId: string, input: unkn
       `update wms.receipts set import_doc_type = $2, import_doc_number = $3, incoterm = $4, origin_country = $5,
               container_number = $6, seal_number = $7, customs_status = $8, transport_mode = $9, transport_doc = $10,
               commercial_invoice = $11, shipped_on = $12, eta_on = $13, import_registered_on = $14, customs_channel = $15,
-              updated_at = now(), version = version + 1
+              container_type = $16, updated_at = now(), version = version + 1
        where id = $1`,
       [receiptId, d.importDocType ?? null, d.importDocNumber ?? null, d.incoterm ?? null, d.originCountry ?? null,
         d.containerNumber ?? null, d.sealNumber ?? null, customs, d.transportMode ?? null, d.transportDoc ?? null,
-        d.commercialInvoice ?? null, d.shippedOn ?? null, d.etaOn ?? null, d.registeredOn ?? null, d.customsChannel ?? null],
+        d.commercialInvoice ?? null, d.shippedOn ?? null, d.etaOn ?? null, d.registeredOn ?? null, d.customsChannel ?? null,
+        d.containerType ?? null],
     );
     for (const item of d.items ?? []) {
       const updated = await tx.query(`update wms.receipt_items set ncm = $3 where id = $1 and receipt_id = $2 returning id`, [
@@ -224,6 +230,7 @@ export interface ReceiptImportInfo {
   incoterm: string | null;
   origin_country: string | null;
   container_number: string | null;
+  container_type: string | null;
   seal_number: string | null;
   transport_mode: string | null;
   transport_doc: string | null;
@@ -240,7 +247,7 @@ export interface ReceiptImportInfo {
 
 export async function getReceiptImport(ctx: Ctx, receiptId: string): Promise<ReceiptImportInfo | null> {
   const [r] = await ctx.db.query<Omit<ReceiptImportInfo, "items"> & { warehouse_id: string }>(
-    `select r.warehouse_id, r.import_doc_type, r.import_doc_number, r.incoterm, r.origin_country, r.container_number, r.seal_number,
+    `select r.warehouse_id, r.import_doc_type, r.import_doc_number, r.incoterm, r.origin_country, r.container_number, r.container_type, r.seal_number,
             r.transport_mode, r.transport_doc, r.commercial_invoice, r.shipped_on::text as shipped_on, r.eta_on::text as eta_on,
             r.import_registered_on::text as import_registered_on, r.customs_channel,
             r.customs_status, r.customs_cleared_on::text as customs_cleared_on, u.name as customs_cleared_by_name
@@ -301,6 +308,7 @@ const exportSchema = z.object({
   destinationCountry: country("País de destino"),
   commercialInvoice: shortText("Fatura comercial (invoice)", 40),
   exportDeclaration: shortText("RE/DU-E", 40),
+  containerType,
 });
 
 /** Marca/desmarca o pedido como exportação e grava Incoterm, destino, invoice e RE/DU-E. */
@@ -320,10 +328,10 @@ export async function saveOrderExport(ctx: Ctx, orderId: string, input: unknown,
     }
     await tx.query(
       `update wms.outbound_orders set is_export = $2, export_incoterm = $3, destination_country = $4, commercial_invoice = $5,
-              export_declaration = $6, updated_at = now(), version = version + 1 where id = $1`,
+              export_declaration = $6, container_type = $7, updated_at = now(), version = version + 1 where id = $1`,
       d.isExport
-        ? [orderId, true, d.incoterm ?? null, d.destinationCountry ?? null, d.commercialInvoice ?? null, d.exportDeclaration ?? null]
-        : [orderId, false, null, null, d.commercialInvoice ?? null, d.exportDeclaration ?? null],
+        ? [orderId, true, d.incoterm ?? null, d.destinationCountry ?? null, d.commercialInvoice ?? null, d.exportDeclaration ?? null, d.containerType ?? null]
+        : [orderId, false, null, null, d.commercialInvoice ?? null, d.exportDeclaration ?? null, null],
     );
     await audit(tx, ctx, "outbound.export_saved", "outbound_order", orderId, o.code, d);
     return { id: orderId };
@@ -563,6 +571,7 @@ export interface PackingList {
     commercial_invoice: string | null;
     export_declaration: string | null;
     container_number: string | null;
+    container_type: string | null;
     seal_number: string | null;
     packed_at: string | null;
     stuffed_at: string | null;
@@ -577,7 +586,7 @@ export interface PackingList {
 async function packingListTx(q: Queryable, ctx: Ctx, orderId: string): Promise<PackingList> {
   const [order] = await q.query<PackingList["order"]>(
     `select id, code, status, warehouse_id, customer_name, is_export, export_incoterm, destination_country, commercial_invoice,
-            export_declaration, container_number, seal_number, packed_at::text as packed_at, stuffed_at::text as stuffed_at
+            export_declaration, container_number, container_type, seal_number, packed_at::text as packed_at, stuffed_at::text as stuffed_at
      from wms.outbound_orders where id = $1 and company_id = $2`,
     [orderId, ctx.user.companyId],
   );

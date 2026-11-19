@@ -20,6 +20,8 @@ import { INCOTERMS_2020 } from "@/lib/comex";
 import { PACKAGE_TYPE_LABELS } from "@/lib/labels";
 import { fmtDateTime, fmtQty } from "@/lib/format";
 import { can } from "@/lib/permissions";
+import { ContainerPanel } from "@/components/comex/container-iso";
+import { CONTAINER_TYPES, CONTAINERS, containerLoad } from "@/lib/container";
 
 /** Exportação do pedido: dados, volumes (packing list), fechamento e estufagem. */
 export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }) {
@@ -57,6 +59,12 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
       />
       <CardBody className="space-y-4">
         {order.is_export ? (
+          <ContainerPanel
+            load={containerLoad({ type: order.container_type, m3: Number(totals.volumeM3), kg: totals.grossWeightKg })}
+            packages={totals.packages}
+          />
+        ) : null}
+        {order.is_export ? (
           <DefinitionList
             items={[
               ["Incoterm", order.export_incoterm],
@@ -89,6 +97,14 @@ export async function ExportCard({ ctx, orderId }: { ctx: Ctx; orderId: string }
               </Field>
               <Field label="RE / DU-E">
                 <Input name="exportDeclaration" defaultValue={order.export_declaration ?? ""} maxLength={40} />
+              </Field>
+              <Field label="Tipo do contêiner" hint="Define a capacidade no desenho de ocupação">
+                <Select
+                  name="containerType"
+                  defaultValue={order.container_type ?? ""}
+                  placeholder="—"
+                  options={CONTAINER_TYPES.map((t) => ({ value: t, label: CONTAINERS[t].label }))}
+                />
               </Field>
               <div className="sm:col-span-2">
                 <SubmitButton size="sm">Salvar exportação</SubmitButton>

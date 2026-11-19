@@ -24,6 +24,8 @@ import { EmptyState, ErrorState } from "@/components/ui/states";
 import { KpiCard } from "@/components/ui/kpi";
 import { cn } from "@/components/ui/cn";
 import { ImportTimeline } from "@/components/comex/import-timeline";
+import { ContainerMini } from "@/components/comex/container-iso";
+import { containerLoad } from "@/lib/container";
 import {
   CUSTOMS_CHANNEL_LABELS,
   EXPORT_SITUATION_LABELS,
@@ -241,6 +243,7 @@ function ImportTable({ rows }: { rows: ImportProcessRow[] }) {
       <table className="table-base">
         <thead>
           <tr>
+            <th>Contêiner</th>
             <th>Recebimento</th>
             <th>Situação</th>
             <th>Fornecedor / origem</th>
@@ -256,6 +259,9 @@ function ImportTable({ rows }: { rows: ImportProcessRow[] }) {
             const channel = r.customs_channel ? CUSTOMS_CHANNEL_LABELS[r.customs_channel as CustomsChannel] : null;
             return (
               <tr key={r.id}>
+                <td>
+                  <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.cargo_kg, missing: r.cargo_missing })} />
+                </td>
                 <td>
                   <Link href={`/recebimentos/${r.id}`} className="link font-mono">
                     {r.code}
@@ -445,6 +451,7 @@ function ExportTable({ rows }: { rows: ExportOrderRow[] }) {
             <th className="w-8">
               <span className="sr-only">Selecionar</span>
             </th>
+            <th>Contêiner</th>
             <th>Pedido</th>
             <th>Situação</th>
             <th>Cliente / destino</th>
@@ -468,6 +475,9 @@ function ExportTable({ rows }: { rows: ExportOrderRow[] }) {
                     aria-label={`Incluir o packing list de ${r.code}`}
                   />
                 ) : null}
+              </td>
+              <td>
+                <ContainerMini load={containerLoad({ type: r.container_type, m3: r.cargo_m3, kg: r.gross_weight_kg })} />
               </td>
               <td>
                 <Link href={`/separacao/${r.id}`} className="link font-mono">

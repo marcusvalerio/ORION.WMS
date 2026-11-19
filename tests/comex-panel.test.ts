@@ -51,8 +51,8 @@ describe("Aba Comex: consultas, indicadores, isolamento e exportação CSV", () 
     const k = await importIndicators(env.as("auditor"));
     expect(k.awaiting).toBe(2);
     expect(k.open).toBe(3);
-    // em trânsito: PC-IMP-0001 (600 × 38,50) e PC-IMP-0004 (12 × 1.890)
-    expect(k.inTransit).toEqual({ processes: 2, quantity: 612, value: 600 * 38.5 + 12 * 1890 });
+    // em trânsito: PC-IMP-0001 (21.000 × 38,50) e PC-IMP-0004 (12 × 1.890)
+    expect(k.inTransit).toEqual({ processes: 2, quantity: 21012, value: 21000 * 38.5 + 12 * 1890 });
     expect(k.clearedSeries).toHaveLength(14);
     const cleared = await env.one<{ n: number }>(
       `select count(*)::int as n from wms.receipts where customs_cleared_on >= date_trunc('month', current_date)`,

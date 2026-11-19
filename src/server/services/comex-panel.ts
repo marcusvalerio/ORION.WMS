@@ -32,6 +32,36 @@ export interface ImportFilters {
   q?: string | null;
 }
 
+/**
+ * Carga estimada de um recebimento (alias r): quantidade prevista × dimensões e
+ * peso do produto. Itens sem medidas entram em `missing` e não somam.
+ */
+const RECEIPT_CARGO_SQL = `
+  select coalesce(sum(i.expected_qty * p.length_cm * p.width_cm * p.height_cm / 1000000), 0)::float8 as m3,
+         coalesce(sum(i.expected_qty * p.weight_kg), 0)::float8 as kg,
+         count(*) filter (where coalesce(p.length_cm, 0) * coalesce(p.width_cm, 0) * coalesce(p.height_cm, 0) = 0
+                             or coalesce(p.weight_kg, 0) = 0)::int as missing
+  from wms.receipt_items i join erp.products p on p.id = i.product_id
+  where i.receipt_id = r.id`;
+
+export interface CargoSummary {
+  container_type: string | null;
+  m3: number;
+  kg: number;
+  missing: number;
+}
+
+/** Carga de um recebimento de importação (para o painel do contêiner). */
+export async function receiptCargo(ctx: Ctx, receiptId: string): Promise<CargoSummary | null> {
+  const [row] = await ctx.db.query<CargoSummary>(
+    `select r.container_type, cg.m3, cg.kg, cg.missing
+     from wms.receipts r cross join lateral (${RECEIPT_CARGO_SQL}) cg
+     where r.id = $1 and r.company_id = $2`,
+    [receiptId, ctx.user.companyId],
+  );
+  return row ?? null;
+}
+
 export interface ImportProcessRow {
   id: string;
   code: string;
@@ -60,6 +90,11 @@ export interface ImportProcessRow {
   completed_at: string | null;
   created_at: string;
   expected_total: number;
+  container_type: string | null;
+  cargo_m3: number;
+  cargo_kg: number;
+  /** itens sem dimensões ou peso no cadastro do produto */
+  cargo_missing: number;
   is_demo: boolean;
 }
 
@@ -78,11 +113,13 @@ export async function listImportProcesses(ctx: Ctx, f: ImportFilters = {}): Prom
               r.import_registered_on::text as import_registered_on, r.customs_cleared_on::text as customs_cleared_on,
               r.checked_at::text as checked_at, r.completed_at::text as completed_at, r.created_at::text as created_at, r.is_demo,
               coalesce((select sum(i.expected_qty) from wms.receipt_items i where i.receipt_id = r.id), 0)::float8 as expected_total,
+              r.container_type, cg.m3 as cargo_m3, cg.kg as cargo_kg, cg.missing as cargo_missing,
               r.supplier_id
        from wms.receipts r
        join erp.suppliers s on s.id = r.supplier_id
        join wms.warehouses w on w.id = r.warehouse_id
        left join erp.purchase_orders po on po.id = r.purchase_order_id
+       cross join lateral (${RECEIPT_CARGO_SQL}) cg
        where r.company_id = $1 and r.status <> 'cancelled' and ${IS_IMPORT}
          and ($4::text is null or r.origin_country = $4)
          and ($5::date is null or r.created_at >= $5::date)
@@ -194,6 +231,8 @@ export interface ExportOrderRow {
   seal_number: string | null;
   packages: number;
   gross_weight_kg: number;
+  container_type: string | null;
+  cargo_m3: number;
   packed_at: string | null;
   stuffed_at: string | null;
   shipped_at: string | null;
@@ -213,6 +252,8 @@ export async function listExportOrders(ctx: Ctx, f: ExportFilters = {}): Promise
               o.export_incoterm, o.destination_country, o.commercial_invoice, o.export_declaration, o.container_number, o.seal_number,
               (select count(*) from wms.export_packages p where p.order_id = o.id)::int as packages,
               coalesce((select sum(p.gross_weight_kg) from wms.export_packages p where p.order_id = o.id), 0)::float8 as gross_weight_kg,
+              o.container_type,
+              coalesce((select sum(p.length_cm * p.width_cm * p.height_cm) / 1000000 from wms.export_packages p where p.order_id = o.id), 0)::float8 as cargo_m3,
               o.packed_at::text as packed_at, o.stuffed_at::text as stuffed_at, o.shipped_at::text as shipped_at,
               o.created_at::text as created_at, o.is_demo
        from wms.outbound_orders o

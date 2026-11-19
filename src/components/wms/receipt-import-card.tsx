@@ -1,5 +1,8 @@
 import type { Ctx } from "@/server/context";
 import { getReceiptImport } from "@/server/services/comex";
+import { receiptCargo } from "@/server/services/comex-panel";
+import { ContainerPanel } from "@/components/comex/container-iso";
+import { CONTAINER_TYPES, CONTAINERS, containerLoad } from "@/lib/container";
 import { clearCustomsAction, saveReceiptImportAction } from "@/server/actions/comex";
 import { Card, CardBody, CardHeader, DefinitionList } from "@/components/ui/card";
 import { Alert } from "@/components/ui/alert";
@@ -26,7 +29,7 @@ export async function ReceiptImportCard({
   receiptStatus: string;
   milestones?: { arrived_at: string | null; checked_at: string | null; completed_at: string | null };
 }) {
-  const info = await getReceiptImport(ctx, receiptId);
+  const [info, cargo] = await Promise.all([getReceiptImport(ctx, receiptId), receiptCargo(ctx, receiptId)]);
   if (!info) return null;
   const role = ctx.user.role;
   const editable = ["expected", "checking", "checked"].includes(receiptStatus) && info.customs_status !== "cleared" && can(role, "comex.manage");
@@ -46,6 +49,9 @@ export async function ReceiptImportCard({
         actions={<StatusBadge kind="customs" status={info.customs_status} />}
       />
       <CardBody className="space-y-4">
+        {hasData && cargo ? (
+          <ContainerPanel load={containerLoad({ type: cargo.container_type, m3: cargo.m3, kg: cargo.kg, missing: cargo.missing })} />
+        ) : null}
         {hasData ? (
           <DefinitionList
             items={[
@@ -123,6 +129,14 @@ export async function ReceiptImportCard({
                 </Field>
                 <Field label="Contêiner" hint="ISO 6346, com dígito verificador">
                   <Input name="containerNumber" defaultValue={info.container_number ?? ""} maxLength={13} className="uppercase" />
+                </Field>
+                <Field label="Tipo do contêiner" hint="Define a capacidade no desenho de ocupação">
+                  <Select
+                    name="containerType"
+                    defaultValue={info.container_type ?? ""}
+                    placeholder="—"
+                    options={CONTAINER_TYPES.map((t) => ({ value: t, label: CONTAINERS[t].label }))}
+                  />
                 </Field>
                 <Field label="Lacre">
                   <Input name="sealNumber" defaultValue={info.seal_number ?? ""} maxLength={30} />
