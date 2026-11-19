@@ -46,8 +46,8 @@
 - As colunas ficam entre −0,70R e +0,70R. As larguras vão de 0,045R a 0,19R. O vão mínimo entre barras é 0,06R.
 
 ### Assinatura
-- O símbolo fica à esquerda e o nome **ORION** em Gabarito 600, com letter-spacing de +14%.
-- O símbolo tem 1,25× a altura das maiúsculas.
+- O símbolo fica à esquerda e o nome **orion**, em minúsculas, Gabarito 600, com espaçamento levemente fechado (`tracking-tight`).
+- O nome tem **0,68×** a altura do símbolo, como no componente `<OrionLogo />`. Abaixo dele pode vir o descritor “Gestão de armazéns” em Inter 11.
 - **Área de proteção:** deixe livre em volta a largura da letra O.
 - **Tamanho mínimo:**
   - na tela, o símbolo tem 16 px;
@@ -96,9 +96,9 @@
 - Colocar sobre fotos sem contraste.
 - Rodear a marca de estrelas, brilhos ou partículas.
 
-### Anel
-- Em telas grandes, o símbolo se abre em um anel fino que gira uma volta a cada **70 s** (`<OrionRing />`).
-- O cinturão são **três pontos em linha** e nada mais. É o único elemento decorativo animado da marca.
+### Cinturão
+- No ORION, o **cinturão é o próprio símbolo em O**: as sete colunas de barras.
+- Círculos, órbitas e pontos soltos **não fazem parte da marca**.
 
 ---
 
@@ -115,7 +115,7 @@
 - **Letter-spacing:**
   - acima de 48 px, −3%;
   - de 24 a 48 px, −2%;
-  - na assinatura, +14%.
+  - no logotipo, levemente fechado (`tracking-tight`).
 - **Entrelinha:**
   - título de 1 linha, 92–100%;
   - de 2 linhas, 105%;
@@ -248,6 +248,21 @@ O produto nasce no tema claro.
 
 ---
 
+## 4c. Gráficos do sistema (referência: o dashboard em produção)
+- **KpiCard:**
+  - rótulo em Inter 12 medium, cor secundária;
+  - valor em Inter 28 medium, tabular, com “un” menor para quantidades;
+  - dica de contexto abaixo do valor;
+  - mini barras dos últimos dias, com hoje em azul;
+  - selo Atenção ou Crítico só quando o número pede ação;
+  - ícone de informação com a definição do cálculo.
+- **Os 12 indicadores:** Produtos ativos, Endereços ativos, Ocupação do armazém, Recebimentos pendentes, Em conferência, Aguardando armazenagem, Tarefas pendentes, Produtos bloqueados, Pedidos a separar, Pedidos expedidos e Divergências em aberto.
+- **GlyphGauge:** o símbolo como medidor. Os 14 trechos acendem em Céu 400 coluna a coluna, de baixo para cima; o resto fica em Gelo 200.
+- **BlockBar:** 12 blocos de larguras variadas. Acima de 70%, os blocos cheios passam para Atenção.
+- **Recebimentos × expedições:** colunas empilhadas, Noite para entrada e Céu 600 para saída.
+- **Tarefas por tipo:** concluídas na base, em execução no meio e pendentes no topo.
+- **Na dúvida, a referência é a tela do sistema, não este documento.**
+
 ## 5. Interface
 
 - **Raios** (tokens `--radius-sm/md/lg`):
@@ -265,7 +280,7 @@ O produto nasce no tema claro.
 | Sair | 120 ms | Só opacidade |
 | Números (KPI) | 1,4 s | Contam até o valor |
 | Ícones / cards | +60 ms cada | Em cascata |
-| Anel | 70 s | Uma volta |
+| Símbolo | 40 ms por barra | As barras surgem de baixo para cima |
 
 - **Curva:** `cubic-bezier(.2,.7,.2,1)`.
 - Com `prefers-reduced-motion`, tudo aparece pronto e não há animação.
@@ -295,11 +310,11 @@ O ORION fala como um bom líder de turno: direto, calmo, sem jargão de sistema.
 ## 6b. Aplicações
 
 ### Kit de elementos
-Quatro elementos saem do símbolo e da constelação. Use no máximo dois por peça; o cinturão combina com todos.
+Três elementos saem do símbolo. Use no máximo dois por peça.
 
 - **Símbolo recortado:** o O gigante, sangrando para fora da peça. Nunca inteiro e pequeno no meio.
-- **Anel:** órbita em traço de 1 px, com uma segunda órbita tracejada por dentro.
-- **Cinturão:** três pontos em linha, inclinados 18°. É a assinatura sem palavras.
+- **Coluna acesa:** uma das sete colunas em Céu e as outras em tom sobre tom. Marca o item em foco.
+- **Cinturão:** o símbolo em O, inteiro. É a assinatura sem palavras.
 - **Padrão de barras:** as colunas do símbolo repetidas, como prateleiras.
 
 ### Redes sociais
@@ -313,11 +328,11 @@ Quatro elementos saem do símbolo e da constelação. Use no máximo dois por pe
 
 - **Três famílias de post:**
   - **Novidade:** fundo Noite, símbolo recortado ao fundo e etiqueta Creme;
-  - **Número:** KPI gigante dentro do anel, com o cinturão como marcador;
+  - **Número:** um indicador real do dashboard (ex.: 45,9% de ocupação), com o símbolo-medidor aceso atrás;
   - **Dica:** fundo Gelo com padrão de barras e um passo por coluna.
-- **Story:** o anel ocupa a tela e o cinturão é o ponto de foco.
+- **Story:** o símbolo ocupa a tela inteira, cortado pelas bordas.
 - **Carrossel:** o símbolo gigante atravessa os cards e só se completa no último.
-- **Perfil:** símbolo com o anel por fora. **Capa do LinkedIn:** o cinturão cruza a peça.
+- **Perfil:** só o símbolo. **Capa do LinkedIn:** o padrão de barras cruza a peça.
 - Cada post diz uma coisa só. A assinatura fica pequena, embaixo à esquerda.
 - **Carrossel:** o primeiro card promete e o último assina. O contador de páginas vai em Geist Mono (`01/03`).
 - **Foto de perfil:** só o símbolo, em Gelo sobre Noite.
@@ -347,17 +362,29 @@ A etiqueta “Novo” sai depois de 30 dias.
 
 ### Fachada, frota e uniforme
 - **Fachada do galpão:** faixa Noite na platibanda, símbolo na quina e placas “DOCA 0n” em Gabarito.
-- **Frota:** furgão branco com faixa Noite na base, assinatura na lateral e cinturão na porta.
+- **Frota:** furgão branco com faixa Noite na base, assinatura na lateral e símbolo na porta.
 - **Uniforme:** colete Noite com faixa refletiva e o símbolo bordado em traço no peito.
 - A sinalização de segurança (NR-26) tem prioridade sobre a marca.
+
+### Crachá
+- PVC 54×86 mm, com o símbolo inteiro e grande, cortado pela borda.
+- **A cor das barras indica a função:** Céu para operação, Creme para liderança de turno, Gelo para visitante.
+- Nome em Gabarito, função em caixa alta espaçada e código em Geist Mono. O cordão é Noite, com as barras em Céu.
+
+### Vestuário
+- **Costas monumento:** o O gigante em Noite 700 sobre camiseta Noite, tom sobre tom.
+- **Peito mínimo:** camiseta Gelo com o símbolo bordado de 4 cm, sem mais nada.
+- **Colete refletivo:** as barras do símbolo são as próprias faixas refletivas.
+- **Boné:** símbolo bordado em traço, com linha Céu.
 
 ### Papelaria e apresentações
 Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela para o O.
 
-- **Cartão de visita** (90×50 mm): a frente é Noite com o símbolo sangrando e o cinturão; o verso é branco, com o cinturão marcando o nome.
+- **Cartão duplex** (85×55 mm, 2×350 g): Noite por fora e Céu 400 por dentro. O símbolo é vazado a laser na frente, e o azul aparece pelos cortes. O verso é branco, com o símbolo em relevo seco, e a borda é pintada em Céu.
+- **Cartão coluna** (55×85 mm): série de 7 cartões, um por coluna do símbolo, com a coluna da pessoa acesa em hot stamping Céu e numeração 01/07 a 07/07. Juntos, os sete formam o O.
 - **Papel timbrado** A4: padrão de barras na faixa lateral e assinatura no topo.
 - **Envelope:** símbolo recortado na aba.
-- **Assinatura de e-mail:** símbolo de 16 px, com o cinturão como divisor.
+- **Assinatura de e-mail:** símbolo de 16 px.
 - **Acabamento:** papel sem brilho; símbolo em verniz localizado ou hot stamping azul Céu.
 - **Slides em 16:9:** a abertura é em Noite e o conteúdo, em branco.
 
