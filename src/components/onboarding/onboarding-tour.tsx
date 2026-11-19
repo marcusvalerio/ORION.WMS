@@ -221,7 +221,7 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
 
           {step < 0 || step >= total ? (
             <div className="fixed inset-0 grid place-items-center p-4">
-              <div className="w-full max-w-md rounded-2xl border-2 border-ceu-400 bg-gelo-50 p-6 shadow-2xl">
+              <div className="w-full max-w-md rounded-lg border-2 border-ceu-400 bg-gelo-50 p-6">
                 <p className="text-xs font-semibold tracking-wider text-ceu-900 uppercase">Primeiros passos</p>
                 {step < 0 ? (
                   <>
@@ -255,7 +255,7 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
           ) : passo ? (
             <div
               className={cn(
-                "fixed rounded-xl border-2 border-ceu-400 bg-gelo-50 p-4 shadow-2xl motion-safe:transition-all motion-safe:duration-300",
+                "fixed rounded-md border-2 border-ceu-400 bg-gelo-50 p-4 motion-safe:transition-all motion-safe:duration-300",
                 mobile ? "inset-x-3 bottom-3" : !balloonStyle && "top-1/2 left-1/2 w-[min(340px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2",
               )}
               style={mobile ? undefined : balloonStyle}

@@ -8,7 +8,7 @@ export function NovidadeDemo({ kind, label }: { kind: DemoKind; label?: string }
   const bg = kind === "inventario3d" ? "bg-[#03061A]" : kind === "barras14" ? "bg-creme-100" : "bg-gelo-200";
   const tag = kind === "inventario3d" ? "bg-[#111C4A] text-ceu-300" : kind === "barras14" ? "bg-[#F3EAD3] text-[#7A5300]" : "bg-white text-gelo-700";
   return (
-    <div role="img" aria-label={label} className={`relative min-h-[170px] flex-1 overflow-hidden rounded-2xl ${bg}`}>
+    <div role="img" aria-label={label} className={`relative min-h-[170px] flex-1 overflow-hidden rounded-lg ${bg}`}>
       <span className={`absolute top-3 left-3.5 z-10 rounded-md px-2 py-1 font-mono text-[11px] tracking-[0.12em] ${tag}`}>COMO FUNCIONA</span>
       <Body />
     </div>
@@ -77,7 +77,7 @@ function ColetorBusca() {
         ))}
         <span className="nv-laser" />
       </div>
-      <div className="nv-res flex w-full max-w-[420px] items-center justify-between rounded-[14px] bg-noite-900 px-4 py-3 text-[13px] text-creme-100">
+      <div className="nv-res flex w-full max-w-[420px] items-center justify-between rounded-md bg-noite-900 px-4 py-3 text-[13px] text-creme-100">
         <span>Contagem · nível 3</span>
         <b className="font-mono text-[15px] font-medium text-ceu-400">ARM-02-07-03</b>
       </div>

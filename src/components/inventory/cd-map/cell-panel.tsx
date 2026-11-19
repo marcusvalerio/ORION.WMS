@@ -101,7 +101,7 @@ export function CellPanel({
         {cell.blocked ? <Badge tone="warning">Bloqueado</Badge> : null}
       </p>
 
-      <div className="flex flex-col gap-2.5 rounded-2xl border border-line bg-surface p-4">
+      <div className="flex flex-col gap-2.5 rounded-lg border border-line bg-surface p-4">
         <div className="flex items-baseline justify-between">
           <span className="text-sm text-fg-2">Ocupação da posição</span>
           <span className="font-display text-3xl font-medium tabular-nums">{fmtPct(pct)}</span>
@@ -121,14 +121,14 @@ export function CellPanel({
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 text-sm">
-        <div className="rounded-xl bg-subtle/70 p-3">
+        <div className="rounded-md bg-subtle/70 p-3">
           <span className="text-xs text-fg-2">Nível</span>
           <br />
           <b className="font-semibold">
             {cell.z + 1} de {levels}
           </b>
         </div>
-        <div className="rounded-xl bg-subtle/70 p-3">
+        <div className="rounded-md bg-subtle/70 p-3">
           <span className="text-xs text-fg-2">Última contagem</span>
           <br />
           <b className="font-semibold">{lastCountText(cell.lastCountedAt, now)}</b>
@@ -247,7 +247,7 @@ export function CellPanel({
 
 function ItemBlock({ item, blind, highlight, children }: { item: MapCell["items"][number]; blind: boolean; highlight?: boolean; children?: React.ReactNode }) {
   return (
-    <div className={cn("rounded-xl border bg-canvas/60 p-3", highlight ? "border-ok-solid" : "border-line")}>
+    <div className={cn("rounded-md border bg-canvas/60 p-3", highlight ? "border-ok-solid" : "border-line")}>
       <p className="text-sm">
         <span className="font-mono font-medium text-fg">{item.sku}</span>
         {item.recount ? <Badge tone="warning" className="ml-1.5">Recontar</Badge> : null}

@@ -63,7 +63,7 @@ const NOTICE: Record<NoticeTone, { box: string; dot: string }> = {
 export function Notice({ tone = "info", children, action, className }: { tone?: NoticeTone; children: ReactNode; action?: ReactNode; className?: string }) {
   const s = NOTICE[tone];
   return (
-    <div role={tone === "crit" ? "alert" : "status"} className={cn("flex items-center gap-3 rounded-2xl px-4 py-3 text-sm", s.box, className)}>
+    <div role={tone === "crit" ? "alert" : "status"} className={cn("flex items-center gap-3 rounded-lg px-4 py-3 text-sm", s.box, className)}>
       <span className={cn("size-2 shrink-0 rounded-full", s.dot)} aria-hidden />
       <span className="min-w-0 flex-1">{children}</span>
       {action ? <span className="shrink-0 font-semibold">{action}</span> : null}
@@ -74,7 +74,7 @@ export function Notice({ tone = "info", children, action, className }: { tone?: 
 /** Sucesso de fim de processo (ex.: inventário concluído) com número grande. */
 export function SuccessHero({ value, title, detail, action, className }: { value: string; title: string; detail?: ReactNode; action?: ReactNode; className?: string }) {
   return (
-    <section className={cn("relative flex flex-col items-center gap-3 overflow-hidden rounded-2xl bg-[#03061A] px-6 py-10 text-center text-creme-100", className)}>
+    <section className={cn("relative flex flex-col items-center gap-3 overflow-hidden rounded-lg bg-[#03061A] px-6 py-10 text-center text-creme-100", className)}>
       <span className="font-display text-7xl leading-none font-bold tracking-tighter sm:text-8xl">{value}</span>
       <h2 className="font-display text-xl font-semibold">{title}</h2>
       {detail ? <p className="text-sm text-ceu-300">{detail}</p> : null}
