@@ -17,6 +17,11 @@ async function init(): Promise<Db> {
     ? await createPostgresDb(url)
     : await createPgliteDb(process.env.PGLITE_DATA_DIR ?? defaultPgliteDir());
   await runMigrations(db);
+  // Demonstração sem banco real: ids iguais em todas as instâncias (ver demo-ids.ts).
+  if (!url && isDemoMode()) {
+    const { applyDeterministicDemoIds } = await import("./demo-ids");
+    await applyDeterministicDemoIds(db);
+  }
   if (process.env.WMS_AUTO_SEED !== "false") {
     const { seedDemoIfEmpty } = await import("../seed/demo");
     const seeded = await seedDemoIfEmpty(db);
