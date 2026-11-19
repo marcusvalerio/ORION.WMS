@@ -31,6 +31,7 @@ import * as inventory from "@/server/services/inventory";
 import * as labels from "@/server/services/labels";
 import * as nfe from "@/server/services/nfe";
 import * as novidades from "@/server/services/novidades";
+import * as onboarding from "@/server/services/onboarding";
 import * as outbound from "@/server/services/outbound";
 import * as production from "@/server/services/production";
 import * as productivity from "@/server/services/productivity";
@@ -61,7 +62,7 @@ vi.mock("@/server/auth/session", () => ({
 vi.mock("@/server/db", () => ({ getDb: async () => session.db }));
 
 const MODULES: Record<string, Record<string, unknown>> = {
-  audit, collector, comex, "comex-panel": comexPanel, company, dashboard, divergences, docks, health, integration, inventory, labels, nfe, novidades,
+  audit, collector, comex, "comex-panel": comexPanel, company, dashboard, divergences, docks, health, integration, inventory, labels, nfe, novidades, onboarding,
   outbound, production, productivity, products, receiving, replenishment, reports, returns, serials, settings,
   "shipping-label": shippingLabel, slotting, stock, tasks, users, warehouse, waves,
 };
@@ -221,6 +222,10 @@ const READS = [
   }),
   ...reg("novidades", {
     versoesVistas: (x) => novidades.versoesVistas(adm(x)),
+  }),
+  ...reg("onboarding", {
+    estadoOnboarding: (x) => onboarding.estadoOnboarding(adm(x)),
+    empresaVinculadaAtlas: (x) => onboarding.empresaVinculadaAtlas(adm(x)),
   }),
   ...reg("outbound", {
     listOrders: (x) => outbound.listOrders(adm(x)),
@@ -516,6 +521,10 @@ const WRITES = [
   }),
   ...reg("novidades", {
     marcarVersaoVista: async () => { throw new DomainError("sem alvo: grava só para o próprio usuário"); },
+  }),
+  ...reg("onboarding", {
+    marcarOnboardingVisto: async () => { throw new DomainError("sem alvo: grava só para o próprio usuário"); },
+    prepararPrimeiroAcesso: async () => { throw new DomainError("sem alvo: grava só para o próprio usuário"); },
   }),
 ];
 
