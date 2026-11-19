@@ -360,22 +360,15 @@ A etiqueta “Novo” sai depois de 30 dias.
   - letra com 1 cm de altura a cada 3 m de distância de leitura.
 - **Crachá** (86×54 mm): nome, função e turno, código do operador em Mono e o símbolo.
 
-### Fachada, frota e uniforme
+### Fachada e frota
 - **Fachada do galpão:** faixa Noite na platibanda, símbolo na quina e placas “DOCA 0n” em Gabarito.
 - **Frota:** furgão branco com faixa Noite na base, assinatura na lateral e símbolo na porta.
-- **Uniforme:** colete Noite com faixa refletiva e o símbolo bordado em traço no peito.
 - A sinalização de segurança (NR-26) tem prioridade sobre a marca.
 
 ### Crachá
 - PVC 54×86 mm, com o símbolo inteiro e grande, cortado pela borda.
 - **A cor das barras indica a função:** Céu para operação, Creme para liderança de turno, Gelo para visitante.
 - Nome em Gabarito, função em caixa alta espaçada e código em Geist Mono. O cordão é Noite, com as barras em Céu.
-
-### Vestuário
-- **Costas monumento:** o O gigante em Noite 700 sobre camiseta Noite, tom sobre tom.
-- **Peito mínimo:** camiseta Gelo com o símbolo bordado de 4 cm, sem mais nada.
-- **Colete refletivo:** as barras do símbolo são as próprias faixas refletivas.
-- **Boné:** símbolo bordado em traço, com linha Céu.
 
 ### Papelaria e apresentações
 Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela para o O.
