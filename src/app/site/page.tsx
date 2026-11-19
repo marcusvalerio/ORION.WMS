@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import type { CSSProperties } from "react";
+import Image from "next/image";
 import Link from "next/link";
 import { OrionRing } from "@/components/brand/orion-ring";
 import { TURMA_ATUAL } from "@/server/services/site-leads";
@@ -99,24 +100,20 @@ export default function SitePage() {
         </div>
       </div>
 
-      {/* Hero */}
-      <section className="relative flex min-h-[min(980px,100svh)] flex-col overflow-hidden bg-[#03061A] max-sm:min-h-[860px]">
+      {/* Hero: espaço profundo, o cinturão de Órion em três anéis e a tela real do ORION subindo a partir de 2/5 */}
+      <section className="relative flex flex-col overflow-hidden bg-[#03061A]">
         <div aria-hidden className="pointer-events-none absolute inset-0">
-          <OrionRing size="var(--rs)" bars={96} barWidth={200} barLength={360} spinSeconds={260} className="absolute top-[-560px] left-[38%] [--rs:2100px] max-sm:top-[-470px] max-sm:left-[-255px] max-sm:[--rs:900px]" />
-          <OrionRing
-            size="var(--rs)"
-            bars={72}
-            palette="interno"
-            direction="ccw"
-            spinSeconds={190}
-            barWidth={230}
-            barLength={300}
-            className="absolute top-[-210px] left-[calc(38%+350px)] [--rs:1400px] max-sm:top-[-320px] max-sm:left-[-105px] max-sm:[--rs:600px]"
-          />
-          <div className="absolute inset-0 bg-[linear-gradient(90deg,#03061A_0%,rgba(3,6,26,0.92)_35%,rgba(3,6,26,0.2)_70%,rgba(3,6,26,0)_100%)] max-sm:bg-[linear-gradient(180deg,rgba(3,6,26,0.1)_0%,rgba(3,6,26,0.55)_14%,rgba(3,6,26,0.92)_32%,#03061A_100%)]" />
+          {/* nebulosas: só degradês, sem pontos de estrela */}
+          <div className="absolute inset-0 bg-[radial-gradient(60%_45%_at_18%_12%,rgba(45,119,204,0.28)_0%,rgba(3,6,26,0)_70%),radial-gradient(45%_40%_at_85%_30%,rgba(125,183,240,0.18)_0%,rgba(3,6,26,0)_70%),radial-gradient(70%_50%_at_50%_100%,rgba(34,48,111,0.55)_0%,rgba(3,6,26,0)_75%)]" />
+          {/* o cinturão: três anéis alinhados na diagonal, como Alnitak, Alnilam e Mintaka */}
+          <OrionRing size="var(--rs)" bars={60} barWidth={170} barLength={300} spinSeconds={220} className="absolute top-[-120px] left-[-160px] opacity-90 [--rs:640px] max-sm:top-[-90px] max-sm:left-[-200px] max-sm:[--rs:380px]" />
+          <OrionRing size="var(--rs)" bars={84} palette="interno" direction="ccw" spinSeconds={260} barWidth={200} barLength={340} className="absolute top-[-40px] left-[calc(50%-450px)] opacity-70 [--rs:900px] max-sm:hidden" />
+          <OrionRing size="var(--rs)" bars={60} barWidth={170} barLength={300} spinSeconds={200} className="absolute top-[60px] right-[-170px] opacity-90 [--rs:660px] max-sm:top-[160px] max-sm:right-[-230px] max-sm:[--rs:400px]" />
+          <div className="absolute inset-0 bg-[radial-gradient(42%_30%_at_50%_28%,rgba(3,6,26,0.78)_0%,rgba(3,6,26,0.25)_65%,rgba(3,6,26,0)_100%)]" />
         </div>
+
         <nav aria-label="Principal" className={`relative flex flex-wrap items-center gap-6 py-7 ${PAD}`}>
-          <span className="font-display text-[28px] font-bold tracking-[-0.03em]">orion</span>
+          <span className="font-display text-[28px] font-semibold tracking-[-0.03em]">orion</span>
           <div className="ml-auto flex flex-wrap items-center gap-6 text-sm">
             <a href="#antes" className="text-ceu-300 hover:text-creme-100 max-sm:hidden">
               Por que agora
@@ -135,29 +132,26 @@ export default function SitePage() {
             </a>
           </div>
         </nav>
-        <div className={`relative flex max-w-[980px] flex-1 flex-col justify-center gap-[30px] pt-6 pb-[120px] ${PAD}`}>
-          <span className="self-start rounded-full border border-noite-600 px-3.5 py-2 font-mono text-xs tracking-[0.12em] text-creme-300">
+
+        <div className={`relative mx-auto flex max-w-[1080px] flex-col items-center gap-5 pt-[clamp(8px,2.5vw,36px)] text-center ${PAD}`}>
+          <span className="rounded-full border border-noite-600 bg-[#03061A]/60 px-3.5 py-2 font-mono text-xs tracking-[0.12em] text-creme-300">
             TURMA DE IMPLANTAÇÃO {TURMA_ATUAL.ano} · VAGAS LIMITADAS
           </span>
-          <h1 className="font-display text-[clamp(56px,10vw,176px)] leading-[1.02] font-semibold tracking-[-0.03em]">
-            O armazém
-            <br />
-            que os outros
-            <br />
-            <span className="text-ceu-400">vão copiar.</span>
+          <h1 className="font-display text-[clamp(44px,6vw,92px)] leading-[1.02] font-semibold tracking-[-0.03em] text-balance">
+            O armazém que os outros <span className="text-ceu-400">vão copiar.</span>
           </h1>
-          <p className="max-w-[600px] text-[clamp(18px,1.7vw,24px)] leading-[1.45] text-[#C9D6E4]">
+          <p className="max-w-[640px] text-[clamp(17px,1.5vw,21px)] leading-[1.5] text-[#C9D6E4]">
             Enquanto o seu concorrente ainda confere palete na prancheta, quem está no ORION já sabe onde está cada caixa, quem contou e quanto falta para a doca.
           </p>
-          <div className="flex flex-wrap items-center gap-3.5">
-            <a href="#vaga" className="rounded-full bg-creme-100 px-9 py-5 text-lg font-bold text-noite-900 hover:bg-white">
+          <div className="flex flex-wrap items-center justify-center gap-3.5">
+            <a href="#vaga" className="rounded-full bg-creme-100 px-8 py-4 text-base font-semibold text-noite-900 hover:bg-white">
               Quero o meu CD no ORION
             </a>
-            <a href="#inventario" className="rounded-full border border-noite-600 px-[30px] py-5 text-base hover:border-ceu-400">
+            <a href="#inventario" className="rounded-full border border-noite-600 bg-[#03061A]/60 px-7 py-4 text-base hover:border-ceu-400">
               Ver funcionando
             </a>
           </div>
-          <div className="flex max-w-[460px] flex-col gap-2.5">
+          <div className="flex w-full max-w-[420px] flex-col items-center gap-2.5">
             <Seats on="#7DB7F0" off="#22306F" />
             <span className="text-[13px] text-ceu-300">
               <b className="text-creme-100">
@@ -167,6 +161,29 @@ export default function SitePage() {
             </span>
           </div>
         </div>
+
+        {/* a tela real, entrando por baixo com leve perspectiva */}
+        <div className={`relative mt-[clamp(28px,3.5vw,48px)] ${PAD}`} style={{ perspective: "2200px" }}>
+          <figure className="mx-auto w-full max-w-[1180px] origin-top overflow-hidden rounded-lg border border-noite-600 bg-noite-900 [transform:rotateX(14deg)] max-sm:[transform:none]">
+            <div className="flex items-center gap-2 border-b border-noite-600 px-4 py-2.5">
+              <span className="size-2.5 rounded-full bg-noite-600" />
+              <span className="size-2.5 rounded-full bg-noite-600" />
+              <span className="size-2.5 rounded-full bg-noite-600" />
+              <span className="ml-3 font-mono text-[11px] text-ceu-300">orion.astraeus.com.br</span>
+            </div>
+            <Image
+              src="/site/painel-orion.webp"
+              alt="Painel do ORION: indicadores do armazém, recebimentos e expedições dos últimos 14 dias e ocupação no traço do símbolo"
+              width={2880}
+              height={1800}
+              priority
+              sizes="(max-width: 1240px) 100vw, 1180px"
+              className="block h-auto w-full"
+            />
+          </figure>
+          <div aria-hidden className="pointer-events-none absolute inset-x-0 bottom-0 h-[38%] bg-[linear-gradient(180deg,rgba(3,6,26,0)_0%,#03061A_92%)]" />
+        </div>
+        <div aria-hidden className="h-[clamp(8px,2vw,24px)]" />
       </section>
 
       {/* Sem × Com */}
