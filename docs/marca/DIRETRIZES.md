@@ -61,6 +61,33 @@
 | Céu 50–100 | Noite 700 `#172354` |
 | Céu 600 | Branco |
 
+### Versões
+- **Horizontal** (preferencial): site, sistema e papelaria.
+- **Vertical**: peças quadradas ou estreitas, brindes e placas.
+- **Elemento-síntese** (só o símbolo): app, perfil e favicon.
+- **Positiva**: Noite sobre fundo claro.
+- **Negativa**: Gelo sobre Noite.
+- **Monocromática**: preto 100%.
+- **Traço**: laser, bordado e relevo seco.
+
+### Aplicação sobre fundos
+- **Fundos claros:** versão positiva.
+- **Fundos escuros:** versão negativa.
+- **Tons médios e fotos movimentadas:** **box** Noite, com a área de proteção como margem. Sem cantos arredondados e sem sombra.
+
+### Assinatura conjunta
+- As duas marcas têm a mesma altura visual e ficam separadas por um fio de 1 px em Gelo 300.
+- A distância entre elas é **2x** (o dobro da área de proteção).
+- **Ecossistema:** ORION | ATLAS, com “Universo ASTRAEUS” abaixo.
+- **Com cliente:** no material do cliente, a marca dele vem primeiro; no nosso, o ORION vem primeiro.
+
+### Redução máxima
+| | Tela | Impresso |
+|---|---|---|
+| Horizontal | 72 px | 20 mm |
+| Vertical | 40 px | 12 mm |
+| Símbolo | 16 px | 6 mm |
+
 ### Não fazer
 - Distorcer, inclinar ou girar a assinatura.
 - Aplicar gradiente, sombra, brilho ou contorno.
@@ -134,6 +161,19 @@ As cores **Noite** e **Gelo** formam 90% de qualquer tela. **Céu** marca ação
 | Gelo 900 | `#1A2238` | Superfície no escuro |
 | Creme 100 | `#FFF8E7` | Fundo de novidades |
 | Creme 500 | `#DDB54C` | Destaque |
+
+### Especificação para impressão (referência, validar com prova de cor)
+| Cor | HEX | RGB | CMYK | Pantone |
+|---|---|---|---|---|
+| Noite | `#060B2A` | 6 11 42 | 100 90 35 65 | 2766 C |
+| Noite 700 | `#172354` | 23 35 84 | 100 85 25 35 | 2758 C |
+| Céu 600 | `#2D77CC` | 45 119 204 | 80 45 0 0 | 2172 C |
+| Céu 400 | `#7DB7F0` | 125 183 240 | 48 15 0 0 | 284 C |
+| Gelo 200 | `#DCE8F3` | 220 232 243 | 12 4 2 0 | 656 C |
+| Gelo 600 | `#5E6A82` | 94 106 130 | 65 50 30 15 | 7545 C |
+| Creme 500 | `#DDB54C` | 221 181 76 | 12 28 78 2 | 7407 C |
+| Ok | `#12A27A` | 18 162 122 | 80 10 65 0 | 3405 C |
+| Crítico | `#E03A45` | 224 58 69 | 5 90 70 0 | 1788 C |
 
 ### Estados
 As cores de estado servem só para estado, nunca para decorar.
@@ -304,6 +344,12 @@ A etiqueta “Novo” sai depois de 30 dias.
   - fundo Noite com letras Gelo;
   - letra com 1 cm de altura a cada 3 m de distância de leitura.
 - **Crachá** (86×54 mm): nome, função e turno, código do operador em Mono e o símbolo.
+
+### Fachada, frota e uniforme
+- **Fachada do galpão:** faixa Noite na platibanda, símbolo na quina e placas “DOCA 0n” em Gabarito.
+- **Frota:** furgão branco com faixa Noite na base, assinatura na lateral e cinturão na porta.
+- **Uniforme:** colete Noite com faixa refletiva e o símbolo bordado em traço no peito.
+- A sinalização de segurança (NR-26) tem prioridade sobre a marca.
 
 ### Papelaria e apresentações
 Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela para o O.
