@@ -163,6 +163,7 @@ const READS = [
     getPackingList: (x, y) => comex.getPackingList(adm(x), y.r.shippedOrderId),
   }),
   ...reg("comex-panel", {
+    receiptCargo: (x, y) => comexPanel.receiptCargo(adm(x), y.r.receiptId),
     listImportProcesses: (x) => comexPanel.listImportProcesses(adm(x)),
     "listImportProcesses#busca": (x) => comexPanel.listImportProcesses(adm(x), { q: "REC" }),
     importIndicators: (x) => comexPanel.importIndicators(adm(x)),
