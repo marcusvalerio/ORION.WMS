@@ -254,6 +254,14 @@ O ORION fala como um bom líder de turno: direto, calmo, sem jargão de sistema.
 
 ## 6b. Aplicações
 
+### Kit de elementos
+Quatro elementos saem do símbolo e da constelação. Use no máximo dois por peça; o cinturão combina com todos.
+
+- **Símbolo recortado:** o O gigante, sangrando para fora da peça. Nunca inteiro e pequeno no meio.
+- **Anel:** órbita em traço de 1 px, com uma segunda órbita tracejada por dentro.
+- **Cinturão:** três pontos em linha, inclinados 18°. É a assinatura sem palavras.
+- **Padrão de barras:** as colunas do símbolo repetidas, como prateleiras.
+
 ### Redes sociais
 | Formato | Tamanho |
 |---|---|
@@ -264,9 +272,12 @@ O ORION fala como um bom líder de turno: direto, calmo, sem jargão de sistema.
 | Capa LinkedIn | 1584×396 |
 
 - **Três famílias de post:**
-  - **Novidade:** fundo Noite, etiqueta Creme e print do recurso;
-  - **Número:** KPI grande em Gabarito e uma frase de contexto;
-  - **Dica:** fundo Gelo e passo a passo curto.
+  - **Novidade:** fundo Noite, símbolo recortado ao fundo e etiqueta Creme;
+  - **Número:** KPI gigante dentro do anel, com o cinturão como marcador;
+  - **Dica:** fundo Gelo com padrão de barras e um passo por coluna.
+- **Story:** o anel ocupa a tela e o cinturão é o ponto de foco.
+- **Carrossel:** o símbolo gigante atravessa os cards e só se completa no último.
+- **Perfil:** símbolo com o anel por fora. **Capa do LinkedIn:** o cinturão cruza a peça.
 - Cada post diz uma coisa só. A assinatura fica pequena, embaixo à esquerda.
 - **Carrossel:** o primeiro card promete e o último assina. O contador de páginas vai em Geist Mono (`01/03`).
 - **Foto de perfil:** só o símbolo, em Gelo sobre Noite.
@@ -295,8 +306,13 @@ A etiqueta “Novo” sai depois de 30 dias.
 - **Crachá** (86×54 mm): nome, função e turno, código do operador em Mono e o símbolo.
 
 ### Papelaria e apresentações
-- **Cartão de visita** (90×50 mm), em papel sem brilho: a frente é Noite com a assinatura; o verso é branco com os dados.
-- **Assinatura de e-mail:** em texto, com o símbolo de 16 px.
+Na papelaria, o símbolo é o protagonista: grande e recortado, como uma janela para o O.
+
+- **Cartão de visita** (90×50 mm): a frente é Noite com o símbolo sangrando e o cinturão; o verso é branco, com o cinturão marcando o nome.
+- **Papel timbrado** A4: padrão de barras na faixa lateral e assinatura no topo.
+- **Envelope:** símbolo recortado na aba.
+- **Assinatura de e-mail:** símbolo de 16 px, com o cinturão como divisor.
+- **Acabamento:** papel sem brilho; símbolo em verniz localizado ou hot stamping azul Céu.
 - **Slides em 16:9:** a abertura é em Noite e o conteúdo, em branco.
 
 ### Acessibilidade
