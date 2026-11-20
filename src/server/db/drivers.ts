@@ -37,6 +37,14 @@ export async function createPgliteDb(dataDir?: string): Promise<Db> {
 
 const RETRYABLE = new Set(["40001", "40P01"]); // serialization_failure, deadlock_detected
 
+/**
+ * O pg trata sslmode prefer/require/verify-ca como verify-full e avisa a cada conexão.
+ * Explicitar verify-full mantém o comportamento atual e silencia o aviso.
+ */
+export function normalizarSslMode(connectionString: string): string {
+  return connectionString.replace(/([?&]sslmode=)(prefer|require|verify-ca)(?=&|$)/i, "$1verify-full");
+}
+
 /** PostgreSQL/Supabase via DATABASE_URL (somente servidor). */
 export async function createPostgresDb(connectionString: string, options: { max?: number; statementTimeoutMs?: number } = {}): Promise<Db> {
   const { default: pgLib } = await import("pg");
@@ -48,7 +56,7 @@ export async function createPostgresDb(connectionString: string, options: { max?
     getTypeParser: ((oid: number, format?: "text" | "binary") =>
       oid === NUMERIC_OID || oid === INT8_OID ? toNumber : pgLib.types.getTypeParser(oid, format)) as typeof pgLib.types.getTypeParser,
   };
-  const pool = new pgLib.Pool({ connectionString, max: options.max ?? 10, statement_timeout: options.statementTimeoutMs, types });
+  const pool = new pgLib.Pool({ connectionString: normalizarSslMode(connectionString), max: options.max ?? 10, statement_timeout: options.statementTimeoutMs, types });
 
   return {
     driver: "postgres",
