@@ -67,15 +67,15 @@ Protótipo aprovado: `prototipos/inventario.html`. Os números do protótipo sã
 
 ## B. Mapa em duas camadas
 
-Os três avaliadores concordaram: o 3D serve para **navegar**, e a contagem é feita no nível ou no endereço.
+**Decisão do dono:** a visão geral continua com o 3D **atual** do sistema (`iso.tsx`): blocos sólidos com volume e profundidade, ruas rotuladas e piso com a marcação das ruas. Esse 3D é melhor que o desenho em traço do protótipo `prototipos/inventario.html`. **Não** reproduza os racks em linhas do protótipo; use o protótipo só para o painel, a folha, as rodadas e o coletor.
 
-1. **Visão geral ("Todos")**: porta-paletes montados em isométrico.
-   - Estrutura (colunas e longarinas) só em traço de 1–1,5 px, na cor da linha do modo noite, a cerca de 45% de opacidade. Sem textura, diagonal ou sombra.
-   - A cor fica só na carga (o palete do endereço), pela situação: contado, a contar, recontagem, diferença, bloqueado (hachurado) e vazio (contorno tracejado, sem volume).
-   - Rótulo da rua ao lado de cada rack (Geist Mono) e aviso "N4 · empilhadeira" para níveis altos, a partir de um parâmetro de altura por nível.
-   - Ruas fora de foco ficam apagadas a cerca de 30% quando uma rua é selecionada.
-2. **Rua**: tocar numa rua leva à vista frontal (`front-view.tsx` já existe), com os níveis empilhados e sem oclusão.
-3. **Nível (N1–N4)**: os blocos planos de hoje, com ícones (✓ ! ↻ ■ ○) e alvos de pelo menos 44 px.
+1. **Visão geral ("Todos")**: o 3D atual, sem mudar o desenho. Ajustes permitidos:
+   - verde "contado" um pouco menos saturado;
+   - bloqueado com hachura;
+   - endereço vazio sem volume (só contorno no piso);
+   - aviso de empilhadeira nos níveis altos.
+2. **Rua**: tocar numa rua leva à vista frontal (`front-view.tsx`, que já existe).
+3. **Nível (N1–N4)**: ao escolher um nível, o mapa mostra só aquele nível em blocos planos, com ícones (✓ ! ↻ ■ ○) e alvos de pelo menos 44 px. É o modo que o dono quer para quando um nível é selecionado.
 4. **Endereço**: painel com SKU, rodadas, situação e ação.
 
 Comportamento em todas as camadas:
