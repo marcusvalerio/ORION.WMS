@@ -156,3 +156,49 @@ Desempenho e movimento:
 ## E. POPs a atualizar
 
 POP-ORN-33 (abrir), 34 (contar) e 35 (aprovar). Criar POPs novos para "Configurar tolerância e rotativo" e "Recontar itens".
+
+## F. Câmera do mapa 3D (aprovado pelo dono)
+
+Protótipo: `prototipos/mapa-3d.html`. Ele copia o desenho do `iso.tsx`: mesma projeção, mesmas caixas e os 3 tons por cor. A banca revisou e pediu o que está abaixo.
+
+**Câmera**
+- Arrastar com mouse ou dedo.
+- Zoom pela roda, pela pinça e pelos botões + e −, sempre a partir do ponto do cursor.
+- Girar em 90°, com ⟲ e ⟳.
+- Vista de cima: mostra a pior situação de cada posição, ou o nível escolhido.
+- Centralizar (⌂).
+- Teclado: setas movem a câmera; + e − aproximam e afastam.
+- Implementação: um `transform` CSS no grupo do mapa. O `viewBox` fica fixo e não é recalculado a cada quadro.
+- O giro e a troca de nível usam fade com escala de 0,95 (cerca de 180 ms).
+- A busca e o "Ir" levam o endereço ao centro com animação.
+- Arrastar e pinça rodam com `requestAnimationFrame`, sem transição durante o gesto.
+- Medir o fps com o CD real. Se ficar abaixo de 60 fps, passar para Canvas.
+
+**Visual**
+- "A contar" em tom mais escuro e recuado (`#36406a`), para não competir com as outras cores.
+- "Contado" menos saturado (`#3fae8c`).
+- A seleção usa caixa branca com brilho, e não o creme da marca.
+- Com uma seleção na visão "Todos", as caixas acima dela na mesma coluna viram só contorno, para o endereço aparecer.
+- As placas das ruas ficam no piso e mostram a barra de progresso de cada rua.
+
+**Painel e rótulos**
+- "Próximo a contar", com o botão "Ir".
+- O painel do endereço mostra:
+  - produto e nível, com o aviso de empilhadeira no N4;
+  - contador e há quanto tempo está ali;
+  - última contagem e rodadas;
+  - diferença em unidades e em R$.
+- Rótulos visíveis nos controles (Girar, De cima, Centralizar).
+- A dica de uso some depois do primeiro toque.
+- A busca tem placeholder curto, autocomplete e aviso de "não encontrado" via `aria-live`.
+
+**Filtro "Só pendentes e diferenças"**: as outras caixas viram um contorno fantasma, sem sumir do mapa.
+
+**Celular**
+- Mapa com cerca de 72vh e aproximação inicial.
+- Controles numa barra horizontal no rodapé do mapa, com botões de 44 px.
+
+**Pendentes para o sistema**
+- Lista acessível equivalente ao mapa, para leitor de tela, com Tab e Enter percorrendo os endereços.
+- Alerta quando um endereço fica bloqueado há mais de 30 min.
+- Inércia ao soltar o arraste.
