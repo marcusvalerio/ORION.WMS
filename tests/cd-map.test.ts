@@ -68,9 +68,9 @@ describe("mapa do CD — montagem do layout", () => {
     expect(a4.x).toBe(2);
     const a2 = m.cells.find((c) => c.id === "a2")!;
     expect([a2.z, a2.y]).toEqual([1, 0]);
-    // rua seguinte 2 unidades depois (rack + corredor); zona seguinte com 1 unidade extra
-    expect(m.cells.find((c) => c.id === "b1")!.y).toBe(2);
-    expect(m.cells.find((c) => c.id === "c1")!.y).toBe(5);
+    // rua seguinte 3 unidades depois (rack + corredor com o dobro da profundidade); zona seguinte com 1 unidade extra
+    expect(m.cells.find((c) => c.id === "b1")!.y).toBe(3);
+    expect(m.cells.find((c) => c.id === "c1")!.y).toBe(7);
     expect(m.width).toBe(3);
   });
 
@@ -119,8 +119,8 @@ describe("mapa do CD — montagem do layout", () => {
     expect(nextToCount(m, "a2")!.id).toBe("a4");
     expect(nextToCount(m, "b1")!.id).toBe("a4"); // volta ao início quando não há pendente adiante
     const w = walkRoute(m.cells.find((c) => c.id === "a1")!, m.cells.find((c) => c.id === "b1")!);
-    expect(w.points[0]).toEqual([0.5, 1.5]);
-    expect(w.points.at(-1)).toEqual([0.5, 3.05]);
+    expect(w.points[0]).toEqual([0.5, 2]);
+    expect(w.points.at(-1)).toEqual([0.5, 4.05]);
     expect(w.meters).toBeGreaterThan(0);
   });
 

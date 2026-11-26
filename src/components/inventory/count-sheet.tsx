@@ -230,6 +230,7 @@ export function CountSheet({
                   <td className="num">{diffCell(i)}</td>
                   <td>
                     <StatusChip status={i.status} round={i.round} />
+                    <Rounds rounds={i.rounds} />
                     {i.adjusted ? (
                       <Badge tone="success" className="ml-1">
                         Ajustado
@@ -287,5 +288,19 @@ export function CountSheet({
         </div>
       ) : null}
     </div>
+  );
+}
+
+/** Rodadas do item: 1ª, 2ª e 3ª contagem com contador e quantidade (oculta ao operador durante a contagem). */
+function Rounds({ rounds }: { rounds: SheetItem["rounds"] }) {
+  if (!rounds.length) return null;
+  return (
+    <ol className="mt-1 space-y-0.5 text-xs text-fg-2">
+      {rounds.map((r) => (
+        <li key={r.round} className="whitespace-nowrap">
+          {r.round}ª · {r.counted_qty === null ? "registrada" : <span className="tabular-nums">{fmtQty(r.counted_qty)}</span>} · {r.counted_by_name}
+        </li>
+      ))}
+    </ol>
   );
 }

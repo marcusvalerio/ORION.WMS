@@ -11,6 +11,8 @@ import { FrontView } from "./front-view";
 import { cellBox, cellColors, IsoBox, legendFor, project, projectedBounds, pts, SIT_COLORS, type ViewBox } from "./iso";
 
 const FULL_PAD = 30;
+const OPEN_SITUATIONS = ["pending", "divergent", "recount"];
+const STALE_LOCK_MS = 30 * 60_000;
 const ANIM_MS = 650;
 const AUTO_ADVANCE_KEY = "orion.inventario.avancarSozinho";
 const MODES: { key: ColorMode; label: string }[] = [
@@ -53,6 +55,7 @@ export function CdMap({
   const [colorMode, setColorMode] = useState<ColorMode>("situation");
   const [level, setLevel] = useState<number | null>(null);
   const [query, setQuery] = useState("");
+  const [onlyOpen, setOnlyOpen] = useState(false);
   const [notFound, setNotFound] = useState(false);
   const selected = map.cells.find((c) => c.id === selectedId) ?? null;
   // "Avançar sozinho" (lembrado neste navegador) e foco no SKU ao chegar por avanço automático
@@ -98,24 +101,30 @@ export function CdMap({
     vbRef.current = vb;
   }, [vb]);
 
+  // Câmera: durante a animação o viewBox fica fixo (vbRef) e só um transform no <g> muda a cada
+  // quadro, sem re-renderizar o React; o viewBox é gravado uma vez, no fim. Parte sempre de vbRef.
+  const camRef = useRef<SVGGElement>(null);
   const animateTo = useCallback((target: ViewBox, done?: () => void) => {
     if (raf.current) cancelAnimationFrame(raf.current);
     const from = vbRef.current;
-    if (prefersReducedMotion()) {
+    const finish = () => {
+      raf.current = null;
+      camRef.current?.removeAttribute("transform");
+      vbRef.current = target;
       setVb(target);
       done?.();
-      return;
-    }
+    };
+    if (prefersReducedMotion() || !camRef.current) return finish();
     const start = performance.now();
     const step = (t0: number) => {
       const t = Math.min(1, (t0 - start) / ANIM_MS);
       const k = ease(t);
-      setVb({ x: from.x + (target.x - from.x) * k, y: from.y + (target.y - from.y) * k, w: from.w + (target.w - from.w) * k, h: from.h + (target.h - from.h) * k });
+      const v = { x: from.x + (target.x - from.x) * k, y: from.y + (target.y - from.y) * k, w: from.w + (target.w - from.w) * k, h: from.h + (target.h - from.h) * k };
+      const sx = from.w / v.w;
+      const sy = from.h / v.h;
+      camRef.current?.setAttribute("transform", `translate(${from.x - v.x * sx} ${from.y - v.y * sy}) scale(${sx} ${sy})`);
       if (t < 1) raf.current = requestAnimationFrame(step);
-      else {
-        raf.current = null;
-        done?.();
-      }
+      else finish();
     };
     raf.current = requestAnimationFrame(step);
   }, []);
@@ -156,7 +165,10 @@ export function CdMap({
       }
       // outra rua: a câmera percorre o mapa até a rua do próximo endereço
       setMode("overview");
-      if (from) setVb(aisleTarget(from));
+      if (from) {
+        vbRef.current = aisleTarget(from);
+        setVb(vbRef.current);
+      }
       setSelectedId(target.id);
       requestAnimationFrame(() => animateTo(aisleTarget(target), () => setMode("front")));
     },
@@ -164,7 +176,10 @@ export function CdMap({
   );
 
   const back = useCallback(() => {
-    if (selected) setVb(aisleTarget(selected));
+    if (selected) {
+      vbRef.current = aisleTarget(selected);
+      setVb(vbRef.current);
+    }
     setMode("overview");
     requestAnimationFrame(() => animateTo(full));
   }, [selected, aisleTarget, animateTo, full]);
@@ -205,6 +220,7 @@ export function CdMap({
   const maxZ = Math.max(0, ...map.cells.map((c) => c.z));
   const ri = selected ? route.findIndex((c) => c.id === selected.id) : -1;
   const legend = legendFor(colorMode, map.blind);
+  const staleLocks = map.cells.filter((c) => c.lockedAt !== null && now - c.lockedAt > STALE_LOCK_MS);
 
   if (!map.cells.length) {
     return <p className="p-4 text-sm text-muted">O depósito não tem endereços cadastrados para desenhar o mapa.</p>;
@@ -221,7 +237,7 @@ export function CdMap({
       <section aria-label="Mapa do CD" className="flex min-w-0 flex-col border-b border-line lg:border-r lg:border-b-0">
         <div className="flex flex-wrap items-center gap-2 px-3 pt-3 sm:px-4">
           {mode === "front" ? (
-            <button type="button" onClick={back} className="inline-flex h-9 items-center gap-1.5 rounded-full border border-line-strong px-3.5 text-sm text-fg-2 hover:bg-subtle">
+            <button type="button" onClick={back} className="inline-flex min-h-11 items-center gap-1.5 rounded-full border border-line-strong px-3.5 text-sm text-fg-2 hover:bg-subtle">
               <ArrowLeft className="size-4" aria-hidden /> Visão do CD
             </button>
           ) : null}
@@ -253,7 +269,7 @@ export function CdMap({
                   setQuery(e.target.value);
                   setNotFound(false);
                 }}
-                placeholder="Buscar ou ler endereço…"
+                placeholder="Endereço…"
                 autoComplete="off"
                 className="input rounded-full pl-8 font-mono"
               />
@@ -263,7 +279,7 @@ export function CdMap({
                 ))}
               </datalist>
             </div>
-            <button type="submit" className="h-9 rounded-full border border-line-strong px-3.5 text-sm text-fg-2 hover:bg-subtle">
+            <button type="submit" className="min-h-11 rounded-full border border-line-strong px-4 text-sm text-fg-2 hover:bg-subtle">
               Ir
             </button>
           </form>
@@ -274,11 +290,13 @@ export function CdMap({
               </span>
             ))}
           </div>
-          {notFound ? (
-            <p role="alert" className="w-full text-xs text-crit-fg">
-              Endereço não encontrado neste depósito.
-            </p>
-          ) : null}
+          <label className="flex min-h-11 items-center gap-2 text-sm text-fg-2">
+            <input type="checkbox" checked={onlyOpen} onChange={(e) => setOnlyOpen(e.target.checked)} className="size-4" />
+            Só pendentes e diferenças
+          </label>
+          <p aria-live="polite" className={cn("w-full text-xs text-crit-fg", !notFound && "sr-only")}>
+            {notFound ? "Endereço não encontrado neste depósito." : ""}
+          </p>
         </div>
 
         <div
@@ -306,11 +324,23 @@ export function CdMap({
             aria-hidden={mode === "front"}
           >
             <defs>
+              <pattern id="cdmap-hatch" width="6" height="6" patternUnits="userSpaceOnUse" patternTransform="rotate(45)">
+                <rect width="6" height="6" fill="#7DB7F0" fillOpacity="0.18" />
+                <line x1="0" y1="0" x2="0" y2="6" stroke="#9DC7F4" strokeWidth="2" />
+              </pattern>
+              <filter id="cdmap-sel-glow" x="-50%" y="-50%" width="200%" height="200%">
+                <feGaussianBlur stdDeviation="2.5" result="b" />
+                <feMerge>
+                  <feMergeNode in="b" />
+                  <feMergeNode in="SourceGraphic" />
+                </feMerge>
+              </filter>
               <radialGradient id="cdmap-glow">
                 <stop offset="0" stopColor="#7DB7F0" stopOpacity="0.7" />
                 <stop offset="1" stopColor="#7DB7F0" stopOpacity="0" />
               </radialGradient>
             </defs>
+            <g ref={camRef}>
             {/* piso */}
             <polygon
               points={pts([project(-2.2, -1.2, 0), project(map.width + 0.8, -1.2, 0), project(map.width + 0.8, map.depth + 1.2, 0), project(-2.2, map.depth + 1.2, 0)])}
@@ -320,10 +350,10 @@ export function CdMap({
             {/* corredores pintados com faixa tracejada */}
             {map.aisles.map((a) => {
               const w = Math.max(1, a.bays.length);
-              const y0 = a.y + 1.12;
-              const y1 = a.y + 1.88;
-              const s0 = project(-0.5, a.y + 1.5, 0);
-              const s1 = project(w + 0.4, a.y + 1.5, 0);
+              const y0 = a.y + 1.15;
+              const y1 = a.y + 2.85;
+              const s0 = project(-0.5, a.y + 2, 0);
+              const s1 = project(w + 0.4, a.y + 2, 0);
               return (
                 <g key={`lane-${a.key}`}>
                   <polygon points={pts([project(-0.5, y0, 0), project(w + 0.4, y0, 0), project(w + 0.4, y1, 0), project(-0.5, y1, 0)])} fill="#0F1B4A" />
@@ -340,6 +370,8 @@ export function CdMap({
                   colors={cellColors(c, colorMode, now)}
                   selected={c.id === selectedId}
                   dim={level !== null && c.z < level}
+                  ghost={onlyOpen && !OPEN_SITUATIONS.includes(c.situation)}
+                  outlineOnly={!!selected && level === null && c.id !== selected.id && c.x === selected.x && c.y === selected.y && c.z > selected.z}
                   onSelect={() => select(c.id)}
                   title={`${c.code} — ${SITUATION_LABELS[c.situation]} · ocupação ${fmtPct(c.occupancy * 100)}${c.blocked ? " (bloqueado)" : ""}`}
                 />
@@ -354,6 +386,20 @@ export function CdMap({
                 </text>
               );
             })}
+            {/* quem está contando onde: iniciais sobre o endereço com lock */}
+            {map.cells
+              .filter((c) => c.lockedBy && (level === null || c.z === level))
+              .map((c) => {
+                const a = cellBox(c).anchor;
+                return (
+                  <g key={`lock-${c.id}`} aria-hidden className="pointer-events-none">
+                    <circle cx={a[0]} cy={a[1] - 14} r={11} fill="#FFF8E7" stroke="#03061A" strokeWidth={2} />
+                    <text x={a[0]} y={a[1] - 10} textAnchor="middle" fill="#060B2A" className="text-[10px] font-semibold">
+                      {c.lockedBy}
+                    </text>
+                  </g>
+                );
+              })}
             {/* você + rota até o próximo endereço a contar */}
             {walk && youPt ? (
               <g aria-hidden>
@@ -385,6 +431,7 @@ export function CdMap({
                 </text>
               </g>
             ) : null}
+            </g>
           </svg>
 
           {selected ? (
@@ -397,7 +444,7 @@ export function CdMap({
           ) : null}
 
           <div className="absolute top-2 right-2 flex flex-col gap-1 rounded-xl border border-line bg-surface/90 p-1.5 text-xs" role="radiogroup" aria-label="Nível">
-            <button type="button" role="radio" aria-checked={level === null} onClick={() => setLevel(null)} className={cn("rounded-lg px-2.5 py-1.5", level === null ? "bg-accent font-semibold text-on-action" : "text-fg-2 hover:bg-subtle")}>
+            <button type="button" role="radio" aria-checked={level === null} onClick={() => setLevel(null)} className={cn("min-h-11 min-w-11 rounded-lg px-2.5", level === null ? "bg-accent font-semibold text-on-action" : "text-fg-2 hover:bg-subtle")}>
               Todos
             </button>
             {Array.from({ length: maxZ + 1 }, (_, i) => maxZ - i).map((z) => (
@@ -407,7 +454,7 @@ export function CdMap({
                 role="radio"
                 aria-checked={level === z}
                 onClick={() => setLevel(level === z ? null : z)}
-                className={cn("rounded-lg px-2.5 py-1.5 font-mono", level === z ? "bg-accent font-semibold text-on-action" : "text-fg-2 hover:bg-subtle")}
+                className={cn("min-h-11 min-w-11 rounded-lg px-2.5 font-mono", level === z ? "bg-accent font-semibold text-on-action" : "text-fg-2 hover:bg-subtle")}
               >
                 N{z + 1}
               </button>
@@ -432,7 +479,23 @@ export function CdMap({
         </ul>
       </section>
 
-      <aside className="min-w-0 bg-surface/60" aria-label={mode === "front" && selected ? "Endereço em foco" : "Indicadores do inventário"}>
+      <details className="border-t border-line px-3 py-2 text-sm lg:col-span-2 sm:px-4">
+        <summary className="min-h-11 cursor-pointer content-center text-fg-2">Lista de endereços (alternativa ao mapa)</summary>
+        <ul className="mt-2 grid max-h-72 grid-cols-1 gap-1 overflow-y-auto sm:grid-cols-2 lg:grid-cols-3">
+          {route.map((c) => (
+            <li key={c.id}>
+              <button type="button" onClick={() => select(c.id)} className="flex min-h-11 w-full items-center justify-between gap-2 rounded-md px-2 text-left hover:bg-subtle">
+                <span className="font-mono">{c.code.split("/").slice(1).join("/")}</span>
+                <span className="text-xs text-fg-2">
+                  {SITUATION_LABELS[c.situation]}
+                  {c.lockedBy ? ` · contando: ${c.lockedBy}` : ""}
+                </span>
+              </button>
+            </li>
+          ))}
+        </ul>
+      </details>
+      <aside className="min-w-0 bg-surface/60 lg:row-start-1 lg:col-start-2" aria-label={mode === "front" && selected ? "Endereço em foco" : "Indicadores do inventário"}>
         {mode === "front" && selected ? (
           <CellPanel
             key={selected.id}
@@ -458,10 +521,16 @@ export function CdMap({
                   <p className="text-xs text-fg-2">Próximo a contar</p>
                   <p className="truncate font-mono text-sm text-accent">{next.code}</p>
                 </div>
-                <button type="button" onClick={() => select(next.id)} className="h-9 shrink-0 rounded-full bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover">
-                  Ir para
+                <button type="button" onClick={() => select(next.id)} className="min-h-11 shrink-0 rounded-full bg-action px-4 text-sm font-semibold text-on-action hover:bg-action-hover">
+                  Ir
                 </button>
               </div>
+            ) : null}
+            {staleLocks.length ? (
+              <p role="alert" className="border-b border-line bg-warn-bg px-4 py-3 text-sm text-warn-fg sm:px-5">
+                {staleLocks.length === 1 ? "1 endereço bloqueado" : `${staleLocks.length} endereços bloqueados`} há mais de 30 min:{" "}
+                <span className="font-mono">{staleLocks.slice(0, 3).map((c) => c.code.split("/").slice(1).join("/")).join(", ")}</span>
+              </p>
             ) : null}
             {kpiPanel}
           </>

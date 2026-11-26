@@ -48,12 +48,13 @@ export function cellBox(c: MapCell) {
 /** Três tons por cor: [topo, frente, lateral] — a luz vem de cima. Paleta do modo inventário (escuro). */
 type Tri = readonly [string, string, string];
 export const SIT_COLORS: Record<Situation | "selected", Tri> = {
-  counted: ["#2CC593", "#178A69", "#0F6B51"],
-  pending: ["#4A5578", "#2E3756", "#232B47"],
+  // contado menos saturado e "a contar" recuado, para não competir com diferença e recontagem
+  counted: ["#3FAE8C", "#2E8A6E", "#236B56"],
+  pending: ["#36406A", "#2A3356", "#212945"],
   divergent: ["#F2545E", "#B83740", "#8F2A31"],
-  recount: ["#E9B53A", "#B88A22", "#8F6A17"],
+  recount: ["#F8E2A6", "#D9BE77", "#B39A5A"],
   outside: ["#1B2756", "#151F48", "#111A3C"],
-  selected: ["#FFF8E7", "#F8E2A6", "#D9BE77"],
+  selected: ["#FFFFFF", "#E6EAF5", "#C9D0E4"],
 };
 export const OCC_COLORS: readonly Tri[] = [
   ["#1B2756", "#151F48", "#111A3C"],
@@ -85,6 +86,8 @@ export function IsoBox({
   colors,
   selected,
   dim,
+  ghost,
+  outlineOnly,
   onSelect,
   title,
 }: {
@@ -92,18 +95,56 @@ export function IsoBox({
   colors: Tri;
   selected: boolean;
   dim: boolean;
+  /** filtro "Só pendentes e diferenças": vira contorno fantasma, sem sumir */
+  ghost?: boolean;
+  /** caixa acima do selecionado na mesma coluna: só contorno, para o endereço aparecer */
+  outlineOnly?: boolean;
   onSelect: () => void;
   title: string;
 }) {
   const box = cellBox(cell);
   const c = selected ? SIT_COLORS.selected : colors;
+  const empty = cell.items.length > 0 && cell.items.every((i) => i.empty);
+  if (ghost || outlineOnly || empty) {
+    // vazio: sem volume, só o contorno no piso; fantasma/contorno: só arestas
+    const base = empty && !ghost && !outlineOnly ? floorRect(cell) : null;
+    return (
+      <g onClick={onSelect} className="cursor-pointer" opacity={ghost ? 0.15 : dim ? 0.25 : 1}>
+        <title>{title}</title>
+        {base ? (
+          <polygon points={pts(base)} fill="none" stroke={c[0]} strokeWidth={1.2} strokeDasharray="3 3" />
+        ) : (
+          <>
+            <polygon points={pts(box.front)} fill="none" stroke={c[0]} strokeWidth={0.8} />
+            <polygon points={pts(box.side)} fill="none" stroke={c[0]} strokeWidth={0.8} />
+            <polygon points={pts(box.top)} fill="none" stroke={c[0]} strokeWidth={0.8} />
+          </>
+        )}
+      </g>
+    );
+  }
+  const hatched = cell.blocked || cell.items.some((i) => i.blockedStock);
   return (
     <g onClick={onSelect} className="cursor-pointer" opacity={dim ? 0.25 : 1}>
       <title>{title}</title>
       <polygon points={pts(box.front)} fill={c[1]} />
       <polygon points={pts(box.side)} fill={c[2]} />
       <polygon points={pts(box.top)} fill={c[0]} />
-      {selected ? <polygon points={pts(box.top)} fill="none" stroke="#FFF8E7" strokeWidth={1.5} /> : null}
+      {hatched ? <polygon points={pts(box.front)} fill="url(#cdmap-hatch)" /> : null}
+      {hatched ? <polygon points={pts(box.top)} fill="url(#cdmap-hatch)" /> : null}
+      {selected ? (
+        <polygon points={pts(box.top)} fill="none" stroke="#FFFFFF" strokeWidth={2} filter="url(#cdmap-sel-glow)" />
+      ) : null}
     </g>
   );
+}
+
+/** Contorno do endereço no piso (endereço vazio não tem volume). */
+function floorRect(c: MapCell): [number, number][] {
+  const x0 = c.x + (G / 2) * c.w;
+  const x1 = c.x + c.w - (G / 2) * c.w;
+  const y0 = c.y + G / 2;
+  const y1 = c.y + 1 - G / 2;
+  const z = c.z * BOX_H + 1;
+  return [project(x0, y0, z), project(x1, y0, z), project(x1, y1, z), project(x0, y1, z)];
 }

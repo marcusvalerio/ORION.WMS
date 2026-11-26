@@ -63,6 +63,13 @@ export interface MapItemInput {
   counted_at: number | null;
   notes: string | null;
   adjusted: boolean;
+  /** estado do item no inventário v2 (opcional para dados antigos) */
+  status?: string | null;
+  empty_location?: boolean | null;
+  stock_origin?: string | null;
+  /** quem está contando o endereço (lock) e desde quando (ms epoch) */
+  locked_by_name?: string | null;
+  locked_at?: number | string | null;
 }
 
 export interface MapItem {
@@ -84,6 +91,10 @@ export interface MapItem {
   notes: string | null;
   adjusted: boolean;
   recount: boolean;
+  /** endereço previsto vazio (linha "esperado 0") */
+  empty: boolean;
+  /** saldo de origem bloqueado ou em quarentena */
+  blockedStock: boolean;
 }
 
 export interface MapCell {
@@ -114,6 +125,10 @@ export interface MapCell {
   onHand: number | null;
   /** última contagem (ms epoch) ou null se nunca contado */
   lastCountedAt: number | null;
+  /** iniciais de quem está contando (lock) */
+  lockedBy: string | null;
+  /** desde quando o endereço está em contagem (ms epoch) */
+  lockedAt: number | null;
   items: MapItem[];
 }
 
@@ -152,8 +167,19 @@ export interface CdMap {
 
 const natural = (a: string, b: string) => a.localeCompare(b, "pt-BR", { numeric: true });
 const RACK_DEPTH = 1;
-const CORRIDOR = 1;
+const CORRIDOR = 2;
 const ZONE_GAP = 1;
+
+/** Iniciais de quem conta: "Otávio Operador" → "OO". */
+export function initials(name: string): string {
+  const parts = name.trim().split(/\s+/).filter(Boolean);
+  return ((parts[0]?.[0] ?? "") + (parts.length > 1 ? parts[parts.length - 1][0] : "")).toUpperCase();
+}
+
+function lockOf(i: MapItemInput | undefined): { lockedBy: string | null; lockedAt: number | null } {
+  if (!i?.locked_by_name) return { lockedBy: null, lockedAt: null };
+  return { lockedBy: initials(i.locked_by_name), lockedAt: i.locked_at === null || i.locked_at === undefined ? null : Number(i.locked_at) };
+}
 
 function situationOf(items: MapItem[], blind: boolean): Situation {
   if (!items.length) return "outside";
@@ -186,7 +212,8 @@ export function buildCdMap({
   for (const i of items) {
     const diff = i.counted_qty === null ? null : Number(i.counted_qty) - Number(i.expected_qty);
     const countedAt = i.counted_at === null ? null : Number(i.counted_at);
-    const recount = rejected !== null && diff !== null && diff !== 0 && (countedAt === null || countedAt <= rejected);
+    const recount =
+      i.status === "recount" || (rejected !== null && diff !== null && diff !== 0 && (countedAt === null || countedAt <= rejected));
     const list = itemsByLoc.get(i.location_id) ?? [];
     list.push({
       id: i.id,
@@ -204,6 +231,8 @@ export function buildCdMap({
       notes: i.notes,
       adjusted: i.adjusted,
       recount,
+      empty: Boolean(i.empty_location),
+      blockedStock: i.stock_origin === "blocked" || i.stock_origin === "quarantine",
     });
     itemsByLoc.set(i.location_id, list);
   }
@@ -252,6 +281,7 @@ export function buildCdMap({
           situation: situationOf(its, blind),
           ...occupancyFields(l, blind),
           lastCountedAt: lastCount(l, its),
+          ...lockOf(items.find((i) => i.location_id === l.id && i.locked_by_name)),
           items: its,
         });
       }
@@ -355,7 +385,7 @@ export const METERS_PER_UNIT = 2.7;
  * corredor e entra no corredor de destino até o módulo. `from` null = entrada do CD.
  */
 export function walkRoute(from: MapCell | null, to: MapCell): { points: [number, number][]; meters: number } {
-  const lane = (c: MapCell) => c.y + 1.5;
+  const lane = (c: MapCell) => c.y + 1 + CORRIDOR / 2;
   const head = -0.6;
   const tx = Math.floor(to.x) + 0.5;
   const pts: [number, number][] = [];
