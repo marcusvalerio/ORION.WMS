@@ -283,7 +283,7 @@ export function CdMap({
               Ir
             </button>
           </form>
-          <div className="flex w-full flex-wrap gap-1.5 text-xs">
+          <div className="hidden w-full flex-wrap gap-1.5 text-xs sm:flex">
             {map.zones.map((z) => (
               <span key={z.id} className="rounded-full border border-line-strong px-3 py-1 text-fg-2">
                 Zona {z.code} · {z.name}
