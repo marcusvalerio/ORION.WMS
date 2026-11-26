@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="pt-BR"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ORION · Correções da banca</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=Gabarito:wght@500;600&family=Inter:wght@400;500;600&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+/* VOICE: calmo, técnico, de produto — o próprio ORION se mostrando antes e depois.
+   IDEA: uma folha de revisão de projeto: cada correção é um par antes/depois montado com as peças reais do sistema.
+   PICTURE: o coletor no celular, lado a lado, antes e depois — o ponto em que as 6 avaliações concordaram.
+   COLOUR and TYPE: Céu de inverno — noite, gelo, céu e creme; Gabarito 600 títulos, Inter texto, Geist Mono códigos.
+   LAYOUT: faixa noite com o par de celulares; depois grupos Design e Regras, cartões antes|depois em duas colunas. */
+:root{color-scheme:light dark;--bg:light-dark(#F7F9FC,#03061A);--srf:light-dark(#fff,#0D163B);--ink:light-dark(#060B2A,#EDF2F8);--mut:light-dark(#5E6A82,#8291CC);--line:light-dark(#DCE8F3,#22306F);
+--noite:#060B2A;--ceu:#7DB7F0;--ceu2:#BCD9F8;--creme:#F8E2A6;--ok:#0B6B4F;--okbg:light-dark(#E8F7F1,#0c2a22);--crit:#A3202A;--critbg:light-dark(#FDECEC,#2e1014);--warn:light-dark(#7A5300,#F8E2A6);--warnbg:light-dark(#FFF6DB,#2b2410)}
+:root[data-theme=light]{color-scheme:light}:root[data-theme=dark]{color-scheme:dark}
+*{box-sizing:border-box;min-width:0}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 Inter,system-ui,sans-serif;overflow-x:clip}
+h1,h2,h3{font-family:Gabarito,Inter,sans-serif;font-weight:600;margin:0;text-wrap:balance}
+.mono{font-family:'Geist Mono',ui-monospace,monospace}
+.band{padding:clamp(28px,4vw,64px) max(5vw,16px)}
+.wrap{max-width:1240px;margin:0 auto}
+.hero{background:#060B2A;color:#EDF2F8;position:relative;overflow:hidden}
+.hero .arc{position:absolute;border-radius:50%;border:1px solid rgba(188,217,248,.22);pointer-events:none}
+.hero h1{font-size:clamp(32px,4.6vw,50px);line-height:1.05;color:#fff;max-width:16ch}
+.hero p{color:#BCD9F8;max-width:56ch}
+.hgrid{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.25fr);gap:40px;align-items:center;position:relative}
+.phones{display:grid;grid-template-columns:1fr 1fr;gap:20px;justify-items:center}
+.cap{font-size:13px;color:#BCD9F8;margin-bottom:8px;text-align:center}
+.phone{width:min(240px,100%);border-radius:30px;padding:10px;background:#0D163B;box-shadow:0 30px 60px -30px #000}
+.scr{border-radius:22px;overflow:hidden;background:#F7F9FC;color:#060B2A;font-size:12px;min-height:380px;display:flex;flex-direction:column}
+.bar{padding:12px 14px;display:flex;justify-content:space-between;align-items:center}
+.task{margin:10px;border-radius:10px;padding:12px;background:#fff}
+.lbl{font-size:11px;color:#5E6A82}
+.code{font-family:'Geist Mono',monospace;font-size:14px}
+.banner{margin:10px;border-radius:10px;padding:10px 12px;font-weight:600;display:flex;gap:8px;align-items:center}
+.btn{margin:auto 10px 10px;border-radius:99px;padding:12px;text-align:center;font-weight:600}
+.pulse{animation:p 1.6s cubic-bezier(.2,.7,.2,1) infinite}
+@keyframes p{0%,60%,100%{transform:scale(1);opacity:1}20%{transform:scale(1.04);opacity:.92}}
+@media(prefers-reduced-motion:reduce){.pulse{animation:none}}
+.nav{display:flex;gap:8px;flex-wrap:wrap;margin-top:22px}
+.nav a{color:#060B2A;background:#F8E2A6;border-radius:99px;padding:8px 16px;text-decoration:none;font-weight:600;font-size:14px}
+.nav a.alt{background:transparent;color:#EDF2F8;border:1px solid #22306F}
+.sec h2{font-size:clamp(26px,3vw,34px);line-height:1.1}
+.sec>p{color:var(--mut);max-width:70ch;margin:8px 0 22px}
+.card{background:var(--srf);border:1px solid var(--line);border-radius:18px;padding:22px;margin-bottom:16px}
+.ch{display:flex;gap:14px;align-items:baseline;flex-wrap:wrap;margin-bottom:4px}
+.ch h3{font-size:20px}
+.who{font-size:13px;color:var(--mut)}
+.why{color:var(--mut);margin:4px 0 14px;max-width:80ch}
+.ba{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:14px}
+.side{border-radius:10px;padding:14px;border:1px solid var(--line);background:var(--bg)}
+.side .t{font-size:13px;font-weight:600;margin-bottom:8px;display:flex;gap:6px;align-items:center}
+.side.a .t{color:var(--crit)}.side.d .t{color:var(--ok)}
+.dot{width:8px;height:8px;border-radius:50%;background:currentColor}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{font-weight:500;color:var(--mut);text-align:left;padding:6px;border-bottom:1px solid var(--line)}
+td{padding:6px;border-bottom:1px solid var(--line)}
+.r{text-align:right;font-variant-numeric:tabular-nums;white-space:nowrap}
+.pill{display:inline-block;border-radius:99px;padding:1px 9px;font-size:12px;font-weight:600}
+.fake{border:1px solid var(--line);border-radius:10px;padding:10px 12px;background:var(--srf);font-size:15px;display:flex;justify-content:space-between}
+.flow{display:flex;gap:6px;flex-wrap:wrap;align-items:center;font-size:13px}
+.flow span{border:1px solid var(--line);border-radius:99px;padding:3px 10px;background:var(--srf)}
+.flow .hl{background:var(--warnbg);color:var(--warn);border-color:transparent;font-weight:600}
+.flow i{color:var(--mut);font-style:normal}
+.tree{font-size:13px;line-height:1.9}
+.tree div{padding-left:18px;border-left:1px solid var(--line);margin-left:6px}
+.small{font-size:13px;color:var(--mut)}
+.foot{color:var(--mut);font-size:14px}
+@media(max-width:860px){.hgrid{grid-template-columns:1fr}}
+@media(max-width:600px){.ba{grid-template-columns:1fr}.phones{gap:10px}.scr{min-height:330px;font-size:11px}}
+</style></head><body>
+
+<header class="band hero"><div class="arc" style="width:720px;height:720px;right:-260px;top:-200px"></div><div class="arc" style="width:460px;height:460px;right:-130px;top:-70px"></div>
+<div class="wrap hgrid">
+ <div><h1>10 correções que as duas bancas pediram</h1>
+ <p>Seis profissionais avaliaram o ORION: quatro de design e dois de operação. Aqui está cada correção, como é hoje e como ficaria. Nada foi aplicado ainda.</p>
+ <div class="nav"><a href="#design">5 de design</a><a class="alt" href="#regras">5 de regra</a></div></div>
+ <div class="phones">
+  <div><div class="cap">Hoje · leitura certa</div><div class="phone"><div class="scr">
+   <div class="bar" style="background:#F7F9FC"><b style="font-weight:800">Separação</b><span style="color:#2563EB">●</span></div>
+   <div class="task" style="border:2px solid #2563EB"><div class="lbl">Endereço</div><div class="code">CD-02/RUA-03/04/02</div><div class="lbl" style="margin-top:6px">Produto</div><div style="font-weight:700">Óleo de soja 900 ml</div></div>
+   <div class="banner" style="background:#12A27A;color:#fff">✓ Leitura correta</div>
+   <div class="small" style="margin:0 12px">Contraste 3,2:1 · sem retorno no iPhone</div>
+   <div class="btn" style="background:#2563EB;color:#fff">Confirmar</div></div></div></div>
+  <div><div class="cap">Proposto · leitura certa</div><div class="phone"><div class="scr">
+   <div class="bar" style="background:#060B2A;color:#EDF2F8"><span style="font-family:Gabarito;font-weight:600">orion · Separação</span><span style="color:#F8E2A6;font-size:11px">2 de 5</span></div>
+   <div class="task" style="border:1px solid #DCE8F3"><div class="lbl">Endereço</div><div class="code">CD-02/RUA-03/04/02</div><div class="lbl" style="margin-top:6px">Produto</div><div style="font-family:Gabarito;font-weight:600;font-size:14px">Óleo de soja 900 ml</div></div>
+   <div class="banner pulse" style="background:#E8F7F1;color:#0B6B4F;border:1px solid #0B6B4F">✓ Endereço confere. Leia o produto.</div>
+   <div class="small" style="margin:0 12px">Contraste 6,9:1 · pulso visual + vibração</div>
+   <div class="btn" style="background:#060B2A;color:#F8E2A6;min-height:56px;display:flex;align-items:center;justify-content:center">Confirmar</div></div></div></div>
+ </div>
+</div></header>
+
+<main>
+<section class="band sec" id="design"><div class="wrap">
+ <h2>Design: cinco correções que mantêm a identidade</h2>
+ <p>Vieram da banca de design: diretor de arte, designer de produto, designer de UX e motion designer. Nenhuma muda a marca. Todas aproximam o sistema do próprio "Céu de inverno".</p>
+ <div id="d"></div>
+</div></section>
+
+<section class="band sec" id="regras" style="padding-top:0"><div class="wrap">
+ <h2>Regras: cinco correções de operação</h2>
+ <p>Vieram do diretor de produção e do diretor de armazém. Elas corrigem como o sistema decide, não como ele aparece.</p>
+ <div id="r"></div>
+ <p class="foot">Ficaram de fora porque são projetos maiores e dependem de você: coletor sem Wi-Fi, separação em lote e em grupo, kanban de linha, conectores para TOTVS e SAP, cobrança de 3PL e registro de temperatura. Os produtos, lotes e números acima são exemplos.</p>
+</div></section>
+</main>
+
+<script>{
+const D=[
+{t:'Coletor no padrão ORION e com retorno da leitura',w:'Os quatro da banca de design',y:'É onde o operador passa o turno. Hoje usa negrito pesado, contorno de 2 px e cobalto, e o aviso verde não tem contraste. No iPhone, a leitura não dá retorno nenhum.',
+a:`<div class="fake" style="border:2px solid #2563EB"><b style="font-weight:800">Leitura correta</b><span style="background:#12A27A;color:#fff;border-radius:6px;padding:0 8px">3,2:1</span></div><p class="small">Só vibração · lista vazia diz “Nenhuma tarefa aberta” e para aí.</p>`,
+b:`<div class="fake"><span style="font-family:Gabarito;font-weight:600">Leitura correta</span><span class="pill" style="background:var(--okbg);color:var(--ok)">6,9:1</span></div><p class="small">Pulso de 120 ms no acerto, tremida curta no erro e texto fixo de situação. Lista vazia com “Atualizar”, hora da última sincronização e botões de 56 px.</p>`},
+{t:'Uma só contagem de tarefas',w:'Designer de UX',y:'O painel diz 2 pendentes e o coletor diz nenhuma. O operador para de confiar no número.',
+a:`<div class="fake"><span>Painel: <b>2 pendentes</b></span><span>Coletor: <b>0</b></span></div>`,
+b:`<div class="fake"><span>Coletor: <b>0 suas · 2 da equipe</b></span><span class="pill" style="background:#060B2A;color:#F8E2A6">Assumir</span></div>`},
+{t:'Formulários e tabelas limpos',w:'Designer de produto',y:'Data em formato americano, código quebrado em duas linhas, zero colorido como se fosse alerta e dois tipos de traço para vazio.',
+a:`<div class="fake"><span>Validade</span><span class="mono">mm/dd/yyyy</span></div><table style="margin-top:10px"><tr><th>Código</th><th class="r">Reserv.</th><th class="r">Bloq.</th></tr><tr><td class="mono">PC-IMP-<br>0004</td><td class="r" style="color:#2563EB">0</td><td class="r" style="color:#B7791F">0</td></tr><tr><td class="mono">PC-0007</td><td class="r">–</td><td class="r">—</td></tr></table>`,
+b:`<div class="fake"><span>Validade</span><span class="mono">dd/mm/aaaa</span></div><table style="margin-top:10px"><tr><th>Código</th><th class="r">Reserv.</th><th class="r">Bloq.</th></tr><tr><td class="mono" style="white-space:nowrap">PC-IMP-0004</td><td class="r" style="color:var(--mut)">0</td><td class="r"><span class="pill" style="background:var(--warnbg);color:var(--warn)">12</span></td></tr><tr><td class="mono">PC-0007</td><td class="r" style="color:var(--mut)">—</td><td class="r" style="color:var(--mut)">—</td></tr></table>`},
+{t:'Celular sem aperto',w:'Designer de produto e de UX',y:'A barra do topo corta o selo e tem botões de 28 px. A tabela de Separação rola de lado sem pista.',
+a:`<div class="fake" style="font-size:13px"><span>☰ 🔍 ◐ ◑ 🎁</span><span style="overflow:hidden;width:60px;white-space:nowrap">Demonstr</span></div><p class="small">Tabela com 7 colunas cortada em “QUANT…”.</p>`,
+b:`<div class="fake" style="font-size:13px"><span>☰</span><span>Buscar endereço ou produto</span></div><p class="small">Tema e atalhos dentro do menu, alvos de 44 px. Abaixo de 640 px cada pedido vira um cartão com cliente, linhas e situação.</p>`},
+{t:'Movimento leve e que respeita “reduzir movimento”',w:'Motion designer',y:'O laser da câmera e vários efeitos animam propriedades de layout, e o ícone de carregamento gira mesmo para quem pediu menos movimento.',
+a:`<p class="small mono">top · left · width · height · box-shadow<br>animate-spin sempre ligado</p>`,
+b:`<p class="small mono">transform · opacity, a 60 fps<br>motion-safe:animate-spin + “Salvando…”</p><p class="small">Mesma curva da marca em tudo, com durações de 120, 200 e 320 ms.</p>`}
+];
+const R=[
+{t:'Produto acabado e devolução entram em quarentena',w:'Diretor de produção',y:'Hoje o acabado vira estoque disponível na hora e pode ser expedido sem laudo da qualidade.',
+a:`<div class="flow"><span>Receber acabado</span><i>→</i><span>Disponível</span><i>→</i><span>Expedir</span></div>`,
+b:`<div class="flow"><span>Receber acabado</span><i>→</i><span class="hl">Aguardando qualidade</span><i>→</i><span>Aprovar · Reprovar · Retrabalhar</span><i>→</i><span>Disponível</span></div><p class="small">Bloqueado até a aprovação, com quem aprovou e o laudo.</p>`},
+{t:'Validade mínima na reserva',w:'Diretor de produção',y:'A reserva por validade aceita um lote que vence amanhã.',
+a:`<div class="fake"><span class="mono">L-2311 · vence 26/11</span><span class="pill" style="background:var(--okbg);color:var(--ok)">reservado</span></div>`,
+b:`<div class="fake"><span class="mono">L-2311 · vence 26/11</span><span class="pill" style="background:var(--warnbg);color:var(--warn)">abaixo de 30 dias</span></div><p class="small">Mínimo de validade restante por produto (e, depois, por cliente). O lote curto fica para uso interno ou baixa.</p>`},
+{t:'Consumo e entrada do acabado avisados ao ERP',w:'Diretor de produção',y:'Hoje o ERP só recebe a situação da ordem. Não sabe o que foi consumido nem o que entrou.',
+a:`<p class="small mono">production_release_status</p>`,
+b:`<p class="small mono">production_release_status<br>production_material_issued<br>production_leftover_returned<br>production_output_received</p><p class="small">Pela mesma fila de eventos, com reenvio e sem duplicar.</p>`},
+{t:'Endereço sugerido pelo peso e pelo volume',w:'Diretor de armazém',y:'A sugestão olha só a quantidade. Um endereço pode receber mais caixas do que cabem ou do que a estrutura aguenta.',
+a:`<div class="fake"><span class="mono">CD-02/RUA-01/03/01</span><span>48 de 50 un.</span></div>`,
+b:`<div class="fake"><span class="mono">CD-02/RUA-01/03/01</span><span>1,10 de 1,20 m³ · 820 de 1.000 kg</span></div><p class="small">Usa as medidas do produto e da unidade logística que já estão cadastradas.</p>`},
+{t:'Genealogia de lote e recall',w:'Os dois diretores',y:'Não há ligação gravada entre o lote acabado e os lotes de componentes. Num recall, a resposta leva dias.',
+a:`<p class="small">Rastrear à mão pelas requisições e movimentações.</p>`,
+b:`<div class="tree mono">OP-1042 · lote acabado<div>FAR-TRIGO · L-8812<div>NF 4.512 · Mercado Exemplo</div><div>NF 4.530 · Distribuidora Exemplo</div></div><div>EMB-500G · L-301</div></div><p class="small">Consulta nos dois sentidos e lista de clientes e notas afetados em um clique.</p>`}
+];
+const card=x=>`<article class="card"><div class="ch"><h3>${x.t}</h3><span class="who">${x.w}</span></div><p class="why">${x.y}</p><div class="ba"><div class="side a"><div class="t"><span class="dot"></span>Hoje</div>${x.a}</div><div class="side d"><div class="t"><span class="dot"></span>Proposto</div>${x.b}</div></div></article>`;
+document.getElementById('d').innerHTML=D.map(card).join('');
+document.getElementById('r').innerHTML=R.map(card).join('');
+}</script>
+</body></html>
