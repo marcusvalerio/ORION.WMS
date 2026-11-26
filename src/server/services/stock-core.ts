@@ -171,6 +171,44 @@ export interface MovementInput {
   referenceId?: string | null;
   referenceCode?: string | null;
   taskId?: string | null;
+  /** Ajuste valorizado (inventário): custo unitário, código do motivo e centro de custo. */
+  unitCost?: number | null;
+  reasonCode?: string | null;
+  costCenter?: string | null;
+}
+
+/**
+ * Bloqueio de endereço durante a contagem (inventário em modo `lock`). Vale para
+ * todos os fluxos porque é checado no núcleo: insertMovement, validateDestination
+ * e suggestLocations. Os ajustes do próprio inventário (referenceType 'inventory')
+ * passam. Lança "Endereço em contagem (INV-xxxx)".
+ */
+export async function assertLocationsNotLocked(
+  tx: Queryable,
+  companyId: string,
+  locationIds: (string | null | undefined)[],
+  allowInventoryId?: string | null,
+): Promise<void> {
+  const ids = [...new Set(locationIds.filter((x): x is string => Boolean(x)))];
+  if (!ids.length) return;
+  const [lock] = await tx.query<{ code: string; location_code: string }>(
+    `select c.code, l.code as location_code from wms.inventory_location_locks k
+       join wms.inventory_counts c on c.id = k.inventory_id join wms.locations l on l.id = k.location_id
+     where k.company_id = $1 and k.location_id = any($2::uuid[]) and ($3::uuid is null or k.inventory_id <> $3::uuid)
+     order by l.code limit 1`,
+    [companyId, ids, allowInventoryId ?? null],
+  );
+  if (lock) {
+    throw new DomainError(`Endereço em contagem (${lock.code}): ${lock.location_code} não pode ser movimentado agora.`, "LOCATION_LOCKED");
+  }
+}
+
+/** Endereços bloqueados por contagem (ids), para excluir das sugestões. */
+export async function lockedLocationIds(tx: Queryable, companyId: string): Promise<Set<string>> {
+  const rows = await tx.query<{ location_id: string }>(`select location_id from wms.inventory_location_locks where company_id = $1`, [
+    companyId,
+  ]);
+  return new Set(rows.map((r) => r.location_id));
 }
 
 /**
@@ -187,11 +225,18 @@ export function withMovementClock<T>(at: Date, fn: () => Promise<T>): Promise<T>
 
 export async function insertMovement(tx: Queryable, ctx: Ctx, m: MovementInput): Promise<string> {
   const at = movementClock.getStore();
+  await assertLocationsNotLocked(
+    tx,
+    ctx.user.companyId,
+    [m.fromLocationId, m.toLocationId],
+    m.referenceType === "inventory" ? (m.referenceId ?? null) : null,
+  );
   const [row] = await tx.query<{ id: string }>(
     `insert into wms.stock_movements
       (company_id, warehouse_id, movement_type, product_id, lot_code, expiry_date, quantity,
-       from_location_id, to_location_id, reason, reference_type, reference_id, reference_code, task_id, created_by, created_at)
-     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, coalesce($16::timestamptz, now())) returning id`,
+       from_location_id, to_location_id, reason, reference_type, reference_id, reference_code, task_id, created_by, created_at,
+       unit_cost, reason_code, cost_center)
+     values ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,$15, coalesce($16::timestamptz, now()), $17, $18, $19) returning id`,
     [
       ctx.user.companyId,
       m.warehouseId,
@@ -209,6 +254,9 @@ export async function insertMovement(tx: Queryable, ctx: Ctx, m: MovementInput):
       m.taskId ?? null,
       ctx.user.id,
       at ? at.toISOString() : null,
+      m.unitCost ?? null,
+      m.reasonCode ?? null,
+      m.costCenter ?? null,
     ],
   );
   return row.id;
@@ -357,6 +405,7 @@ export async function validateDestination(
   ]);
   const [loc] = await loadLocations(tx, ctx.user.companyId, "l.id = $3", [args.locationId], args.excludeTaskId ?? null);
   if (!loc) throw new NotFoundError("Endereço");
+  await assertLocationsNotLocked(tx, ctx.user.companyId, [loc.id]);
   const product = await getProductRules(tx, ctx.user.companyId, args.productId);
   const productQty = await productQtyAt(tx, loc.id, args.productId);
   const result = evaluate(loc, product, args.quantity, productQty, args.warehouseId, args.anyZone);
@@ -397,6 +446,12 @@ export async function suggestLocations(
   const evaluations = locations.map((loc) =>
     evaluate(loc, product, args.quantity, byLoc.get(loc.id)?.q ?? 0, args.warehouseId),
   );
+  const locked = await lockedLocationIds(tx, ctx.user.companyId);
+  for (const e of evaluations) {
+    if (!locked.has(e.location.id)) continue;
+    e.ok = false;
+    e.reasons.push("endereço em contagem");
+  }
   const eligible = evaluations.filter((e) => e.ok);
   const score = (e: Evaluation) => [
     product.preferred_zone_id && e.location.zone_id === product.preferred_zone_id ? 0 : 1,

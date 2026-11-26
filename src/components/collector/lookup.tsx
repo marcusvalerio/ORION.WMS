@@ -30,16 +30,16 @@ export function Lookup() {
       <ScanField label="Endereço ou produto" onScan={scan} busy={busy} submitLabel="Consultar" />
       <FeedbackBanner feedback={feedback} />
       {result ? (
-        <section className="rounded-xl border-2 border-line-strong bg-surface">
+        <section className="rounded-lg border border-line-strong bg-surface">
           <header className="border-b-2 border-line p-3">
             {result.kind === "location" ? (
-              <p className="font-mono text-xl font-bold">{result.location.code}</p>
+              <p className="font-mono font-display text-xl font-semibold">{result.location.code}</p>
             ) : (
               <>
                 <p className="text-lg">
                   <strong className="font-mono">{result.product.sku}</strong> — {result.product.description}
                 </p>
-                <p className="mt-1 text-xl font-bold">
+                <p className="mt-1 font-display text-xl font-semibold">
                   Físico {fmt(result.total)} · Disponível {fmt(result.available)} {result.product.uom}
                 </p>
               </>

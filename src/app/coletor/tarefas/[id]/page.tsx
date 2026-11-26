@@ -21,13 +21,13 @@ export default async function CollectorTask({ params }: { params: Promise<{ id: 
   return (
     <div className="space-y-4">
       <div className="flex items-baseline justify-between gap-2">
-        <h1 className="text-2xl font-bold">{TASK_TYPE_LABELS[task.task_type] ?? task.task_type}</h1>
+        <h1 className="font-display text-2xl font-semibold">{TASK_TYPE_LABELS[task.task_type] ?? task.task_type}</h1>
         <span className="font-mono text-lg text-fg-2">{task.code}</span>
       </div>
       {!supported ? (
-        <p className="rounded-xl bg-warn-solid p-4 text-lg font-semibold">Este tipo de tarefa não é executado pelo coletor.</p>
+        <p className="rounded-lg bg-warn-solid p-4 text-lg font-semibold">Este tipo de tarefa não é executado pelo coletor.</p>
       ) : !open ? (
-        <p className="rounded-xl bg-noite-900 p-4 text-lg font-semibold text-creme-50">
+        <p className="rounded-lg bg-noite-900 p-4 text-lg font-semibold text-creme-50">
           Tarefa {task.status === "completed" ? "concluída" : "cancelada"}.
         </p>
       ) : !mine ? (

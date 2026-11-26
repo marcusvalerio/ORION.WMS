@@ -27,7 +27,7 @@ export function ClaimButton({ taskId, label }: { taskId: string; label: string }
           buzz("ok");
           router.push(`/coletor/tarefas/${taskId}`);
         }}
-        className="flex min-h-14 w-full items-center justify-center rounded-xl bg-action px-4 text-xl font-bold text-on-action disabled:opacity-50"
+        className="flex min-h-14 w-full items-center justify-center rounded-lg bg-action px-4 font-display text-xl font-semibold text-on-action disabled:opacity-50"
       >
         {busy ? "Abrindo…" : label}
       </button>

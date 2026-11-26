@@ -81,6 +81,12 @@ async function seedCdMapShowcase(db: Db): Promise<void> {
   const ctxOf = async (email: string): Promise<Ctx> => ({ db, user: (await loadSessionUser(db, await userId(email))) as SessionUser });
   const admin = await ctxOf("admin@metalsupply.demo");
   const supervisor = await ctxOf("supervisor@metalsupply.demo");
+  const operator = await ctxOf("operador@metalsupply.demo");
+  // 2ª contagem cega (outro usuário) dos itens que a 1ª deixou fora da tolerância: confirma o mesmo valor
+  const confirmRecounts = async (inventoryId: string, values: Map<string, number>) => {
+    const recount = await db.query<{ id: string }>(`select id from wms.inventory_count_items where inventory_id = $1 and status = 'recount'`, [inventoryId]);
+    if (recount.length) await recordCounts(operator, inventoryId, { items: recount.map((r) => ({ itemId: r.id, countedQty: values.get(r.id) ?? 0 })) });
+  };
 
   const { wh, zA, products } = await db.transaction(async (tx) => {
     const [w] = await tx.query<{ id: string }>(
@@ -164,12 +170,14 @@ async function seedCdMapShowcase(db: Db): Promise<void> {
   for (const [cycle, miss] of misses.entries()) {
     const { id } = await createInventory(supervisor, { warehouseId: wh, countType: "cyclic", zoneId: zA, notes: `Ciclo rotativo ${cycle + 1} (demonstração)` });
     const items = await db.query<{ id: string; expected_qty: number }>(`select id, expected_qty from wms.inventory_count_items where inventory_id = $1 order by id`, [id]);
-    await recordCounts(supervisor, id, {
-      items: items.map((i, k) => ({
-        itemId: i.id,
-        countedQty: k < miss * 7 && k % 7 === cycle % 7 ? Math.max(0, Number(i.expected_qty) + (k % 2 ? 1 : -2)) : Number(i.expected_qty),
-      })),
-    });
+    const values = new Map(
+      items.map((i, k) => [
+        i.id,
+        k < miss * 7 && k % 7 === cycle % 7 && Number(i.expected_qty) > 0 ? Math.max(0, Number(i.expected_qty) + (k % 2 ? 1 : -2)) : Number(i.expected_qty),
+      ]),
+    );
+    await recordCounts(supervisor, id, { items: items.map((i) => ({ itemId: i.id, countedQty: values.get(i.id)! })) });
+    await confirmRecounts(id, values);
     await submitInventory(supervisor, id);
     await approveInventory(admin, id, { notes: "Ciclo aprovado (demonstração)" });
     const monthsAgo = misses.length - cycle;
@@ -193,9 +201,9 @@ async function seedCdMapShowcase(db: Db): Promise<void> {
     [id],
   );
   const counted = items.filter((i) => Number(i.aisle) <= 2 || (Number(i.aisle) === 3 && Number(i.bay) <= 4) || (Number(i.aisle) === 5 && Number(i.bay) <= 3));
-  await recordCounts(supervisor, id, {
-    items: counted.map((i, k) => ({ itemId: i.id, countedQty: k % 61 === 11 ? Number(i.expected_qty) - 1 : Number(i.expected_qty) })),
-  });
+  const values = new Map(counted.map((i, k) => [i.id, k % 61 === 11 ? Number(i.expected_qty) - 1 : Number(i.expected_qty)]));
+  await recordCounts(supervisor, id, { items: counted.map((i) => ({ itemId: i.id, countedQty: values.get(i.id)! })) });
+  await confirmRecounts(id, values);
   for (const [k, i] of counted.entries()) {
     await db.query(`update wms.inventory_count_items set counted_at = now() - ($2 * interval '1 minute') where id = $1`, [
       i.id,

@@ -102,9 +102,11 @@ describe("Produtividade por operador", () => {
     }
     // Contagem de inventário pelo operador (linhas conferidas).
     const inv = await inventory.createInventory(sup, { warehouseId, countType: "general" });
-    const data = await inventory.getInventory(sup, inv.id);
-    countedLines = data!.items.length;
-    await inventory.recordCounts(op, inv.id, { items: data!.items.map((i) => ({ itemId: i.id, countedQty: i.expected_qty })) });
+    const items = await env.db.query<{ id: string; expected_qty: number }>(`select id, expected_qty from wms.inventory_count_items where inventory_id = $1`, [
+      inv.id,
+    ]);
+    countedLines = items.length;
+    await inventory.recordCounts(op, inv.id, { items: items.map((i) => ({ itemId: i.id, countedQty: Number(i.expected_qty) })) });
   });
 
   it("calcula tarefas por tipo, unidades, itens separados, linhas conferidas, tempo médio e acuracidade", async () => {

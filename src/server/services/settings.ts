@@ -22,7 +22,8 @@ interface BaseDef {
 export type SettingDef =
   | (BaseDef & { type: "boolean"; default: boolean })
   | (BaseDef & { type: "number"; default: number; min: number; max: number; step?: number; unit?: string })
-  | (BaseDef & { type: "emails"; default: string[]; maxItems: number });
+  | (BaseDef & { type: "emails"; default: string[]; maxItems: number })
+  | (BaseDef & { type: "choice"; default: string; options: readonly { value: string; label: string }[] });
 
 export const SETTINGS = {
   "inventory.segregation_of_duties": {
@@ -43,6 +44,29 @@ export const SETTINGS = {
     step: 0.1,
     unit: "%",
   },
+  "inventory.lock_mode": {
+    label: "Modo de bloqueio do inventário",
+    description:
+      "Bloquear: o endereço em contagem não aceita separação, reposição, transferência nem armazenagem. Conciliar: não bloqueia; na aprovação o esperado considera as entradas e saídas desde a foto.",
+    group: "Inventário",
+    type: "choice",
+    default: "lock",
+    options: [
+      { value: "lock", label: "Bloquear o endereço" },
+      { value: "reconcile", label: "Conciliar movimentos" },
+    ],
+  },
+  "inventory.cost_source": {
+    label: "Custo do ajuste de inventário",
+    description: "Valor unitário gravado no ajuste e enviado ao ERP.",
+    group: "Inventário",
+    type: "choice",
+    default: "last_purchase",
+    options: [
+      { value: "last_purchase", label: "Último preço de compra" },
+      { value: "average", label: "Custo médio das compras" },
+    ],
+  },
   "notifications.email_recipients": {
     label: "Destinatários dos avisos por e-mail",
     description:
@@ -59,8 +83,10 @@ type ValueOf<K extends SettingKey> = (typeof SETTINGS)[K]["default"] extends boo
   ? boolean
   : (typeof SETTINGS)[K]["default"] extends number
     ? number
-    : string[];
-export type SettingValue = boolean | number | string[];
+    : (typeof SETTINGS)[K]["default"] extends string
+      ? string
+      : string[];
+export type SettingValue = boolean | number | string | string[];
 
 const DEFS = SETTINGS as Record<SettingKey, SettingDef>;
 
@@ -71,6 +97,7 @@ function coerceStored(def: SettingDef, raw: unknown): SettingValue {
     const n = typeof raw === "number" ? raw : Number(raw);
     return Number.isFinite(n) && n >= def.min && n <= def.max ? n : def.default;
   }
+  if (def.type === "choice") return typeof raw === "string" && def.options.some((o) => o.value === raw) ? raw : def.default;
   return Array.isArray(raw) ? raw.filter((e): e is string => typeof e === "string") : def.default;
 }
 
@@ -98,6 +125,11 @@ export function parseSettingInput(key: SettingKey, raw: unknown): SettingValue {
     if (!text || !Number.isFinite(n)) throw new DomainError(`${def.label}: informe um número.`, "VALIDATION");
     if (n < def.min || n > def.max) throw new DomainError(`${def.label}: use um valor entre ${def.min} e ${def.max}.`, "VALIDATION");
     return Math.round(n * 10) / 10;
+  }
+  if (def.type === "choice") {
+    const v = String(raw ?? "");
+    if (!def.options.some((o) => o.value === v)) throw new DomainError(`${def.label}: opção inválida.`, "VALIDATION");
+    return v;
   }
   const list = (Array.isArray(raw) ? raw.map(String) : String(raw ?? "").split(/[\s,;]+/))
     .map((e) => e.trim().toLowerCase())

@@ -125,8 +125,8 @@ export function SubmitButton({
   const pending = useContext(PendingContext);
   return (
     <button type="submit" disabled={pending || disabled} name={name} value={value} className={buttonClass(variant, size, className)}>
-      {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
-      {children}
+      {pending ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : null}
+      {pending ? "Salvando…" : children}
     </button>
   );
 }

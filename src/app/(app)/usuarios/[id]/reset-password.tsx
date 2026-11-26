@@ -21,8 +21,8 @@ export function ResetPassword({ userId, disabled }: { userId: string; disabled?:
     <form onSubmit={onSubmit} className="space-y-3">
       <input type="hidden" name="_id" value={userId} />
       <button type="submit" disabled={pending || disabled} className={buttonClass("secondary", "sm")}>
-        {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : <KeyRound className="size-4" aria-hidden />}
-        Redefinir senha
+        {pending ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : <KeyRound className="size-4" aria-hidden />}
+        {pending ? "Salvando…" : "Redefinir senha"}
       </button>
       {state.ok && state.temporaryPassword ? (
         <div role="status" className="rounded-md border border-warn-line bg-warn-bg p-3 text-sm text-warn-fg">

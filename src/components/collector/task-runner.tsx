@@ -114,7 +114,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
   return (
     <div className="space-y-4">
       <StepDots steps={flow.map((s) => STEP_LABELS[s])} current={index} />
-      <section className="rounded-xl border-2 border-line-strong bg-surface px-4 py-2">
+      <section className="rounded-lg border border-line-strong bg-surface px-4 py-2">
         <InfoRow label="Produto">
           <strong className="font-mono">{task.sku}</strong> — {task.description}
           {task.lot_code ? <span className="block text-base text-fg-2">Lote {task.lot_code}</span> : null}
@@ -178,7 +178,7 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
               <input
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
-                className="h-14 w-full rounded-xl border-2 border-line-strong px-3 text-lg"
+                className="h-14 w-full rounded-lg border border-line-strong px-3 text-lg"
                 maxLength={300}
               />
             </label>
@@ -191,24 +191,24 @@ export function TaskRunner({ task }: { task: RunnerTask }) {
       {step === "done" && result ? (
         <div className="space-y-4">
           {task.task_type === "picking" ? (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-fg bg-warn-solid p-4 text-fg">
+            <div className="flex items-center gap-3 rounded-lg border border-fg bg-warn-solid p-4 text-fg">
               <Truck className="size-10 shrink-0" aria-hidden />
-              <p className="text-xl font-bold">
+              <p className="font-display text-xl font-semibold">
                 Leve à doca <span className="block font-mono text-2xl">{result.destination}</span>
                 {task.order_code ? <span className="block text-base font-semibold">Pedido {task.order_code}</span> : null}
               </p>
             </div>
           ) : (
-            <div className="flex items-center gap-3 rounded-xl border-2 border-ok-solid bg-ok-bg p-4 text-ok-fg">
+            <div className="flex items-center gap-3 rounded-lg border border-ok-solid bg-ok-bg p-4 text-ok-fg">
               <CheckCircle2 className="size-10 shrink-0" aria-hidden />
-              <p className="text-xl font-bold">
+              <p className="font-display text-xl font-semibold">
                 Guardado em <span className="block font-mono text-2xl">{result.destination}</span>
               </p>
             </div>
           )}
           <Link
             href="/coletor/tarefas"
-            className="flex min-h-14 w-full items-center justify-center rounded-xl bg-action px-4 text-xl font-bold text-on-action"
+            className="flex min-h-14 w-full items-center justify-center rounded-lg bg-action px-4 font-display text-xl font-semibold text-on-action"
           >
             Próxima tarefa
           </Link>

@@ -30,8 +30,8 @@ export function ChangePasswordForm() {
         <input id="confirmPassword" name="confirmPassword" type="password" autoComplete="new-password" required minLength={8} className="input" />
       </div>
       <button type="submit" disabled={pending} className={buttonClass("primary", "md", "w-full")}>
-        {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
-        Salvar nova senha
+        {pending ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : null}
+        {pending ? "Salvando…" : "Salvar nova senha"}
       </button>
       {state.message ? <FormMessage state={state} /> : null}
     </form>

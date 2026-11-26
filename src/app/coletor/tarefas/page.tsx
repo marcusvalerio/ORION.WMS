@@ -12,15 +12,15 @@ export default async function CollectorTasks() {
   const tasks = await listCollectorTasks(ctx);
   return (
     <div className="space-y-3">
-      <h1 className="text-2xl font-bold">Minhas tarefas</h1>
+      <h1 className="font-display text-2xl font-semibold">Minhas tarefas</h1>
       <p className="text-base text-fg-2">Armazenagem, separação e transferência atribuídas a você ou sem responsável.</p>
       {tasks.length === 0 ? (
-        <p className="rounded-xl border-2 border-line-strong bg-surface p-4 text-lg">Nenhuma tarefa aberta no momento.</p>
+        <p className="rounded-lg border border-line-strong bg-surface p-4 text-lg">Nenhuma tarefa aberta no momento.</p>
       ) : null}
       {tasks.map((t) => {
         const mine = t.status === "in_progress" && t.assigned_to === ctx.user.id;
         return (
-          <article key={t.id} className="space-y-2 rounded-xl border-2 border-line-strong bg-surface p-3">
+          <article key={t.id} className="space-y-2 rounded-lg border border-line-strong bg-surface p-3">
             <div className="flex items-center justify-between gap-2">
               <span className="text-lg font-bold">{TASK_TYPE_LABELS[t.task_type] ?? t.task_type}</span>
               <span className="font-mono text-base text-fg-2">{t.code}</span>
@@ -40,7 +40,7 @@ export default async function CollectorTasks() {
             {mine ? (
               <Link
                 href={`/coletor/tarefas/${t.id}`}
-                className="flex min-h-14 w-full items-center justify-center rounded-xl bg-ok-solid px-4 text-xl font-bold text-on-solid"
+                className="flex min-h-14 w-full items-center justify-center rounded-lg bg-ok-solid px-4 font-display text-xl font-semibold text-on-solid"
               >
                 Continuar
               </Link>

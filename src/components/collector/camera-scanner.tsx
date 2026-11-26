@@ -127,7 +127,7 @@ export function CameraScanner({ onDetect, onClose }: { onDetect: (code: string) 
 
   if (status === "denied" || status === "unavailable") {
     return (
-      <div role="status" className="flex items-start gap-3 rounded-xl border-2 border-line-strong bg-surface p-4 text-base text-fg">
+      <div role="status" className="flex items-start gap-3 rounded-lg border border-line-strong bg-surface p-4 text-base text-fg">
         <span className="flex-1">
           {status === "denied"
             ? "A câmera foi bloqueada. Libere a câmera para este site nas configurações do navegador, ou digite o código."
@@ -141,13 +141,13 @@ export function CameraScanner({ onDetect, onClose }: { onDetect: (code: string) 
   }
 
   return (
-    <div className="relative overflow-hidden rounded-xl border-2 border-fg bg-noite-900">
+    <div className="relative overflow-hidden rounded-lg border border-fg bg-noite-900">
       <video ref={videoRef} muted playsInline aria-label="Imagem da câmera" className="block aspect-[4/3] w-full object-cover" />
       {/* Moldura de mira com a linha de leitura */}
       <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div
           className={cn(
-            "relative h-[38%] w-[78%] rounded-lg border-2 transition-colors",
+            "relative h-[38%] w-[78%] rounded-lg border transition-colors",
             flash ? "border-ok-solid bg-ok-solid/20" : "border-creme-100/90",
           )}
         >

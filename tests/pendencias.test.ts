@@ -21,13 +21,15 @@ describe("avisos por e-mail na outbox", () => {
     // inventário com uma diferença → divergence.registered; aprovação → inventory.approved
     const { id } = await inventory.createInventory(sup, { warehouseId: wh, countType: "general" });
     const items = await env.db.query<{ id: string; expected_qty: number }>(
-      `select id, expected_qty from wms.inventory_count_items where inventory_id = $1 order by id`,
+      `select id, expected_qty from wms.inventory_count_items where inventory_id = $1 order by product_id is null, id`,
       [id],
     );
     expect(items.length).toBeGreaterThan(0);
-    await inventory.recordCounts(sup, id, {
-      items: items.map((i, k) => ({ itemId: i.id, countedQty: k === 0 ? Number(i.expected_qty) + 2 : Number(i.expected_qty) })),
-    });
+    const counted = items.map((i, k) => ({ itemId: i.id, countedQty: k === 0 ? Number(i.expected_qty) + 2 : Number(i.expected_qty) }));
+    await inventory.recordCounts(sup, id, { items: counted });
+    // fora da tolerância: 2ª contagem cega por outro usuário confirma o valor
+    const recount = await env.db.query<{ id: string }>(`select id from wms.inventory_count_items where inventory_id = $1 and status = 'recount'`, [id]);
+    if (recount.length) await inventory.recordCounts(env.as("operator"), id, { items: counted.filter((c) => recount.some((r) => r.id === c.itemId)) });
     await inventory.submitInventory(sup, id);
     await inventory.approveInventory(admin, id, {}, { idempotencyKey: key() });
 

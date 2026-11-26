@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Download } from "lucide-react";
+import { CalendarDays, Download } from "lucide-react";
 import { requireCtx } from "@/server/auth/session";
 import { listInventories } from "@/server/services/inventory";
 import { listLocations, listWarehouses, listZones } from "@/server/services/warehouse";
@@ -19,6 +19,8 @@ import { can } from "@/lib/permissions";
 
 export const metadata = { title: "Inventário" };
 
+const TYPE_LABEL: Record<string, string> = { general: "Geral", cyclic: "Rotativo", production_line: "Linha de produção" };
+
 export default async function InventoryListPage() {
   const ctx = await requireCtx();
   const manage = can(ctx.user.role, "inventory.create");
@@ -36,11 +38,18 @@ export default async function InventoryListPage() {
         description="Contagens gerais ou rotativas. O saldo esperado é registrado na abertura; a contagem não altera estoque — os ajustes só ocorrem após aprovação de um supervisor."
         breadcrumbs={[{ label: "Operações" }, { label: "Inventário" }]}
         actions={
-          can(ctx.user.role, "reports.export") ? (
-            <ButtonLink href="/api/relatorios/inventarios" size="sm" prefetch={false}>
-              <Download className="size-4" /> CSV
-            </ButtonLink>
-          ) : null
+          <>
+            {manage ? (
+              <ButtonLink href="/inventario/calendario" size="sm" variant="secondary">
+                <CalendarDays className="size-4" aria-hidden /> Calendário
+              </ButtonLink>
+            ) : null}
+            {can(ctx.user.role, "reports.export") ? (
+              <ButtonLink href="/api/relatorios/inventarios" size="sm" prefetch={false}>
+                <Download className="size-4" aria-hidden /> Baixar CSV
+              </ButtonLink>
+            ) : null}
+          </>
         }
       />
       {manage ? (
@@ -56,6 +65,7 @@ export default async function InventoryListPage() {
                   options={[
                     { value: "cyclic", label: "Rotativo (por zona, endereço ou produto)" },
                     { value: "general", label: "Geral (todo o depósito)" },
+                    { value: "production_line", label: "Linha de produção (WIP)" },
                   ]}
                 />
               </Field>
@@ -68,7 +78,10 @@ export default async function InventoryListPage() {
               <Field label="Produto">
                 <Select name="productId" placeholder="Todos" options={products.map((p) => ({ value: p.id, label: `${p.sku} — ${p.description}` }))} />
               </Field>
-              <Field label="Observações">
+              <Field label="Data de referência (fechamento)">
+                <Input name="referenceDate" type="date" lang="pt-BR" />
+              </Field>
+              <Field label="Observações" className="md:col-span-2">
                 <Input name="notes" maxLength={500} />
               </Field>
               <div className="md:col-span-3">
@@ -81,50 +94,72 @@ export default async function InventoryListPage() {
       <Card>
         <CardHeader title="Sessões de inventário" />
         {rows.length ? (
-          <TableWrap>
-            <table className="table-base">
-              <thead>
-                <tr>
-                  <th>Código</th>
-                  <th>Tipo</th>
-                  <th>Status</th>
-                  <th>Depósito / escopo</th>
-                  <th className="num">Itens</th>
-                  <th className="num">Contados</th>
-                  <th className="num">Com diferença</th>
-                  <th>Aberto por</th>
-                  <th>Aprovado em</th>
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id}>
-                    <td>
-                      <Link href={`/inventario/${r.id}`} className="link">
-                        {r.code}
-                      </Link>
-                    </td>
-                    <td>{r.count_type === "general" ? "Geral" : "Rotativo"}</td>
-                    <td>
-                      <StatusBadge kind="inventory" status={r.status} />
-                    </td>
-                    <td>
-                      {r.warehouse_code}
-                      <span className="block text-xs text-muted">{r.scope || "Depósito inteiro"}</span>
-                    </td>
-                    <td className="num">{r.items}</td>
-                    <td className="num">{r.counted}</td>
-                    <td className="num">{r.differences ? <Badge tone="warning">{r.differences}</Badge> : "0"}</td>
-                    <td>
-                      {r.created_by_name}
-                      <span className="block text-xs text-muted">{fmtDateTime(r.created_at)}</span>
-                    </td>
-                    <td>{fmtDateTime(r.approved_at)}</td>
+          <>
+            <ul className="divide-y divide-line md:hidden">
+              {rows.map((r) => (
+                <li key={r.id} className="p-4">
+                  <div className="flex items-center justify-between gap-2">
+                    <Link href={`/inventario/${r.id}`} className="link font-mono whitespace-nowrap">
+                      {r.code}
+                    </Link>
+                    <StatusBadge kind="inventory" status={r.status} />
+                  </div>
+                  <p className="mt-1 text-sm">
+                    {TYPE_LABEL[r.count_type] ?? r.count_type} · <span className="font-mono whitespace-nowrap">{r.warehouse_code}</span>
+                  </p>
+                  <p className="text-xs text-muted">{r.scope}</p>
+                  <p className="mt-2 text-sm tabular-nums">
+                    {r.counted} de {r.items} contados ·{" "}
+                    {r.differences ? <span className="text-crit-fg">{r.differences} com diferença</span> : <span className="text-muted">0 com diferença</span>}
+                  </p>
+                </li>
+              ))}
+            </ul>
+            <TableWrap className="hidden md:block">
+              <table className="table-base">
+                <thead>
+                  <tr>
+                    <th>Código</th>
+                    <th>Tipo</th>
+                    <th>Status</th>
+                    <th>Depósito / escopo</th>
+                    <th className="num">Itens</th>
+                    <th className="num">Contados</th>
+                    <th className="num">Com diferença</th>
+                    <th>Aberto por</th>
+                    <th>Aprovado em</th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
-          </TableWrap>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="whitespace-nowrap">
+                        <Link href={`/inventario/${r.id}`} className="link font-mono">
+                          {r.code}
+                        </Link>
+                      </td>
+                      <td>{TYPE_LABEL[r.count_type] ?? r.count_type}</td>
+                      <td>
+                        <StatusBadge kind="inventory" status={r.status} />
+                      </td>
+                      <td>
+                        <span className="font-mono whitespace-nowrap">{r.warehouse_code}</span>
+                        <span className="block text-xs text-muted">{r.scope}</span>
+                      </td>
+                      <td className="num">{r.items}</td>
+                      <td className="num">{r.counted}</td>
+                      <td className="num">{r.differences ? <Badge tone="danger">{r.differences}</Badge> : <span className="text-muted">0</span>}</td>
+                      <td>
+                        {r.created_by_name}
+                        <span className="block text-xs text-muted">{fmtDateTime(r.created_at)}</span>
+                      </td>
+                      <td className="whitespace-nowrap">{fmtDateTime(r.approved_at)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </TableWrap>
+          </>
         ) : (
           <EmptyState title="Nenhum inventário registrado" />
         )}

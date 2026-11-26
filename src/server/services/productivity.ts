@@ -101,9 +101,10 @@ export async function productivityByUser(ctx: Ctx, f: ProductivityFilters = {}) 
          where r.company_id = $1 and i.counted_by is not null and ${inPeriod("i.counted_at")} ${forUser("i.counted_by")} ${wh("r.warehouse_id")}
          group by i.counted_by
          union all
-         select i.counted_by, count(*) from wms.inventory_count_items i join wms.inventory_counts c on c.id = i.inventory_id
-         where c.company_id = $1 and i.counted_by is not null and ${inPeriod("i.counted_at")} ${forUser("i.counted_by")} ${wh("c.warehouse_id")}
-         group by i.counted_by
+         select r.counted_by, count(*) from wms.inventory_count_rounds r join wms.inventory_count_items i on i.id = r.inventory_item_id
+           join wms.inventory_counts c on c.id = i.inventory_id
+         where c.company_id = $1 and ${inPeriod("r.counted_at")} ${forUser("r.counted_by")} ${wh("c.warehouse_id")}
+         group by r.counted_by
        ) x group by user_id`,
     ),
   ]);

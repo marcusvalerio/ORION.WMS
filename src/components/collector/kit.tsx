@@ -9,6 +9,8 @@ export type Tone = "ok" | "error" | "info";
 export interface Feedback {
   tone: Tone;
   text: string;
+  /** sequência: muda a cada leitura para reiniciar o pulso/tremida */
+  n?: number;
 }
 
 /** Vibra o aparelho quando suportado (coletores Android e celulares). */
@@ -22,16 +24,17 @@ export function useFeedback(initial: Feedback | null = null) {
   const [feedback, setFeedback] = useState<Feedback | null>(initial);
   const show = (tone: Tone, text: string) => {
     buzz(tone);
-    setFeedback({ tone, text });
+    setFeedback((f) => ({ tone, text, n: (f?.n ?? 0) + 1 }));
   };
   return { feedback, show, clear: () => setFeedback(null) };
 }
 
 const noSubscribe = () => () => {};
 
+// Fundo suave com texto forte do mesmo tom: contraste ≥ 4,5:1 nos dois temas (ver tests/contrast.test.ts).
 const TONES: Record<Tone, string> = {
-  ok: "border-ok-solid bg-ok-solid text-on-solid",
-  error: "border-crit-solid bg-crit-solid text-on-solid",
+  ok: "border-ok-solid bg-ok-bg text-ok-fg fb-ok",
+  error: "border-crit-solid bg-crit-bg text-crit-fg fb-error",
   info: "border-line-strong bg-surface text-fg",
 };
 
@@ -40,9 +43,10 @@ export function FeedbackBanner({ feedback }: { feedback: Feedback | null }) {
   const Icon = feedback.tone === "ok" ? CircleCheck : feedback.tone === "error" ? CircleAlert : Info;
   return (
     <div
+      key={feedback.n}
       role={feedback.tone === "error" ? "alert" : "status"}
       aria-live="assertive"
-      className={cn("flex items-start gap-3 rounded-xl border-2 p-4 text-lg font-semibold", TONES[feedback.tone])}
+      className={cn("flex items-start gap-3 rounded-lg border p-4 text-lg font-semibold", TONES[feedback.tone])}
     >
       <Icon className="mt-0.5 size-7 shrink-0" aria-hidden />
       <span>{feedback.text}</span>
@@ -127,7 +131,7 @@ export function ScanField({
     <form onSubmit={submit} className="space-y-3">
       <label className="block">
         <span className="mb-1 flex items-center gap-2 text-lg font-bold text-fg">
-          <ScanLine className="size-6 text-link" aria-hidden />
+          <ScanLine className="size-6" aria-hidden />
           {label}
         </span>
         {hint ? <span className="mb-2 block text-base text-fg-2">{hint}</span> : null}
@@ -148,7 +152,7 @@ export function ScanField({
             spellCheck={false}
             enterKeyHint="go"
             aria-label={label}
-            className="h-16 min-w-0 flex-1 rounded-xl border-2 border-fg bg-surface px-4 font-mono text-2xl text-fg outline-none focus:border-focus focus:ring-4 focus:ring-focus"
+            className="h-16 min-w-0 flex-1 rounded-lg border border-fg bg-surface px-4 font-mono text-2xl text-fg outline-none focus:border-focus focus:ring-4 focus:ring-focus"
           />
           {!numeric ? (
             <button
@@ -157,7 +161,7 @@ export function ScanField({
               aria-pressed={camera}
               aria-label={camera ? "Fechar câmera" : "Ler com a câmera"}
               className={cn(
-                "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2",
+                "flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border",
                 camera ? "border-focus bg-action text-on-action" : "border-fg bg-surface text-fg",
               )}
             >
@@ -174,7 +178,7 @@ export function ScanField({
               aria-pressed={manual}
               aria-label={manual ? "Ocultar teclado" : "Digitar manualmente"}
               className={cn(
-                "flex h-16 w-16 shrink-0 items-center justify-center rounded-xl border-2",
+                "flex h-16 w-16 shrink-0 items-center justify-center rounded-lg border",
                 manual ? "border-focus bg-action text-on-action" : "border-fg bg-surface text-fg",
               )}
             >
@@ -201,9 +205,9 @@ export function BigButton({
     <button
       {...props}
       className={cn(
-        "flex min-h-14 w-full items-center justify-center gap-2 rounded-xl px-4 py-3 text-xl font-bold transition-colors disabled:opacity-50",
+        "press flex min-h-14 w-full items-center justify-center gap-2 rounded-full px-4 py-3 font-display text-xl font-semibold disabled:opacity-50",
         variant === "primary" && "bg-action text-on-action active:bg-action",
-        variant === "secondary" && "border-2 border-fg bg-surface text-fg active:bg-subtle",
+        variant === "secondary" && "border border-fg bg-surface text-fg active:bg-subtle",
         variant === "success" && "bg-ok-solid text-on-solid active:brightness-90",
         variant === "danger" && "bg-crit-solid text-on-solid active:brightness-90",
         className,
@@ -218,7 +222,7 @@ export function InfoRow({ label, children, strong }: { label: string; children: 
   return (
     <div className="flex flex-col border-b border-line py-2 last:border-0">
       <span className="text-sm font-semibold tracking-wide text-fg-2 uppercase">{label}</span>
-      <span className={cn("break-words text-fg", strong ? "font-mono text-2xl font-bold" : "text-lg")}>{children}</span>
+      <span className={cn("break-words text-fg", strong ? "font-mono font-display text-2xl font-semibold" : "text-lg")}>{children}</span>
     </div>
   );
 }

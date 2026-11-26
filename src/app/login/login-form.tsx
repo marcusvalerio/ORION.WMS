@@ -64,8 +64,8 @@ export function LoginForm({
           disabled={pending}
           className="inline-flex h-[54px] items-center justify-center gap-2 rounded-full bg-creme-100 text-[15px] font-semibold text-noite-900 hover:bg-white disabled:opacity-70"
         >
-          {pending ? <LoaderCircle className="size-4 animate-spin" aria-hidden /> : null}
-          Entrar
+          {pending ? <LoaderCircle className="size-4 motion-safe:animate-spin" aria-hidden /> : null}
+          {pending ? "Entrando…" : "Entrar"}
         </button>
         {state.message && !state.ok ? (
           <p role="alert" className="rounded-xl bg-crit-solid/15 px-3 py-2 text-sm text-[#FFA3A9]">

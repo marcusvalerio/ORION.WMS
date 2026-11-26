@@ -154,14 +154,23 @@ describe("Coletor (operador com leitor de código de barras)", () => {
     expect((await collector.listCountingInventories(op)).map((i) => i.id)).toContain(inv.id);
     const chpLoc = "DEP-01/RUA-04/MOD-01/NIV-00/POS-00";
     const at = await collector.inventoryLocation(op, inv.id, chpLoc);
-    expect(at.items).toHaveLength(1);
-    expect(at.items[0]).not.toHaveProperty("expected_qty");
+    // contagem cega de verdade: não lista os SKUs previstos nem o saldo
+    expect(at).not.toHaveProperty("items");
+    expect(at).toMatchObject({ toCount: 1, inScope: true });
+    // a 1ª leitura do endereço grava o lock
+    expect((await env.one<{ n: number }>(`select count(*)::int as n from wms.inventory_location_locks where inventory_id = $1`, [inv.id])).n).toBe(1);
     const c1 = await collector.countFromCollector(op, inv.id, { locationCode: chpLoc, productCode: "7890000000048", quantity: 7 });
-    expect(c1.added).toBe(false);
+    expect(c1).toMatchObject({ added: false, recount: true, nextRound: 2 });
     const c2 = await collector.countFromCollector(op, inv.id, { locationCode: "DEP-01/RUA-04/MOD-02/NIV-00/POS-00", productCode: "CHP-004", quantity: 3 });
     expect(c2.added).toBe(true);
-    const detail = await inventory.getInventory(sup, inv.id);
-    expect(detail!.items.map((i) => i.counted_qty).sort()).toEqual([3, 7]);
+    // 2ª contagem por outro usuário confirma
+    await collector.countFromCollector(sup, inv.id, { locationCode: chpLoc, productCode: "CHP-004", quantity: 7 });
+    await collector.countFromCollector(sup, inv.id, { locationCode: "DEP-01/RUA-04/MOD-02/NIV-00/POS-00", productCode: "CHP-004", quantity: 3 });
+    const summary = await collector.collectorInventorySummary(op, inv.id);
+    expect(summary).toMatchObject({ recount: [], canSubmit: true });
+    expect(summary.done).toBe(summary.total);
+    const counted = await env.db.query<{ q: number }>(`select counted_qty as q from wms.inventory_count_items where inventory_id = $1 order by counted_qty`, [inv.id]);
+    expect(counted.map((r) => Number(r.q))).toEqual([3, 7]);
     // Contagem não altera saldo.
     expect((await balanceOf(env, "CHP-004")).quantity).not.toBe(10);
     await expect(collector.countFromCollector(env.as("auditor"), inv.id, { locationCode: chpLoc, productCode: "CHP-004", quantity: 1 })).rejects.toThrow(

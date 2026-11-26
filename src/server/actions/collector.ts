@@ -6,6 +6,8 @@ import type { Ctx } from "../context";
 import { requireCtx } from "../auth/session";
 import { toUserMessage } from "../errors";
 import * as collector from "../services/collector";
+import { submitInventory } from "../services/inventory";
+import { plural } from "@/lib/inventory-rules";
 
 /**
  * Server Actions do coletor. São chamadas diretamente pelos componentes de leitura
@@ -87,7 +89,12 @@ export async function resolveProductAction(code: string) {
 export async function inventoryLocationAction(inventoryId: string, code: string) {
   return run(async (ctx) => {
     const r = await collector.inventoryLocation(ctx, str(inventoryId), str(code));
-    return { data: { code: r.location.code, items: r.items }, message: `Endereço ${r.location.code}: ${r.items.length} item(ns) previsto(s).` };
+    const message = !r.inScope
+      ? `Endereço ${r.location.code} fora do escopo: leia o que encontrar para incluir.`
+      : r.recount
+        ? `Endereço ${r.location.code}: ${plural(r.recount, "item a recontar", "itens a recontar")}. Contagem cega.`
+        : `Endereço ${r.location.code}: contagem cega. Leia o que encontrar.`;
+    return { data: { code: r.location.code, toCount: r.toCount, counted: r.counted, recount: r.recount }, message };
   });
 }
 
@@ -100,10 +107,26 @@ export async function countFromCollectorAction(
     const r = await collector.countFromCollector(ctx, str(inventoryId), input, { idempotencyKey: key });
     return {
       data: r,
-      message: r.added
-        ? `${r.sku} não estava previsto em ${r.location}: incluído com a contagem.`
-        : `Contagem de ${r.sku}${r.lotCode ? ` (lote ${r.lotCode})` : ""} registrada.`,
+      message: r.recount
+        ? `Fora da tolerância: ${r.sku} vai para a ${r.nextRound}ª contagem${r.nextRound === 2 ? " (outro operador)" : " (supervisor)"}.`
+        : r.added
+          ? `${r.sku} não estava previsto em ${r.location}: incluído com a contagem.`
+          : `${r.sku}${r.lotCode ? ` (lote ${r.lotCode})` : ""} registrado.`,
     };
+  }, true);
+}
+
+export async function inventorySummaryAction(inventoryId: string) {
+  return run(async (ctx) => {
+    const r = await collector.collectorInventorySummary(ctx, str(inventoryId));
+    return { data: r, message: `${r.done} de ${r.total}` };
+  });
+}
+
+export async function submitFromCollectorAction(inventoryId: string, key: string) {
+  return run(async (ctx) => {
+    const r = await submitInventory(ctx, str(inventoryId), { idempotencyKey: key });
+    return { data: r, message: "Inventário submetido para aprovação." };
   }, true);
 }
 

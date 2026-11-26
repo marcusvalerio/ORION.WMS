@@ -7,7 +7,8 @@ import { parse, nonNegQty, optionalText } from "../validation";
 import type { OpOptions } from "./common";
 import { evaluateDestination } from "./stock-core";
 import { completeTask, getTask, listTasks, startTask, type TaskRow } from "./tasks";
-import { addInventoryItem, getInventory, listInventories, recordCounts } from "./inventory";
+import { can } from "@/lib/permissions";
+import { addInventoryItem, canSubmitInventory, getInventory, listInventories, recordCounts, startLocationCount } from "./inventory";
 
 /**
  * Coletor (operador no celular / leitor de código de barras).
@@ -249,18 +250,35 @@ async function countingInventory(ctx: Ctx, inventoryId: string) {
 }
 
 /**
- * Lê o endereço dentro de um inventário em contagem. Retorna os itens a contar no
- * endereço SEM o saldo esperado (contagem cega).
+ * Lê o endereço dentro de um inventário em contagem e grava o lock do endereço (1ª
+ * leitura). Contagem cega de verdade (A4): NÃO lista os SKUs previstos, só quantos
+ * itens o endereço ainda tem a contar e se há recontagem.
  */
 export async function inventoryLocation(ctx: Ctx, inventoryId: string, code: string) {
   assertCan(ctx, "inventory.count");
   const inv = await countingInventory(ctx, inventoryId);
   const loc = await resolveLocationCode(ctx, code);
   if (loc.warehouse_id !== inv.warehouse_id) throw new DomainError(`Endereço ${loc.code} não pertence ao depósito do inventário.`);
-  const items = inv.items
-    .filter((i) => i.location_id === loc.id)
-    .map((i) => ({ id: i.id, sku: i.sku, description: i.description, uom: i.uom, lot_code: i.lot_code, counted: i.counted_qty !== null }));
-  return { location: loc, items };
+  const here = inv.items.filter((i) => i.location_id === loc.id);
+  if (here.length) await startLocationCount(ctx, inventoryId, loc.id);
+  const recount = here.filter((i) => i.status === "recount").length;
+  const counted = here.filter((i) => i.status === "counted" || i.status === "closed").length;
+  return { location: loc, toCount: here.length - counted, counted, recount, inScope: here.length > 0 };
+}
+
+/**
+ * Resumo do coletor: progresso ("42 de 72"), lista "A recontar" em destaque e se já
+ * dá para submeter para aprovação (A10).
+ */
+export async function collectorInventorySummary(ctx: Ctx, inventoryId: string) {
+  assertCan(ctx, "inventory.count");
+  const inv = await countingInventory(ctx, inventoryId);
+  const done = inv.items.filter((i) => i.status === "counted" || i.status === "closed").length;
+  const recount = inv.items
+    .filter((i) => i.status === "recount")
+    .map((i) => ({ id: i.id, location_code: i.location_code, sku: i.sku, round: i.round }));
+  const state = await canSubmitInventory(ctx.db, ctx.user.companyId, inventoryId);
+  return { code: inv.code, done, total: inv.items.length, recount, canSubmit: state.ready && can(ctx.user.role, "inventory.count") };
 }
 
 const countSchema = z.object({
@@ -287,7 +305,11 @@ export async function countFromCollector(ctx: Ctx, inventoryId: string, input: u
   if (loc.warehouse_id !== inv.warehouse_id) throw new DomainError(`Endereço ${loc.code} não pertence ao depósito do inventário.`);
   const product = await resolveProductCode(ctx, d.productCode);
   const matches = inv.items.filter(
-    (i) => i.location_id === loc.id && i.product_id === product.id && (d.lotCode === null || i.lot_code === d.lotCode),
+    (i) =>
+      i.location_id === loc.id &&
+      i.product_id === product.id &&
+      i.status !== "closed" &&
+      (d.lotCode === null || i.lot_code === d.lotCode),
   );
   if (matches.length > 1) {
     throw new DomainError(
@@ -297,8 +319,17 @@ export async function countFromCollector(ctx: Ctx, inventoryId: string, input: u
     );
   }
   if (matches.length === 1) {
-    await recordCounts(ctx, inventoryId, { items: [{ itemId: matches[0].id, countedQty: d.quantity }] }, opts);
-    return { itemId: matches[0].id, added: false, sku: product.sku, lotCode: matches[0].lot_code, location: loc.code };
+    const r = await recordCounts(ctx, inventoryId, { items: [{ itemId: matches[0].id, countedQty: d.quantity }], device: "collector" }, opts);
+    const res = r.results[0];
+    return {
+      itemId: matches[0].id,
+      added: false,
+      sku: product.sku,
+      lotCode: matches[0].lot_code,
+      location: loc.code,
+      recount: res ? !res.closed : false,
+      nextRound: res?.nextRound ?? null,
+    };
   }
   const added = await addInventoryItem(
     ctx,
@@ -309,10 +340,11 @@ export async function countFromCollector(ctx: Ctx, inventoryId: string, input: u
       lotCode: d.lotCode ?? "",
       countedQty: d.quantity,
       notes: "Item não previsto, incluído pelo coletor.",
+      device: "collector",
     },
     opts,
   );
-  return { itemId: added.id, added: true, sku: product.sku, lotCode: d.lotCode ?? "", location: loc.code };
+  return { itemId: added.id, added: true, sku: product.sku, lotCode: d.lotCode ?? "", location: loc.code, recount: !added.closed, nextRound: added.nextRound };
 }
 
 // -----------------------------------------------------------------------------

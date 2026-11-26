@@ -22,6 +22,7 @@ import { afterPickTx, completeWavePickTx, refreshWaveStatus } from "./waves";
 import { completeReplenishmentTx, emergencyReplenishmentTx } from "./replenishment";
 import { completeProductionPickTx } from "./production";
 import { isSerialControlled, parseSerials, pickSerials, returnSerials } from "./serials";
+import { triggerLocationCount } from "./inventory";
 
 export const TASK_TYPES = ["putaway", "transfer", "inventory", "picking", "replenishment", "return", "production_pick"] as const;
 export const TASK_STATUSES = ["pending", "in_progress", "completed", "cancelled"] as const;
@@ -555,6 +556,14 @@ async function completePicking(
   }
   // Reposição de emergência: falta encontrada em endereço de picking com saldo no pulmão.
   if (shortfall > 0) await emergencyReplenishmentTx(tx, ctx, t.from_location_id!, t.product_id!);
+  // Rotativo por gatilho (A7): falta no picking ou endereço zerado abrem contagem do endereço.
+  if (shortfall > 0 || origin.quantity === 0) {
+    await triggerLocationCount(tx, ctx, {
+      warehouseId: t.warehouse_id,
+      locationId: t.from_location_id!,
+      reason: shortfall > 0 ? "pick_shortage" : "zeroed",
+    });
+  }
   return { confirmed: picked, destination: order.staging_location_id };
 }
 

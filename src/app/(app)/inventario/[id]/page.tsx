@@ -11,7 +11,7 @@ import {
   approveInventoryAction,
   cancelInventoryAction,
   recordCountsAction,
-  rejectInventoryAction,
+  returnItemsForRecountAction,
   submitInventoryAction,
 } from "@/server/actions/inventory";
 import { PageHeader } from "@/components/ui/page-header";
@@ -20,16 +20,18 @@ import { Alert } from "@/components/ui/alert";
 import { Badge, StatusBadge } from "@/components/ui/badge";
 import { Disclosure } from "@/components/ui/disclosure";
 import { EmptyState } from "@/components/ui/empty-state";
-import { SuccessHero } from "@/components/ui/states";
 import { Field, Input, Select } from "@/components/ui/fields";
-import { TableWrap } from "@/components/ui/table";
 import { ActionForm, SubmitButton } from "@/components/forms/action-form";
 import { HistoryList } from "@/components/wms/history";
-import { fmtDate, fmtDateTime, fmtQty } from "@/lib/format";
+import { fmtDateTime } from "@/lib/format";
 import { can } from "@/lib/permissions";
 import { isUuid } from "@/lib/params";
-import { cn } from "@/components/ui/cn";
 import { InventoryMode } from "@/components/layout/inventory-mode";
+import { CountSheet } from "@/components/inventory/count-sheet";
+import { plural, shortLocation } from "@/lib/inventory-rules";
+
+const TYPE_LABEL: Record<string, string> = { general: "Geral", cyclic: "Rotativo", production_line: "Linha de produção" };
+const ORIGIN_LABEL: Record<string, string> = { manual: "Aberto manualmente", calendar: "Gerado pelo calendário", trigger: "Aberto por gatilho" };
 
 export const metadata = { title: "Inventário" };
 
@@ -48,28 +50,25 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
     getInventoryMap(ctx, id),
     getInventoryKpis(ctx, id),
   ]);
-  const counted = inv.items.filter((i) => i.counted_qty !== null).length;
-  const diffs = inv.items.filter((i) => i.counted_qty !== null && i.counted_qty !== i.expected_qty);
+  const counted = inv.items.filter((i) => i.status === "counted" || i.status === "closed").length;
+  const recount = inv.items.filter((i) => i.status === "recount").length;
+  const diffs = inv.items.filter((i) => i.counted_qty !== null && i.expected_qty !== null && i.counted_qty !== i.expected_qty);
+  const scope =
+    inv.scope_label ?? ([inv.zone_code && `Zona ${inv.zone_code}`, inv.location_code, inv.sku].filter(Boolean).join(" · ") || "Depósito inteiro");
 
   return (
     <InventoryMode>
       <PageHeader
-        title={`Inventário ${inv.code}`}
+        title={`${inv.code} · ${TYPE_LABEL[inv.count_type] ?? inv.count_type} · ${scope}`}
+        description={`${ORIGIN_LABEL[inv.origin] ?? "Aberto manualmente"} · ${plural(counted, "item contado", "itens contados")} de ${inv.items.length}${recount ? ` · ${recount} a recontar` : ""} · ${inv.lock_mode === "lock" ? "endereço bloqueado durante a contagem" : "conciliação de movimentos"}`}
         badges={
           <>
             <StatusBadge kind="inventory" status={inv.status} />
-            <Badge>{inv.count_type === "general" ? "Geral" : "Rotativo"}</Badge>
+            <Badge>{TYPE_LABEL[inv.count_type] ?? inv.count_type}</Badge>
           </>
         }
         breadcrumbs={[{ label: "Operações" }, { label: "Inventário", href: "/inventario" }, { label: inv.code }]}
       />
-      {inv.status === "approved" && kpis?.accuracy != null ? (
-        <SuccessHero
-          value={`${kpis.accuracy.toLocaleString("pt-BR", { maximumFractionDigits: 1 })}%`}
-          title="Inventário concluído"
-          detail={`${kpis.deltaPp != null ? `${kpis.deltaPp >= 0 ? "+" : ""}${kpis.deltaPp.toLocaleString("pt-BR", { maximumFractionDigits: 1 })} pp sobre o ciclo anterior · ` : ""}${kpis.locations.total} endereços · ${kpis.divergences ?? 0} ajustes`}
-        />
-      ) : null}
       {map ? (
         <CdMap
           map={map}
@@ -85,8 +84,9 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
           <DefinitionList
             items={[
               ["Depósito", inv.warehouse_code],
-              ["Escopo", [inv.zone_code && `Zona ${inv.zone_code}`, inv.location_code, inv.sku].filter(Boolean).join(" · ") || "Depósito inteiro"],
-              ["Progresso", `${counted} de ${inv.items.length} itens contados · ${diffs.length} com diferença`],
+              ["Escopo", scope],
+              ["Progresso", `${counted} de ${inv.items.length} · ${diffs.length} com diferença${recount ? ` · ${recount} a recontar` : ""}`],
+              ["Data de referência", inv.reference_date ? inv.reference_date.split("-").reverse().join("/") : "—"],
               ["Aberto por", `${inv.created_by_name} · ${fmtDateTime(inv.created_at)}`],
               ["Submetido por", inv.submitted_by_name ? `${inv.submitted_by_name} · ${fmtDateTime(inv.submitted_at)}` : "—"],
               ["Aprovado por", inv.approved_by_name ? `${inv.approved_by_name} · ${fmtDateTime(inv.approved_at)}` : "—"],
@@ -102,19 +102,20 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
           <Card>
             <CardHeader
               title="Folha de contagem"
-              description={counting ? "Informe a quantidade física encontrada. Salvar contagens não altera o saldo." : "Contagem encerrada."}
+              description={
+                counting
+                  ? "Contagem cega: o esperado fica oculto até a submissão. Fora da tolerância, o item volta para a 2ª contagem (outro usuário) e, se divergir, para a 3ª (supervisor). Salvar não altera o saldo."
+                  : "Contagem encerrada."
+              }
             />
             {inv.items.length ? (
               counting && can(role, "inventory.count") ? (
                 <ActionForm action={recordCountsAction}>
                   <input type="hidden" name="_id" value={id} />
-                  <CountTable items={inv.items} editable />
-                  <CardBody className="flex flex-wrap gap-2 border-t border-line">
-                    <SubmitButton variant="secondary">Salvar contagens</SubmitButton>
-                  </CardBody>
+                  <CountSheet items={inv.items} editable />
                 </ActionForm>
               ) : (
-                <CountTable items={inv.items} />
+                <CountSheet items={inv.items} />
               )
             ) : (
               <EmptyState title="Nenhum item no escopo" description="Não havia saldo no escopo selecionado. Inclua itens encontrados fisicamente, se houver." />
@@ -158,7 +159,12 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
                     <input type="hidden" name="_id" value={id} />
                     <p className="mb-3 text-sm text-fg-2">Ao submeter, as diferenças viram divergências e aguardam aprovação de um supervisor.</p>
                     <SubmitButton disabled={counted < inv.items.length || inv.items.length === 0}>Submeter para aprovação</SubmitButton>
-                    {counted < inv.items.length ? <p className="mt-2 text-xs text-warn-fg">Faltam {inv.items.length - counted} item(ns) a contar.</p> : null}
+                    {counted < inv.items.length ? (
+                      <p className="mt-2 text-xs text-warn-fg">
+                        Faltam {plural(inv.items.length - counted, "item", "itens")}
+                        {recount ? ` (${recount} em recontagem)` : ""}.
+                      </p>
+                    ) : null}
                   </ActionForm>
                 ) : (
                   <p className="text-sm text-muted">Contagem em andamento.</p>
@@ -168,23 +174,51 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
               {inv.status === "submitted" ? (
                 can(role, "inventory.approve") ? (
                   <>
-                    <Alert level="warning" title={`${diffs.length} diferença(s) a ajustar`}>
-                      A aprovação gera movimentações de ajuste e é recusada se algum saldo tiver mudado desde a abertura da contagem.
+                    <Alert level="warning" title={`${plural(diffs.length, "diferença", "diferenças")} a ajustar`}>
+                      Diferenças dentro da tolerância da classe ABC são ajustadas automaticamente na aprovação. Item cujo saldo mudou desde a foto volta
+                      para recontagem.
                     </Alert>
-                    <ActionForm action={approveInventoryAction} confirm="Aprovar e aplicar os ajustes de estoque?" className="space-y-3">
-                      <input type="hidden" name="_id" value={id} />
-                      <Field label="Observação da aprovação">
-                        <Input name="notes" maxLength={500} />
-                      </Field>
-                      <SubmitButton variant="success">Aprovar e ajustar estoque</SubmitButton>
-                    </ActionForm>
-                    <ActionForm action={rejectInventoryAction} className="space-y-3 border-t border-line pt-4">
-                      <input type="hidden" name="_id" value={id} />
-                      <Field label="Motivo da recontagem" required>
-                        <Input name="notes" required minLength={5} />
-                      </Field>
-                      <SubmitButton variant="secondary">Devolver para recontagem</SubmitButton>
-                    </ActionForm>
+                    {inv.canApprove ? (
+                      <ActionForm action={approveInventoryAction} confirm="Aprovar e aplicar os ajustes de estoque?" className="space-y-3">
+                        <input type="hidden" name="_id" value={id} />
+                        <Field label="Observação da aprovação">
+                          <Input name="notes" maxLength={500} />
+                        </Field>
+                        <Field label="Centro de custo">
+                          <Input name="costCenter" maxLength={40} />
+                        </Field>
+                        <SubmitButton variant="success">Aprovar e ajustar estoque</SubmitButton>
+                      </ActionForm>
+                    ) : (
+                      <Alert level="info" title="Aprovação bloqueada">
+                        {inv.blockedReason}
+                      </Alert>
+                    )}
+                    {diffs.length ? (
+                      <ActionForm action={returnItemsForRecountAction} className="space-y-3 border-t border-line pt-4">
+                        <input type="hidden" name="_id" value={id} />
+                        <fieldset>
+                          <legend className="text-sm font-medium">Itens para recontar</legend>
+                          <ul className="mt-2 max-h-56 space-y-1 overflow-y-auto">
+                            {diffs.map((i, k) => (
+                              <li key={i.id}>
+                                <label className="flex min-h-11 items-center gap-2 text-sm">
+                                  <input type="checkbox" name={`itemIds.${k}`} value={i.id} defaultChecked className="size-4" />
+                                  <span className="font-mono whitespace-nowrap" title={i.location_code}>
+                                    {shortLocation({ ...i, code: i.location_code })}
+                                  </span>
+                                  <span className="font-mono whitespace-nowrap">{i.sku}</span>
+                                </label>
+                              </li>
+                            ))}
+                          </ul>
+                        </fieldset>
+                        <Field label="Motivo da recontagem" required>
+                          <Input name="notes" required minLength={5} />
+                        </Field>
+                        <SubmitButton variant="secondary">Devolver itens para recontagem</SubmitButton>
+                      </ActionForm>
+                    ) : null}
                   </>
                 ) : (
                   <p className="text-sm text-muted">Aguardando aprovação de um supervisor.</p>
@@ -214,66 +248,5 @@ export default async function InventoryPage({ params }: { params: Promise<{ id: 
         </div>
       </div>
     </InventoryMode>
-  );
-}
-
-type Item = NonNullable<Awaited<ReturnType<typeof getInventory>>>["items"][number];
-
-function CountTable({ items, editable }: { items: Item[]; editable?: boolean }) {
-  return (
-    <TableWrap>
-      <table className="table-base">
-        <thead>
-          <tr>
-            <th>Endereço</th>
-            <th>Produto</th>
-            <th>Lote / validade</th>
-            <th className="num">Esperado</th>
-            <th className={editable ? "w-32" : "num"}>Contado</th>
-            <th className="num">Diferença</th>
-            <th>Observação</th>
-          </tr>
-        </thead>
-        <tbody>
-          {items.map((i, idx) => {
-            const diff = i.counted_qty === null ? null : i.counted_qty - i.expected_qty;
-            return (
-              <tr key={i.id}>
-                <td className="font-mono text-[11px] whitespace-nowrap">{i.location_code}</td>
-                <td>
-                  <span className="font-medium">{i.sku}</span>
-                  <span className="block text-xs text-muted">{i.description}</span>
-                </td>
-                <td className="text-xs">
-                  {i.lot_code || "—"} / {fmtDate(i.expiry_date)}
-                </td>
-                <td className="num">{fmtQty(i.expected_qty)}</td>
-                <td className={editable ? undefined : "num"}>
-                  {editable ? (
-                    <>
-                      <input type="hidden" name={`items.${idx}.itemId`} value={i.id} />
-                      <Input name={`items.${idx}.countedQty`} type="number" min={0} step="any" defaultValue={i.counted_qty ?? ""} aria-label={`Contado ${i.sku} em ${i.location_code}`} />
-                    </>
-                  ) : (
-                    fmtQty(i.counted_qty)
-                  )}
-                </td>
-                <td className={cn("num font-medium", diff && diff < 0 ? "text-crit-fg" : diff && diff > 0 ? "text-warn-fg" : "text-muted")}>
-                  {diff === null ? "—" : `${diff > 0 ? "+" : ""}${fmtQty(diff)}`}
-                  {i.adjusted ? <Badge tone="success" className="ml-1">Ajustado</Badge> : null}
-                </td>
-                <td>
-                  {editable ? (
-                    <Input name={`items.${idx}.notes`} defaultValue={i.notes ?? ""} aria-label={`Observação ${i.sku}`} />
-                  ) : (
-                    <span className="text-xs text-fg-2">{i.notes ?? "—"}</span>
-                  )}
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    </TableWrap>
   );
 }

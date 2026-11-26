@@ -32,8 +32,8 @@ export function LeadForm() {
         disabled={pending}
         className="inline-flex h-[62px] items-center gap-2 rounded-full bg-noite-900 px-8 text-[17px] font-bold text-creme-100 hover:bg-noite-700 disabled:opacity-70"
       >
-        {pending ? <LoaderCircle className="size-5 animate-spin" aria-hidden /> : null}
-        Garantir minha vaga
+        {pending ? <LoaderCircle className="size-5 motion-safe:animate-spin" aria-hidden /> : null}
+        {pending ? "Enviando…" : "Garantir minha vaga"}
       </button>
       {state.message ? (
         <p role="alert" className="w-full text-sm font-medium text-crit-fg">
