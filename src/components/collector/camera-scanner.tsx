@@ -147,7 +147,7 @@ export function CameraScanner({ onDetect, onClose }: { onDetect: (code: string) 
       <div aria-hidden className="pointer-events-none absolute inset-0 flex items-center justify-center">
         <div
           className={cn(
-            "relative h-[38%] w-[78%] rounded-lg border transition-colors",
+            "relative h-[38%] w-[78%] rounded-lg border transition-colors [container-type:size]",
             flash ? "border-ok-solid bg-ok-solid/20" : "border-creme-100/90",
           )}
         >

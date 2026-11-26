@@ -67,6 +67,26 @@ export const SETTINGS = {
       { value: "average", label: "Custo médio das compras" },
     ],
   },
+  "quality.required_for_output": {
+    label: "Qualidade obrigatória no produto acabado e na devolução",
+    description:
+      "O produto acabado e a devolução apta entram aguardando qualidade, com o saldo bloqueado na quarentena. A armazenagem só é gerada depois da aprovação.",
+    group: "Qualidade",
+    type: "boolean",
+    default: true,
+  },
+  "outbound.min_shelf_life_days": {
+    label: "Validade mínima restante na reserva",
+    description:
+      "Dias de validade que o lote precisa ter para ser reservado (FEFO). O produto e o cliente podem ter um mínimo próprio, que prevalece. 0 desliga.",
+    group: "Expedição",
+    type: "number",
+    default: 0,
+    min: 0,
+    max: 3650,
+    step: 1,
+    unit: " dias",
+  },
   "notifications.email_recipients": {
     label: "Destinatários dos avisos por e-mail",
     description:

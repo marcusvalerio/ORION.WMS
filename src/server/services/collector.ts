@@ -89,6 +89,19 @@ export async function listCollectorTasks(ctx: Ctx): Promise<TaskRow[]> {
   );
 }
 
+/**
+ * Mesmo critério do serviço de tarefas e do painel (D2): abertas (pendentes ou em
+ * execução) dos tipos do coletor. "Suas" = atribuídas a você ou livres; "da equipe" =
+ * em execução com outro operador.
+ */
+export async function collectorTaskCounts(ctx: Ctx) {
+  assertCan(ctx, "task.execute");
+  const { rows } = await listTasks(ctx, { status: "pending,in_progress", sort: "priority", pageSize: 500 });
+  const open = rows.filter((t) => (COLLECTOR_TYPES as readonly string[]).includes(t.task_type));
+  const mine = open.filter((t) => t.assigned_to === null || t.assigned_to === ctx.user.id).length;
+  return { mine, team: open.length - mine };
+}
+
 async function openTask(ctx: Ctx, taskId: string): Promise<TaskRow> {
   const task = await getTask(ctx, taskId);
   if (!task) throw new DomainError("Tarefa não encontrada.", "NOT_FOUND");

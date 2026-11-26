@@ -18,6 +18,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
     items: [
       { label: "Estrutura física", href: "/armazem/estrutura", icon: "Warehouse" },
       { label: "Endereços", href: "/armazem/enderecos", icon: "MapPin" },
+      { label: "Rastreabilidade", href: "/armazem/rastreabilidade", icon: "Activity", permission: "reports.view" },
       { label: "Produtos", href: "/produtos", icon: "Package" },
       { label: "Estoque", href: "/estoque", icon: "Boxes", match: ["/estoque/saldo", "/estoque/ajuste"] },
       { label: "Movimentações", href: "/estoque/movimentacoes", icon: "ArrowLeftRight" },
@@ -31,6 +32,7 @@ export const NAV: { section: string; items: NavItem[] }[] = [
       { label: "Conferência", href: "/conferencia", icon: "ClipboardCheck" },
       { label: "Armazenagem", href: "/armazenagem", icon: "PackageCheck" },
       { label: "Divergências", href: "/divergencias", icon: "TriangleAlert" },
+      { label: "Qualidade", href: "/qualidade", icon: "ShieldCheck", permission: "quality.release" },
       { label: "Agenda de docas", href: "/docas", icon: "CalendarClock" },
       { label: "Devoluções", href: "/devolucoes", icon: "Undo2" },
     ],

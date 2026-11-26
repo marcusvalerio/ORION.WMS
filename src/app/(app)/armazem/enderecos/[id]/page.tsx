@@ -61,6 +61,7 @@ export default async function LocationPage({ params }: { params: Promise<{ id: s
                   ["Classe de armazenagem", loc.storage_class ? STORAGE_CLASS_LABELS[loc.storage_class] : "Geral"],
                   ["Capacidade", `${fmtQty(loc.capacity_units)} un`],
                   ["Peso máximo", loc.max_weight_kg ? `${fmtQty(loc.max_weight_kg)} kg` : "—"],
+                  ["Volume máximo", loc.max_volume_m3 ? `${fmtQty(loc.max_volume_m3)} m³` : "—"],
                   ["Reservado", `${fmtQty(loc.reserved)} un`],
                   ["Bloqueado", `${fmtQty(loc.blocked)} un`],
                   ["Observações", loc.notes],
@@ -175,6 +176,9 @@ export default async function LocationPage({ params }: { params: Promise<{ id: s
                     </Field>
                     <Field label="Peso máx. (kg)">
                       <Input name="maxWeightKg" type="number" step="any" defaultValue={loc.max_weight_kg ?? ""} />
+                    </Field>
+                    <Field label="Volume máx. (m³)">
+                      <Input name="maxVolumeM3" type="number" min={0} step="any" defaultValue={loc.max_volume_m3 ?? ""} />
                     </Field>
                     <Field label="Observações" className="col-span-2">
                       <Input name="notes" defaultValue={loc.notes ?? ""} maxLength={500} />

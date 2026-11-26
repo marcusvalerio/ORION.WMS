@@ -9,7 +9,7 @@ import { parse, uuid, optionalText, optionalDate, optionalUuid, qty, nonNegQty }
 import { assertExportReady } from "./comex";
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueAtlasEvent, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
-import { availableOf, changeReserved, insertMovement, lockBalanceById, removeStock, type BalanceRow } from "./stock-core";
+import { availableOf, changeReserved, insertMovement, lockBalanceById, minShelfLifeDays, removeStock, shortShelfLife, type BalanceRow } from "./stock-core";
 import { isSerialControlled, parseSerials, shipSerials } from "./serials";
 import { checkReplenishmentTx } from "./replenishment";
 import { detachOrderFromWaveTx, refreshOrderPickStatus } from "./waves";
@@ -319,18 +319,23 @@ export async function reserveOrder(ctx: Ctx, orderId: string, opts?: OpOptions) 
     );
     const shortages: string[] = [];
     let reservations = 0;
+    const [so] = o.sales_order_id
+      ? await tx.query<{ customer_id: string }>(`select customer_id from erp.sales_orders where id = $1`, [o.sales_order_id])
+      : [];
     for (const line of lines) {
+      // R2: lotes abaixo da validade mínima restante (cliente > produto > empresa) ficam de fora
+      const minDays = await minShelfLifeDays(tx, ctx.user.companyId, line.product_id, so?.customer_id ?? null);
       const balances = await tx.query<BalanceRow>(
         `select b.id, b.warehouse_id, b.location_id, b.product_id, b.lot_code, b.expiry_date::text as expiry_date,
                 b.quantity, b.reserved_qty, b.blocked_qty
          from wms.stock_balances b join wms.locations l on l.id = b.location_id join wms.zones z on z.id = l.zone_id
          where b.company_id = $1 and b.warehouse_id = $2 and b.product_id = $3
            and l.status = 'active' and z.active and z.zone_type in ('storage', 'picking')
-           and (b.expiry_date is null or b.expiry_date >= current_date)
+           and (b.expiry_date is null or b.expiry_date >= current_date + $4::int)
            and b.quantity - b.reserved_qty - b.blocked_qty > 0
          order by b.expiry_date asc nulls last, (z.zone_type = 'picking') desc, b.quantity asc, l.code
          for update of b`,
-        [ctx.user.companyId, o.warehouse_id, line.product_id],
+        [ctx.user.companyId, o.warehouse_id, line.product_id, minDays],
       );
       let remaining = line.requested_qty;
       for (const b of balances) {
@@ -348,7 +353,10 @@ export async function reserveOrder(ctx: Ctx, orderId: string, opts?: OpOptions) 
       }
       if (remaining > 0) {
         const available = round3(line.requested_qty - remaining);
-        shortages.push(`${line.sku}: solicitado ${line.requested_qty}, disponível ${available}`);
+        const short = minDays > 0 ? await shortShelfLife(tx, ctx.user.companyId, o.warehouse_id, line.product_id, minDays) : 0;
+        shortages.push(
+          `${line.sku}: solicitado ${line.requested_qty}, disponível ${available}${short > 0 ? ` (${short} un em lotes com menos de ${minDays} dias de validade, abaixo do mínimo)` : ""}`,
+        );
       } else {
         await tx.query(`update wms.outbound_order_lines set reserved_qty = requested_qty where id = $1`, [line.id]);
       }

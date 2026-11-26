@@ -8,6 +8,7 @@ import * as docks from "@/server/services/docks";
 import * as returns from "@/server/services/returns";
 import * as outbound from "@/server/services/outbound";
 import * as tasks from "@/server/services/tasks";
+import * as quality from "@/server/services/quality";
 import { accessKeyCheckDigit, isValidAccessKey, parseNfeXml, MAX_NFE_BYTES } from "@/server/integrations/nfe/parser";
 
 const SAMPLE = readFileSync(path.join(process.cwd(), "docs/exemplos/nfe-pc-4588-entrega-1.xml"), "utf8");
@@ -315,19 +316,28 @@ describe("Devolução de cliente", () => {
     const before = await balanceOf(env, "CIA-001");
     const res = await returns.inspectReturnItem(sup, item.id, { approvedQty: 6, damagedQty: 3, discardedQty: 1, notes: "Caixa amassada" });
     expect(res.completed).toBe(true);
-    expect(res.tasks).toHaveLength(1);
+    // R1: o apto aguarda a qualidade com saldo bloqueado na quarentena (sem armazenagem ainda)
+    expect(res.tasks).toHaveLength(0);
     const after = await balanceOf(env, "CIA-001");
-    expect(after.quantity).toBe(before.quantity + 3); // só o avariado entra já (bloqueado); apto entra na armazenagem
-    expect(after.blocked).toBe(before.blocked + 3);
+    expect(after.quantity).toBe(before.quantity + 9); // avariado (3) + apto aguardando qualidade (6), todos bloqueados
+    expect(after.blocked).toBe(before.blocked + 9);
     const qua = await env.one<{ quantity: number; blocked_qty: number }>(
-      `select b.quantity, b.blocked_qty from wms.stock_balances b join wms.locations l on l.id = b.location_id where l.location_type = 'quarantine'`,
+      `select sum(b.quantity) as quantity, sum(b.blocked_qty) as blocked_qty from wms.stock_balances b join wms.locations l on l.id = b.location_id
+       where l.location_type = 'quarantine'`,
     );
-    expect(qua).toEqual({ quantity: 3, blocked_qty: 3 });
+    expect(qua).toEqual({ quantity: 9, blocked_qty: 9 });
+    const [hold] = await quality.listQualityHolds(sup);
+    expect(hold).toMatchObject({ source: "customer_return", quantity: 6, status: "pending" });
+    await expect(quality.decideQualityHold(op, hold.id, { decision: "approved", report: "Conferido" })).rejects.toThrow(/permissão/);
+    await expect(quality.decideQualityHold(sup, hold.id, { decision: "approved", report: "ok" })).rejects.toThrow(/laudo/);
+    const decided = await quality.decideQualityHold(sup, hold.id, { decision: "approved", report: "Embalagem íntegra, produto apto." });
+    expect(decided.tasks).toHaveLength(1);
+    expect((await balanceOf(env, "CIA-001")).quantity).toBe(before.quantity + 3); // apto saiu da quarentena e segue para a armazenagem
     const movs = await env.db.query<{ movement_type: string; quantity: number }>(
       `select movement_type, quantity from wms.stock_movements where reference_id = $1 order by created_at, movement_type`,
       [ret.id],
     );
-    expect(movs.map((m) => `${m.movement_type}:${m.quantity}`).sort()).toEqual(["discard:1", "return_in:1", "return_in:3"]);
+    expect(movs.map((m) => `${m.movement_type}:${m.quantity}`).sort()).toEqual(["discard:1", "return_in:1", "return_in:3", "return_in:6", "unblock:6"]);
     const task = (await returns.getReturn(sup, ret.id))!.tasks[0];
     await tasks.completeTask(op, task.id, {});
     expect((await balanceOf(env, "CIA-001")).quantity).toBe(before.quantity + 9);

@@ -5,6 +5,8 @@ import * as outbound from "@/server/services/outbound";
 import * as tasks from "@/server/services/tasks";
 import * as comex from "@/server/services/comex";
 import * as production from "@/server/services/production";
+import * as quality from "@/server/services/quality";
+import * as trace from "@/server/services/traceability";
 import { listStock } from "@/server/services/stock";
 import { isValidContainer, iso6346CheckDigit, isCountryCode, isNcm } from "@/lib/comex";
 
@@ -342,11 +344,21 @@ describe("Abastecimento de produção (requisição de materiais do MRP)", () =>
     expect(ev.n).toBe(1);
   });
 
-  it("produto acabado entra com o lote da ordem e vira armazenagem normal", async () => {
+  it("produto acabado entra com o lote da ordem, aguarda a qualidade e vira armazenagem normal", async () => {
     const op = env.as("operator");
+    const sup = env.as("supervisor");
     await expect(production.receiveOutput(op, reqId, { quantity: 6 })).rejects.toThrow(/acima do saldo da ordem/);
     const out = await production.receiveOutput(op, reqId, { quantity: 5 });
     expect(out.lot).toBe("OP2026001");
+    // R1: aguardando qualidade, saldo bloqueado; sem armazenagem até aprovar
+    expect(out.hold).toMatch(/^QLD-/);
+    expect((await balanceOf(env, "SUP-006")).blocked).toBe(5);
+    const [hold] = await quality.listQualityHolds(sup);
+    await quality.decideQualityHold(sup, hold.id, { decision: "approved", report: "Lote OP2026001 aprovado no ensaio." });
+    expect((await balanceOf(env, "SUP-006")).quantity).toBe(0);
+    // R5: genealogia — o acabado tem os componentes entregues à linha
+    const back = await trace.traceBackward(sup, { productId: await env.product("SUP-006"), lotCode: "OP2026001" });
+    expect(back.map((b) => b.sku)).toContain("CHP-004");
     const putaway = await env.one<{ id: string; task_type: string; lot_code: string; suggested_location_id: string | null }>(
       `select id, task_type, lot_code, suggested_location_id from wms.tasks where production_requisition_id = $1 and task_type = 'putaway'`,
       [reqId],

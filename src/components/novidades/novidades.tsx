@@ -200,8 +200,8 @@ export function Novidades({ view }: { view: NovidadesView }) {
                     <i
                       key={i}
                       className={cn(
-                        "block w-[7px] rounded-[2px] transition-all",
-                        i === step ? "h-[22px] bg-ceu-400" : i < step ? "h-3.5 bg-noite-900" : "h-3.5 bg-gelo-200",
+                        "block h-[22px] w-[7px] origin-bottom rounded-[2px] motion-safe:transition-[transform,opacity] motion-safe:duration-200",
+                        i === step ? "scale-y-100 bg-ceu-400" : i < step ? "scale-y-[0.64] bg-noite-900" : "scale-y-[0.64] bg-gelo-200",
                       )}
                     />
                   ))}

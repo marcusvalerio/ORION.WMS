@@ -57,8 +57,9 @@ describe("Segregação de funções no inventário e configurações do WMS", ()
   it("somente o administrador altera o parâmetro; desligado, quem contou pode aprovar; alteração auditada", async () => {
     await expect(updateSettings(env.as("supervisor"), {})).rejects.toThrow(/permissão/);
     await expect(updateSettings(env.as("admin"), { "nao.existe": "on" })).rejects.toThrow(/desconhecido/);
-    expect((await updateSettings(env.as("admin"), {})).changed).toBe(1); // checkbox ausente = desligado
-    expect((await updateSettings(env.as("admin"), {})).changed).toBe(0);
+    const keep = { "quality.required_for_output": "on" };
+    expect((await updateSettings(env.as("admin"), keep)).changed).toBe(1); // checkbox ausente = desligado
+    expect((await updateSettings(env.as("admin"), keep)).changed).toBe(0);
     const id = await countedBy("supervisor");
     await inventory.approveInventory(env.as("supervisor"), id, {});
     const log = await env.one<{ details: Record<string, unknown> }>(

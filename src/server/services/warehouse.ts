@@ -459,6 +459,9 @@ const locationUpdateSchema = z.object({
   maxWeightKg: z
     .union([z.literal("").transform(() => null), z.coerce.number().positive("Peso máximo deve ser maior que zero.")])
     .nullish(),
+  maxVolumeM3: z
+    .union([z.literal("").transform(() => null), z.coerce.number().positive("Volume máximo deve ser maior que zero.")])
+    .nullish(),
   notes: optionalText,
 });
 
@@ -488,8 +491,8 @@ export async function updateLocation(ctx: Ctx, id: string, input: unknown) {
     }
     await tx.query(
       `update wms.locations set location_type = $2, storage_class = $3, capacity_units = $4, max_weight_kg = $5,
-              notes = $6, updated_at = now() where id = $1`,
-      [id, data.locationType, data.storageClass ?? null, data.capacityUnits, data.maxWeightKg ?? null, data.notes],
+              notes = $6, max_volume_m3 = $7, updated_at = now() where id = $1`,
+      [id, data.locationType, data.storageClass ?? null, data.capacityUnits, data.maxWeightKg ?? null, data.notes, data.maxVolumeM3 ?? null],
     );
     await audit(tx, ctx, "location.updated", "location", id, loc.code, data);
     return { id };
@@ -571,6 +574,7 @@ export interface LocationRow {
   storage_class: string | null;
   capacity_units: number;
   max_weight_kg: number | null;
+  max_volume_m3?: number | null;
   status: string;
   notes: string | null;
   occupied: number;
@@ -644,7 +648,7 @@ export async function getLocation(ctx: Ctx, id: string) {
   const [loc] = await ctx.db.query<LocationRow>(
     `select l.id, l.code, l.warehouse_id, w.code as warehouse_code, l.zone_id, z.code as zone_code, z.name as zone_name,
             z.zone_type, l.aisle, l.bay, l.level, l.position, l.location_type, l.storage_class, l.capacity_units,
-            l.max_weight_kg, l.status, l.notes,
+            l.max_weight_kg, l.max_volume_m3, l.status, l.notes,
             coalesce((select sum(quantity) from wms.stock_balances b where b.location_id = l.id), 0) as occupied,
             coalesce((select sum(reserved_qty) from wms.stock_balances b where b.location_id = l.id), 0) as reserved,
             coalesce((select sum(blocked_qty) from wms.stock_balances b where b.location_id = l.id), 0) as blocked,

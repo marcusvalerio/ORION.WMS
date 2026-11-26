@@ -114,7 +114,9 @@ describe("meta de acuracidade configurável", () => {
     const company = admin.user.companyId;
     expect(await getSetting(env.db, company, "inventory.accuracy_target")).toBe(99);
     await expect(updateSettings(admin, { "inventory.accuracy_target": "120" })).rejects.toThrow(/entre 50 e 100/);
-    expect((await updateSettings(admin, { "inventory.segregation_of_duties": "on", "inventory.accuracy_target": "95" })).changed).toBe(1);
+    expect(
+      (await updateSettings(admin, { "inventory.segregation_of_duties": "on", "quality.required_for_output": "on", "inventory.accuracy_target": "95" })).changed,
+    ).toBe(1);
     expect(await getSetting(env.db, company, "inventory.accuracy_target")).toBe(95);
     // campo numérico ausente mantém o valor
     await updateSettings(admin, { "inventory.segregation_of_duties": "on" });

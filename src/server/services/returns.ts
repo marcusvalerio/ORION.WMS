@@ -5,8 +5,10 @@ import type { Ctx } from "../context";
 import { assertCan } from "../context";
 import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, nonNegQty } from "../validation";
-import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
-import { addStock, getProductRules, insertMovement, lockBalance, removeStock, suggestLocations, validateDestination } from "./stock-core";
+import { audit, enqueueIntegrationEvent, nextCode, round3, runOperation, type OpOptions } from "./common";
+import { getSetting } from "./settings";
+import { createPutawayTasks, createQualityHold } from "./quality";
+import { addStock, insertMovement, lockBalance, removeStock, validateDestination } from "./stock-core";
 
 /**
  * Devolução de cliente vinculada a um pedido de saída expedido.
@@ -163,36 +165,36 @@ export async function inspectReturnItem(ctx: Ctx, itemId: string, input: unknown
     const base = { warehouseId: ret.warehouse_id, productId: item.product_id, lotCode: item.lot_code, expiryDate: item.expiry_date };
     const tasks: string[] = [];
 
+    let hold: string | null = null;
     if (d.approvedQty > 0) {
-      // Armazenagem normal: tarefa com sugestão; o saldo só nasce na confirmação da tarefa.
-      const rules = await getProductRules(tx, ctx.user.companyId, item.product_id);
-      const chunk = rules.max_units_per_location ?? d.approvedQty;
-      let remaining = d.approvedQty;
-      while (remaining > 0) {
-        const q = round3(Math.min(chunk, remaining));
-        remaining = round3(remaining - q);
-        const s = await suggestLocations(tx, ctx, { warehouseId: ret.warehouse_id, productId: item.product_id, lotCode: item.lot_code, quantity: q });
-        const code = await nextCode(tx, ctx.user.companyId, "TAR");
-        const [t] = await tx.query<{ id: string }>(
-          `insert into wms.tasks (company_id, warehouse_id, code, task_type, priority, product_id, lot_code, expiry_date, quantity,
-                                  suggested_location_id, customer_return_id, notes, created_by)
-           values ($1,$2,$3,'putaway',2,$4,$5,$6,$7,$8,$9,$10,$11) returning id`,
-          [
-            ctx.user.companyId,
-            ret.warehouse_id,
-            code,
-            item.product_id,
-            item.lot_code,
-            item.expiry_date,
-            q,
-            s.best?.id ?? null,
-            ret.id,
-            `Devolução ${ret.code}${s.best ? "" : ` — sem sugestão automática: ${s.reason}`}`,
-            ctx.user.id,
-          ],
+      if (await getSetting(tx, ctx.user.companyId, "quality.required_for_output")) {
+        // R1: devolução apta aguarda a qualidade com saldo bloqueado; armazenagem só após aprovar
+        hold = (
+          await createQualityHold(tx, ctx, {
+            source: "customer_return",
+            warehouseId: ret.warehouse_id,
+            productionRequisitionId: null,
+            customerReturnId: ret.id,
+            referenceCode: ret.code,
+            productId: item.product_id,
+            lotCode: item.lot_code,
+            expiryDate: item.expiry_date,
+            quantity: d.approvedQty,
+            fallbackLocationId: null,
+          })
+        ).code;
+      } else {
+        tasks.push(
+          ...(await createPutawayTasks(tx, ctx, {
+            ...base,
+            quantity: d.approvedQty,
+            fromLocationId: null,
+            productionRequisitionId: null,
+            customerReturnId: ret.id,
+            note: `Devolução ${ret.code}`,
+            ref: ret.code,
+          })),
         );
-        await recordTaskEvent(tx, t.id, ctx.user.id, "created", null, "pending", { customerReturn: ret.code, suggested: s.best?.code ?? null });
-        tasks.push(code);
       }
     }
 
@@ -239,7 +241,7 @@ export async function inspectReturnItem(ctx: Ctx, itemId: string, input: unknown
               inspection_notes = $5, inspected_by = $6, inspected_at = now() where id = $1`,
       [item.id, d.approvedQty, d.damagedQty, d.discardedQty, d.notes, ctx.user.id],
     );
-    await audit(tx, ctx, "return.item_inspected", "customer_return", ret.id, ret.code, { sku: item.sku, ...d, tasks });
+    await audit(tx, ctx, "return.item_inspected", "customer_return", ret.id, ret.code, { sku: item.sku, ...d, tasks, hold });
 
     const [left] = await tx.query<{ n: number }>(`select count(*) as n from wms.customer_return_items where return_id = $1 and not inspected`, [ret.id]);
     let completed = false;

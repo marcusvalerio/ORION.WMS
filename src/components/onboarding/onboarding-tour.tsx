@@ -208,7 +208,7 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
           {target ? (
             <div
               aria-hidden
-              className="pointer-events-none fixed rounded-lg ring-2 ring-ceu-400 motion-safe:transition-all motion-safe:duration-300"
+              className="pointer-events-none fixed rounded-lg ring-2 ring-ceu-400 motion-safe:transition-[transform,opacity] motion-safe:duration-300"
               style={{ ...target, boxShadow: "0 0 0 9999px rgba(6, 11, 42, 0.66)" }}
             />
           ) : (
@@ -255,7 +255,7 @@ export function OnboardingTour({ nome, passos, pendente, versaoNovidades }: Onbo
           ) : passo ? (
             <div
               className={cn(
-                "fixed rounded-md border-2 border-ceu-400 bg-gelo-50 p-4 motion-safe:transition-all motion-safe:duration-300",
+                "fixed rounded-md border-2 border-ceu-400 bg-gelo-50 p-4 motion-safe:transition-[transform,opacity] motion-safe:duration-300",
                 mobile ? "inset-x-3 bottom-3" : !balloonStyle && "top-1/2 left-1/2 w-[min(340px,calc(100vw-32px))] -translate-x-1/2 -translate-y-1/2",
               )}
               style={mobile ? undefined : balloonStyle}

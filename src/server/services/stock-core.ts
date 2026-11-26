@@ -203,6 +203,33 @@ export async function assertLocationsNotLocked(
   }
 }
 
+/**
+ * Validade mínima restante (R2) para reservar um produto: cliente > produto > padrão
+ * da empresa (`outbound.min_shelf_life_days`). 0 = sem mínimo.
+ */
+export async function minShelfLifeDays(tx: Queryable, companyId: string, productId: string, customerId: string | null): Promise<number> {
+  const [r] = await tx.query<{ customer: number | null; product: number | null; company: unknown }>(
+    `select (select min_shelf_life_days from erp.customers where id = $3 and company_id = $1) as customer,
+            (select min_shelf_life_days from wms.product_settings where product_id = $2 and company_id = $1) as product,
+            (select value from wms.company_settings where company_id = $1 and key = 'outbound.min_shelf_life_days') as company`,
+    [companyId, productId, customerId],
+  );
+  const company = Number(r?.company ?? 0);
+  return Number(r?.customer ?? r?.product ?? (Number.isFinite(company) ? company : 0)) || 0;
+}
+
+/** Unidades disponíveis só em lotes com validade abaixo do mínimo (para explicar a indisponibilidade). */
+export async function shortShelfLife(tx: Queryable, companyId: string, warehouseId: string, productId: string, minDays: number): Promise<number> {
+  const [r] = await tx.query<{ q: number }>(
+    `select coalesce(sum(b.quantity - b.reserved_qty - b.blocked_qty), 0) as q from wms.stock_balances b
+     join wms.locations l on l.id = b.location_id join wms.zones z on z.id = l.zone_id
+     where b.company_id = $1 and b.warehouse_id = $2 and b.product_id = $3 and l.status = 'active' and z.zone_type in ('storage', 'picking')
+       and b.expiry_date >= current_date and b.expiry_date < current_date + $4::int and b.quantity - b.reserved_qty - b.blocked_qty > 0`,
+    [companyId, warehouseId, productId, minDays],
+  );
+  return Number(r?.q ?? 0);
+}
+
 /** Endereços bloqueados por contagem (ids), para excluir das sugestões. */
 export async function lockedLocationIds(tx: Queryable, companyId: string): Promise<Set<string>> {
   const rows = await tx.query<{ location_id: string }>(`select location_id from wms.inventory_location_locks where company_id = $1`, [
@@ -277,8 +304,11 @@ export interface LocationInfo {
   storage_class: string | null;
   capacity_units: number;
   max_weight_kg: number | null;
+  /** capacidade em m³ (R4) */
+  max_volume_m3?: number | null;
   occupied: number;
   occupied_weight: number;
+  occupied_volume?: number;
   incoming: number;
 }
 
@@ -286,6 +316,8 @@ export interface ProductRules {
   id: string;
   sku: string;
   weight_kg: number | null;
+  /** volume da unidade em m³ (dimensões do produto) */
+  volume_m3?: number | null;
   storage_class: string;
   max_units_per_location: number | null;
   preferred_zone_id: string | null;
@@ -296,6 +328,7 @@ export interface ProductRules {
 export async function getProductRules(tx: Queryable, companyId: string, productId: string): Promise<ProductRules> {
   const [row] = await tx.query<ProductRules>(
     `select p.id, p.sku, p.weight_kg,
+            case when p.length_cm > 0 and p.width_cm > 0 and p.height_cm > 0 then p.length_cm * p.width_cm * p.height_cm / 1000000.0 end as volume_m3,
             coalesce(s.storage_class, 'general') as storage_class,
             s.max_units_per_location, s.preferred_zone_id,
             coalesce(s.lot_controlled, false) as lot_controlled,
@@ -321,8 +354,10 @@ async function loadLocations(
 ): Promise<LocationInfo[]> {
   return tx.query<LocationInfo>(
     `select l.id, l.code, l.warehouse_id, l.zone_id, z.zone_type, z.active as zone_active, l.status, l.storage_class,
-            l.capacity_units, l.max_weight_kg,
+            l.capacity_units, l.max_weight_kg, l.max_volume_m3,
             coalesce((select sum(b.quantity) from wms.stock_balances b where b.location_id = l.id), 0) as occupied,
+            coalesce((select sum(b.quantity * coalesce(p.length_cm * p.width_cm * p.height_cm / 1000000.0, 0)) from wms.stock_balances b
+                      join erp.products p on p.id = b.product_id where b.location_id = l.id), 0) as occupied_volume,
             coalesce((select sum(b.quantity * coalesce(p.weight_kg, 0)) from wms.stock_balances b
                       join erp.products p on p.id = b.product_id where b.location_id = l.id), 0) as occupied_weight,
             coalesce((select sum(t.quantity) from wms.tasks t
@@ -347,6 +382,18 @@ export interface Evaluation {
   reasons: string[];
   free: number;
   productQty: number;
+  /** carga após a entrada: "1,10 de 1,20 m³ · 820 de 1.000 kg" (quando o endereço tem limite) */
+  load: string | null;
+}
+
+const fmt = (n: number, d: number) => n.toLocaleString("pt-BR", { minimumFractionDigits: d, maximumFractionDigits: d });
+
+/** Texto de carga do endereço depois de receber `qty` (R4). Exportada para teste. */
+export function loadText(loc: Pick<LocationInfo, "max_volume_m3" | "max_weight_kg" | "occupied_volume" | "occupied_weight">, product: Pick<ProductRules, "volume_m3" | "weight_kg">, qty: number): string | null {
+  const parts: string[] = [];
+  if (loc.max_volume_m3) parts.push(`${fmt(Number(loc.occupied_volume ?? 0) + qty * Number(product.volume_m3 ?? 0), 2)} de ${fmt(Number(loc.max_volume_m3), 2)} m³`);
+  if (loc.max_weight_kg) parts.push(`${fmt(Number(loc.occupied_weight) + qty * Number(product.weight_kg ?? 0), 0)} de ${fmt(Number(loc.max_weight_kg), 0)} kg`);
+  return parts.length ? parts.join(" · ") : null;
 }
 
 async function productQtyAt(tx: Queryable, locationId: string, productId: string): Promise<number> {
@@ -379,7 +426,9 @@ function evaluate(
     reasons.push(`excede o máximo de ${product.max_units_per_location} un do produto por endereço`);
   if (loc.max_weight_kg && product.weight_kg && loc.occupied_weight + qty * product.weight_kg > loc.max_weight_kg)
     reasons.push(`excede o peso máximo do endereço (${loc.max_weight_kg} kg)`);
-  return { location: loc, ok: reasons.length === 0, reasons, free, productQty };
+  if (loc.max_volume_m3 && product.volume_m3 && Number(loc.occupied_volume ?? 0) + qty * Number(product.volume_m3) > Number(loc.max_volume_m3))
+    reasons.push(`excede o volume máximo do endereço (${fmt(Number(loc.max_volume_m3), 2)} m³)`);
+  return { location: loc, ok: reasons.length === 0, reasons, free, productQty, load: loadText(loc, product, qty) };
 }
 
 /**

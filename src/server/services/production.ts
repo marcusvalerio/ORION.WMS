@@ -8,6 +8,8 @@ import { DomainError, NotFoundError } from "../errors";
 import { parse, uuid, optionalText, optionalDate, checkbox, qty } from "../validation";
 import * as erp from "../integrations/erp/gateway";
 import { audit, enqueueIntegrationEvent, nextCode, recordTaskEvent, round3, runOperation, type OpOptions } from "./common";
+import { getSetting } from "./settings";
+import { createPutawayTasks, createQualityHold } from "./quality";
 import {
   addStock,
   availableOf,
@@ -15,8 +17,9 @@ import {
   getProductRules,
   insertMovement,
   lockBalance,
+  minShelfLifeDays,
   removeStock,
-  suggestLocations,
+  shortShelfLife,
   validateDestination,
   type BalanceRow,
 } from "./stock-core";
@@ -364,17 +367,19 @@ export async function reserveRequisition(ctx: Ctx, id: string, opts?: OpOptions)
     for (const line of lines) {
       const need = round3(line.required_qty - line.reserved_qty - line.picked_qty);
       if (need <= 0) continue;
+      // R2: validade mínima restante (produto > empresa)
+      const minDays = await minShelfLifeDays(tx, ctx.user.companyId, line.product_id, null);
       const balances = await tx.query<BalanceRow>(
         `select b.id, b.warehouse_id, b.location_id, b.product_id, b.lot_code, b.expiry_date::text as expiry_date,
                 b.quantity, b.reserved_qty, b.blocked_qty
          from wms.stock_balances b join wms.locations l on l.id = b.location_id join wms.zones z on z.id = l.zone_id
          where b.company_id = $1 and b.warehouse_id = $2 and b.product_id = $3
            and l.status = 'active' and z.active and z.zone_type in ('storage', 'picking')
-           and (b.expiry_date is null or b.expiry_date >= current_date)
+           and (b.expiry_date is null or b.expiry_date >= current_date + $4::int)
            and b.quantity - b.reserved_qty - b.blocked_qty > 0
          order by b.expiry_date asc nulls last, b.quantity asc, l.code
          for update of b`,
-        [ctx.user.companyId, r.warehouse_id, line.product_id],
+        [ctx.user.companyId, r.warehouse_id, line.product_id, minDays],
       );
       let remaining = need;
       let taken = 0;
@@ -394,7 +399,10 @@ export async function reserveRequisition(ctx: Ctx, id: string, opts?: OpOptions)
         remaining = round3(remaining - take);
       }
       if (taken > 0) await tx.query(`update wms.production_requisition_lines set reserved_qty = reserved_qty + $2 where id = $1`, [line.id, taken]);
-      if (remaining > 0) shortages.push(`${line.sku}: faltam ${remaining} de ${need}`);
+      if (remaining > 0) {
+        const short = minDays > 0 ? await shortShelfLife(tx, ctx.user.companyId, r.warehouse_id, line.product_id, minDays) : 0;
+        shortages.push(`${line.sku}: faltam ${remaining} de ${need}${short > 0 ? ` (${short} un com validade abaixo do mínimo de ${minDays} dias)` : ""}`);
+      }
     }
     if (shortages.length && r.all_or_nothing) {
       // A transação inteira é desfeita: nenhuma reserva parcial permanece.
@@ -597,6 +605,12 @@ export async function deliverToLine(ctx: Ctx, id: string, input: unknown, opts?:
         `insert into wms.production_delivery_items (delivery_id, line_id, lot_code, quantity) values ($1,$2,$3,$4)`,
         [delivery.id, v.line_id, v.lot_code, v.picked_qty],
       );
+      // R5: genealogia — componente/lote entregue à linha compõe o lote do acabado da ordem
+      await tx.query(
+        `insert into wms.lot_genealogy (company_id, parent_product, parent_lot, child_product, child_lot, qty, source, ref_id)
+         values ($1,$2,$3,$4,$5,$6,'production',$7)`,
+        [ctx.user.companyId, r.output_product_id, r.output_lot_code, v.product_id, v.lot_code, v.picked_qty, id],
+      );
       await tx.query(`update wms.production_reservations set status = 'delivered', closed_at = now() where id = $1`, [v.id]);
       await tx.query(`update wms.production_requisition_lines set delivered_qty = delivered_qty + $2 where id = $1`, [v.line_id, v.picked_qty]);
       items.push({ sku: v.sku, lot: v.lot_code, quantity: v.picked_qty });
@@ -735,23 +749,39 @@ export async function receiveOutput(ctx: Ctx, id: string, input: unknown, opts?:
     }
     const rules = await getProductRules(tx, ctx.user.companyId, r.output_product_id);
     if (rules.expiry_controlled && !d.expiryDate) throw new DomainError(`O produto ${rules.sku} exige validade.`, "VALIDATION", "expiryDate");
-    const chunk = rules.max_units_per_location ?? d.quantity;
-    let remaining = d.quantity;
     const tasks: string[] = [];
-    while (remaining > 0) {
-      const q = round3(Math.min(chunk, remaining));
-      remaining = round3(remaining - q);
-      const suggestion = await suggestLocations(tx, ctx, { warehouseId: r.warehouse_id, productId: r.output_product_id, lotCode: r.output_lot_code, quantity: q });
-      const code = await nextCode(tx, ctx.user.companyId, "TAR");
-      const [t] = await tx.query<{ id: string }>(
-        `insert into wms.tasks (company_id, warehouse_id, code, task_type, priority, product_id, lot_code, expiry_date, quantity,
-                                from_location_id, suggested_location_id, production_requisition_id, notes, created_by)
-         values ($1,$2,$3,'putaway',2,$4,$5,$6,$7,$8,$9,$10,$11,$12) returning id`,
-        [ctx.user.companyId, r.warehouse_id, code, r.output_product_id, r.output_lot_code, d.expiryDate, q, r.line_location_id,
-          suggestion.best?.id ?? null, id, suggestion.best ? null : `Sem sugestão automática: ${suggestion.reason}`, ctx.user.id],
+    let hold: string | null = null;
+    if (await getSetting(tx, ctx.user.companyId, "quality.required_for_output")) {
+      // R1: aguarda a qualidade com saldo bloqueado (quarentena, ou o endereço da linha); armazenagem só após aprovar
+      hold = (
+        await createQualityHold(tx, ctx, {
+          source: "production_output",
+          warehouseId: r.warehouse_id,
+          productionRequisitionId: id,
+          customerReturnId: null,
+          referenceCode: r.code,
+          productId: r.output_product_id,
+          lotCode: r.output_lot_code,
+          expiryDate: d.expiryDate ?? null,
+          quantity: d.quantity,
+          fallbackLocationId: r.line_location_id,
+        })
+      ).code;
+    } else {
+      tasks.push(
+        ...(await createPutawayTasks(tx, ctx, {
+          warehouseId: r.warehouse_id,
+          productId: r.output_product_id,
+          lotCode: r.output_lot_code,
+          expiryDate: d.expiryDate ?? null,
+          quantity: d.quantity,
+          fromLocationId: r.line_location_id,
+          productionRequisitionId: id,
+          customerReturnId: null,
+          note: null,
+          ref: r.code,
+        })),
       );
-      await recordTaskEvent(tx, t.id, ctx.user.id, "created", null, "pending", { requisition: r.code, suggested: suggestion.best?.code ?? null });
-      tasks.push(code);
     }
     await tx.query(`update wms.production_requisitions set output_qty = output_qty + $2, updated_at = now(), version = version + 1 where id = $1`, [
       id,
@@ -767,8 +797,8 @@ export async function receiveOutput(ctx: Ctx, id: string, input: unknown, opts?:
       quantity: d.quantity,
       totalReceived: round3(r.output_qty + d.quantity),
     });
-    await audit(tx, ctx, "production.output_received", "production_requisition", id, r.code, { ...d, lot: r.output_lot_code, tasks });
-    return { id, tasks, lot: r.output_lot_code };
+    await audit(tx, ctx, "production.output_received", "production_requisition", id, r.code, { ...d, lot: r.output_lot_code, tasks, hold });
+    return { id, tasks, lot: r.output_lot_code, hold };
   });
 }
 

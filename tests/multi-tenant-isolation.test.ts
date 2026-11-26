@@ -28,6 +28,8 @@ import * as docks from "@/server/services/docks";
 import * as health from "@/server/services/health";
 import * as integration from "@/server/services/integration";
 import * as inventory from "@/server/services/inventory";
+import * as quality from "@/server/services/quality";
+import * as traceability from "@/server/services/traceability";
 import * as labels from "@/server/services/labels";
 import * as nfe from "@/server/services/nfe";
 import * as novidades from "@/server/services/novidades";
@@ -88,6 +90,8 @@ const EXCLUDED: Record<string, string> = {
   "health.toPublicHealth": "puro",
   "inventory.isBlindCount": "puro",
   "inventory.inventoryRegisterCsv": "puro",
+  "quality.createPutawayTasks": "interno, chamado dentro da transação do fluxo (produção, devolução, qualidade) já validado",
+  "quality.createQualityHold": "interno, chamado dentro da transação do fluxo (produção, devolução) já validado",
   "inventory.getInventoryTolerances": "interno, recebe companyId do contexto",
   "inventory.getCyclePlans": "interno, recebe companyId do contexto",
   "inventory.canSubmitInventory": "interno, recebe companyId do contexto e id já validado",
@@ -161,6 +165,7 @@ const READS = [
     "lookupCode#sku": (x) => collector.lookupCode(op(x), "SKU-002"),
     inventoryLocation: (x, y) => collector.inventoryLocation(op(x), y.r.inventoryId, LOC(2, 1)),
     collectorInventorySummary: (x, y) => collector.collectorInventorySummary(op(x), y.r.inventoryId),
+    collectorTaskCounts: (x) => collector.collectorTaskCounts(op(x)),
     checkDestination: (x, y) => collector.checkDestination(op(x), y.r.transferTaskId, LOC(3, 1)),
     checkOrigin: (x, y) => collector.checkOrigin(op(x), y.r.transferTaskId, LOC(2, 1)),
     checkTaskProduct: (x, y) => collector.checkTaskProduct(op(x), y.r.transferTaskId, "SKU-003"),
@@ -218,6 +223,13 @@ const READS = [
     getInventoryConfig: (x) => inventory.getInventoryConfig(adm(x)),
     getCycleCalendar: (x, y) => inventory.getCycleCalendar(adm(x), y.warehouseId),
     inventoryRegister: (x) => inventory.inventoryRegister(adm(x), "2026-12-31"),
+  }),
+  ...reg("quality", {
+    listQualityHolds: (x) => quality.listQualityHolds(adm(x)),
+  }),
+  ...reg("traceability", {
+    traceBackward: (x, y) => traceability.traceBackward(adm(x), { productId: y.products["SKU-001"], lotCode: "" }),
+    traceForward: (x, y) => traceability.traceForward(adm(x), { productId: y.products["SKU-001"], lotCode: "" }),
   }),
   ...reg("labels", {
     listLocationLabels: (x) => labels.listLocationLabels(adm(x), {}),
@@ -458,6 +470,12 @@ const WRITES = [
     "startLocationCount#misto-enderecoY": (x, y) => inventory.startLocationCount(adm(x), x.r.inventoryId, y.locations[LOC(2, 1)]),
     generateCycleCounts: (x, y) => inventory.generateCycleCounts(adm(x), { warehouseId: y.warehouseId }),
     saveInventoryConfig: async () => { throw new DomainError("sem alvo: grava só na empresa do contexto (Y conferida por snapshot)"); },
+  }),
+  ...reg("quality", {
+    decideQualityHold: (x, y) => quality.decideQualityHold(adm(x), y.r.inventoryId, { decision: "approved", report: "Laudo de outra empresa" }),
+  }),
+  ...reg("traceability", {
+    startRecall: (x, y) => traceability.startRecall(adm(x), { productId: y.products["SKU-001"], lotCode: "", reason: "Recall de outra empresa" }),
   }),
   ...reg("waves", {
     createWave: (x, y) => waves.createWave(adm(x), { warehouseId: y.warehouseId, grouping: "manual", orderIds: [y.r.waveOrderId], dockLocationId: y.dockLocationId }),
