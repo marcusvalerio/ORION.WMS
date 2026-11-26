@@ -162,6 +162,9 @@ POP-ORN-33 (abrir), 34 (contar) e 35 (aprovar). Criar POPs novos para "Configura
 Protótipo: `prototipos/mapa-3d.html`. Ele copia o desenho do `iso.tsx`: mesma projeção, mesmas caixas e os 3 tons por cor. A banca revisou e pediu o que está abaixo.
 
 **Câmera**
+- Ruas mais espaçadas: corredor com o dobro da profundidade da estante (rua em y = r×3).
+- Arrastar com um dedo ou com o botão esquerdo gira a vista em volta do armazém: para os lados muda o giro, para cima e para baixo muda a inclinação, até a vista de cima. Dois dedos, o botão direito ou Shift movem o mapa. O botão "Arraste gira / Arraste move" troca o modo.
+- Os giros são livres: a projeção calcula as faces visíveis pelo ângulo. ⟲ e ⟳ giram 90° com animação.
 - Arrastar com mouse ou dedo.
 - Zoom pela roda, pela pinça e pelos botões + e −, sempre a partir do ponto do cursor.
 - Girar em 90°, com ⟲ e ⟳.
