@@ -11,7 +11,8 @@ Este pacote reúne tudo o que a banca de avaliação (4 de design + 2 de operaç
 | `02-inventario.md` | Especificação completa do novo Inventário (etapa 1) |
 | `03-correcoes-gerais.md` | As 10 correções gerais: 5 de design e 5 de regra (etapa 2) |
 | `04-funcionalidades-novas.md` | Funcionalidades grandes (etapa 3) |
-| `prototipos/inventario.html` | Protótipo aprovado do Inventário (abrir no navegador) |
+| `prototipos/inventario.html` | Protótipo do Inventário: painel, folha, rodadas e coletor. O mapa deste arquivo **não** vale; use o `mapa-3d.html` |
+| `prototipos/mapa-3d.html` | Protótipo aprovado do mapa 3D: ruas espaçadas, giro livre arrastando, zoom, vista de cima, níveis (abrir no navegador) |
 | `prototipos/correcoes.html` | Protótipo "hoje × proposto" das 10 correções |
 
 ## Contexto do sistema
